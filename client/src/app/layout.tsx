@@ -5,7 +5,7 @@ import { headers } from 'next/headers'
 import ClientLayout from './ClientLayout'
 
 export const metadata = {
-  title: 'Humanae',
+  title: 'Humanaira',
   description: 'The best AI services marketplace',
   icons: { icon: '/favicon.ico' }
 }

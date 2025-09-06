@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
 
-// Simple rich text editor toolbar actions
+// Rich text editor toolbar actions
 const toolbarActions = [
   { label: 'Bold', command: 'bold', icon: <b>B</b> },
   { label: 'Italic', command: 'italic', icon: <i>I</i> },
@@ -24,12 +24,13 @@ export default function AccountPage() {
   const [language, setLanguage] = useState('en')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+  const [gigs, setGigs] = useState<any[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const bioRef = useRef<HTMLDivElement>(null)
   const supabase = createSupabaseBrowser()
   const router = useRouter()
 
-  // Fetch user info
+  // Fetch user info and gigs
   useEffect(() => {
     async function fetchUser() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -41,8 +42,17 @@ export default function AccountPage() {
         setIsFreelancer(user.user_metadata?.isFreelancer || false)
         setBio(user.user_metadata?.bio || '')
         setLanguage(user.user_metadata?.language || 'en')
+        fetchGigs(user.id)
       }
       setLoading(false)
+    }
+    async function fetchGigs(userId: string) {
+      const { data, error } = await supabase
+        .from('gigs')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+      if (!error && data) setGigs(data)
     }
     fetchUser()
     // eslint-disable-next-line
@@ -152,19 +162,22 @@ export default function AccountPage() {
     )
   }
 
+  // The main background and blur elements are now fixed and vibrant, with correct stacking and overflow.
   return (
-    <main className="min-h-screen bg-neutral-100 text-gray-900 font-inter">
-      <section className="relative max-w-2xl mx-auto px-4 py-20 mt-10">
-        {/* Decorative Blur Backgrounds */}
-        <div className="absolute -top-16 -left-24 w-72 h-72 bg-blue-100 rounded-full blur-3xl opacity-60 z-0" />
-        <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-blue-200 rounded-full blur-3xl opacity-50 z-0" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-32 bg-blue-50 rounded-full blur-2xl opacity-40 z-0" />
-        <h1 className="relative z-10 text-3xl md:text-4xl font-extrabold mb-8 text-center text-blue-900 tracking-tight">
+    <main className="min-h-screen bg-gradient-to-br from-[#090a10] via-[#07102a] to-[#123055] text-gray-100 font-inter relative overflow-hidden">
+      {/* Vibrant Blur Backgrounds - fixed position, full screen, behind everything */}
+      <div className="pointer-events-none absolute inset-0 z-0">
+        <div className="absolute -top-32 -left-32 w-96 h-96 bg-blue-300 rounded-full blur-[120px] opacity-40" />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-500 rounded-full blur-[120px] opacity-30" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-40 bg-blue-100 rounded-full blur-[80px] opacity-25" />
+      </div>
+      <section className="relative z-10 max-w-2xl mx-auto px-4 py-20 pt-28">
+        <h1 className="text-3xl md:text-4xl font-extrabold mb-8 text-center text-blue-200 tracking-tight">
           Account Settings
         </h1>
         <form
           onSubmit={handleSave}
-          className="relative z-10 bg-white/90 rounded-2xl shadow-xl border border-blue-100 p-8 flex flex-col gap-8"
+          className="bg-[#181a23]/90 rounded-2xl shadow-xl border border-blue-900 p-8 flex flex-col gap-8"
         >
           {/* Profile Section */}
           <div className="flex flex-col md:flex-row gap-6 items-center">
@@ -172,11 +185,11 @@ export default function AccountPage() {
               <img
                 src={avatarUrl || '/avatar-placeholder.png'}
                 alt="Avatar"
-                className="w-20 h-20 rounded-full object-cover border-2 border-blue-200 shadow"
+                className="w-20 h-20 rounded-full object-cover border-2 border-blue-900 shadow"
               />
               <button
                 type="button"
-                className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 text-xs hover:bg-blue-700 shadow"
+                className="absolute bottom-0 right-0 bg-blue-700 text-white rounded-full p-2 text-xs hover:bg-blue-800 shadow"
                 onClick={() => fileInputRef.current?.click()}
                 title="Change avatar"
               >
@@ -191,13 +204,13 @@ export default function AccountPage() {
               />
             </div>
             <div className="flex-1 w-full">
-              <label className="block text-gray-700 font-semibold mb-1" htmlFor="name">
+              <label className="block text-blue-100 font-semibold mb-1" htmlFor="name">
                 Name
               </label>
               <input
                 id="name"
                 type="text"
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 text-base focus:outline-none focus:ring-2 focus:ring-blue-100"
+                className="w-full px-4 py-3 rounded-lg border border-blue-800 bg-[#07102a] text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={name}
                 onChange={e => setName(e.target.value)}
                 autoComplete="name"
@@ -207,13 +220,13 @@ export default function AccountPage() {
           </div>
           {/* Email */}
           <div>
-            <label className="block text-gray-700 font-semibold mb-1" htmlFor="email">
+            <label className="block text-blue-100 font-semibold mb-1" htmlFor="email">
               Email
             </label>
             <input
               id="email"
               type="email"
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 text-base focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="w-full px-4 py-3 rounded-lg border border-blue-800 bg-[#07102a] text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={email}
               onChange={e => setEmail(e.target.value)}
               autoComplete="email"
@@ -222,7 +235,7 @@ export default function AccountPage() {
           </div>
           {/* Bio (Rich Text Editor) */}
           <div>
-            <label className="block text-gray-700 font-semibold mb-1" htmlFor="bio">
+            <label className="block text-blue-100 font-semibold mb-1" htmlFor="bio">
               Summary
             </label>
             <div className="mb-2 flex gap-2 flex-wrap">
@@ -230,7 +243,7 @@ export default function AccountPage() {
                 <button
                   key={action.command}
                   type="button"
-                  className="px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100 text-sm font-semibold"
+                  className="px-2 py-1 rounded bg-blue-950 text-blue-200 hover:bg-blue-900 border border-blue-800 text-sm font-semibold"
                   title={action.label}
                   tabIndex={-1}
                   onMouseDown={e => {
@@ -245,7 +258,7 @@ export default function AccountPage() {
             <div
               id="bio"
               ref={bioRef}
-              className="w-full min-h-[100px] px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 text-base focus:outline-none focus:ring-2 focus:ring-blue-100 prose prose-blue max-w-none"
+              className="w-full min-h-[100px] px-4 py-3 rounded-lg border border-blue-800 bg-[#07102a] text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500 prose prose-blue max-w-none"
               contentEditable
               suppressContentEditableWarning
               onInput={handleBioInput}
@@ -253,18 +266,18 @@ export default function AccountPage() {
               aria-label="Summary"
               style={{ whiteSpace: 'pre-wrap' }}
             />
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-xs text-blue-300 mt-1">
               You can highlight, bold, italic, add lists, and links. This will be shown as your summary.
             </div>
           </div>
           {/* Language */}
           <div>
-            <label className="block text-gray-700 font-semibold mb-1" htmlFor="language">
+            <label className="block text-blue-100 font-semibold mb-1" htmlFor="language">
               Preferred Language
             </label>
             <select
               id="language"
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 text-base focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="w-full px-4 py-3 rounded-lg border border-blue-800 bg-[#07102a] text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={language}
               onChange={e => setLanguage(e.target.value)}
             >
@@ -293,7 +306,7 @@ export default function AccountPage() {
         </form>
         {/* Freelancer Section */}
         {!isFreelancer ? (
-          <div className="relative z-10 mt-12 text-center">
+          <div className="mt-12 text-center">
             <button
               className="px-8 py-3 rounded-full bg-green-600 text-white font-semibold shadow hover:bg-green-700 transition"
               onClick={handleBecomeFreelancer}
@@ -303,38 +316,68 @@ export default function AccountPage() {
             </button>
           </div>
         ) : (
-          <div className="relative z-10 mt-12">
-            <h2 className="text-xl font-bold mb-4 text-blue-900">Freelancer Dashboard</h2>
+          <div className="mt-12">
+            <h2 className="text-xl font-bold mb-4 text-blue-200">Freelancer Dashboard</h2>
             <div className="flex flex-col gap-4">
               <a
                 href="/seller/gigs/new"
-                className="px-6 py-3 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 transition text-center"
+                className="px-6 py-3 rounded-md bg-blue-700 text-white font-semibold hover:bg-blue-800 transition text-center"
               >
                 Post a New Gig
               </a>
               <a
                 href="/seller/gigs"
-                className="px-6 py-3 rounded-md bg-gray-200 text-gray-800 font-semibold hover:bg-gray-300 transition text-center"
+                className="px-6 py-3 rounded-md bg-blue-950 text-blue-200 font-semibold hover:bg-blue-900 transition text-center"
               >
                 Manage My Gigs
               </a>
               <a
                 href="/seller/orders"
-                className="px-6 py-3 rounded-md bg-gray-200 text-gray-800 font-semibold hover:bg-gray-300 transition text-center"
+                className="px-6 py-3 rounded-md bg-blue-950 text-blue-200 font-semibold hover:bg-blue-900 transition text-center"
               >
                 My Orders
               </a>
             </div>
+            {/* My Gigs List */}
+            <div className="mt-8">
+              <h3 className="text-lg font-bold text-blue-100 mb-2">My Gigs</h3>
+              {gigs.length === 0 ? (
+                <div className="text-blue-300">You have not posted any gigs yet.</div>
+              ) : (
+                <ul className="space-y-4">
+                  {gigs.map(gig => (
+                    <li key={gig.id} className="bg-[#10131e] border border-blue-800 rounded-xl p-4 flex items-center gap-4">
+                      <img
+                        src={gig.cover_image_url || '/default-gig.png'}
+                        alt={gig.title}
+                        className="w-16 h-16 rounded-lg object-cover border"
+                      />
+                      <div className="flex-1">
+                        <div className="font-semibold text-blue-200">{gig.title}</div>
+                        <div className="text-blue-400 text-sm">{gig.category}</div>
+                        <div className="text-blue-300 text-xs">{gig.tags?.join(', ')}</div>
+                      </div>
+                      <a
+                        href={`/seller/gigs/${gig.slug}`}
+                        className="px-4 py-2 rounded-lg bg-blue-700 text-white font-semibold hover:bg-blue-800 transition"
+                      >
+                        View
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         )}
         {/* Danger Zone */}
-        <div className="relative z-10 mt-12 bg-white/90 rounded-2xl shadow border border-red-100 p-6">
-          <h2 className="text-lg font-bold text-red-700 mb-2">Danger Zone</h2>
-          <p className="text-gray-600 mb-4">
+        <div className="mt-12 bg-[#181a23]/90 rounded-2xl shadow border border-red-900 p-6 mb-0">
+          <h2 className="text-lg font-bold text-red-400 mb-2">Danger Zone</h2>
+          <p className="text-blue-200 mb-4">
             Delete your account and all your data. This action cannot be undone.
           </p>
           <button
-            className="px-6 py-2 rounded-full bg-red-600 text-white font-semibold shadow hover:bg-red-700 transition"
+            className="px-6 py-2 rounded-full bg-red-700 text-white font-semibold shadow hover:bg-red-800 transition"
             onClick={() => alert('Account deletion is not implemented in this demo.')}
           >
             Delete Account

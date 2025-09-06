@@ -1,12 +1,13 @@
 'use client'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
+import { createSupabaseBrowser } from './api/lib/supabaseBrowser'
 
 const reviews = [
   {
     name: 'Sarah A.',
     avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
-    text: 'Humanae made it so easy to find the perfect freelancer for my project. Fast, reliable, and great support!',
+    text: 'Humanaira made it so easy to find the perfect freelancer for my project. Fast, reliable, and great support!',
     rating: 5,
     role: 'Startup Founder',
   },
@@ -35,19 +36,31 @@ const reviews = [
 
 export default function HomePage() {
   const [current, setCurrent] = useState(0)
+  const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
+    const supabase = createSupabaseBrowser()
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data?.user || null)
+    })
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null)
+    })
     const interval = setInterval(() => setCurrent((c) => (c + 1) % reviews.length), 5000)
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      listener?.subscription.unsubscribe()
+    }
   }, [])
 
   useScrollReveal()
 
   return (
     <main className="min-h-screen bg-[#090a10] text-gray-100 font-inter">
+      <Header user={user} />
       <Hero />
       <HowItWorks />
-      <WhyHumanae />
+      <WhyHumanaira />
       <FAQSection />
       <Reviews current={current} setCurrent={setCurrent} />
       <Footer />
@@ -56,264 +69,344 @@ export default function HomePage() {
   )
 }
 
-/* HERO: Dots assemble directly to a rotating earth, with orbiting dot (no rocket phase) */
+function Header({ user }: { user: any }) {
+  return (
+    <header className="w-full px-8 py-5 flex items-center justify-between bg-[#090a10] border-b border-[#1e293b] z-30 fixed top-0 left-0 right-0 h-[72px]">
+      <Link href="/" className="flex items-center gap-2 font-extrabold text-2xl text-white select-none">
+        <span style={{ color: '#2563eb' }}>hum</span>
+        <span style={{ color: '#fff' }}>an</span>
+        <span style={{ color: '#fff', fontWeight: 800 }}>a</span>
+        <span style={{
+          color: '#fff',
+          fontWeight: 800,
+          background: 'linear-gradient(90deg,#fff,#38bdf8 80%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent'
+        }}>i</span>
+        <span style={{ color: '#38bdf8' }}>ra</span>
+      </Link>
+      <nav className="flex items-center gap-6">
+        <Link href="/browse" className="text-blue-200 hover:text-blue-400 font-medium">Browse</Link>
+        <Link href="/seller/gigs/new" className="text-blue-200 hover:text-blue-400 font-medium">Start Selling</Link>
+        <Link href="/enterprise" className="text-blue-200 hover:text-blue-400 font-medium">Enterprise</Link>
+        <Link href="/help" className="text-blue-200 hover:text-blue-400 font-medium">Help</Link>
+        {user ? (
+          <Link href="/account" className="ml-4">
+            <Avatar email={user.email} />
+          </Link>
+        ) : (
+          <>
+            <Link href="/signin" className="ml-4 px-5 py-2 rounded-lg bg-blue-700 text-white font-semibold hover:bg-blue-800 transition">Sign In</Link>
+            <Link href="/signup" className="ml-2 px-5 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition">Sign Up</Link>
+          </>
+        )}
+      </nav>
+    </header>
+  )
+}
+
+function Avatar({ email }: { email: string }) {
+  const hash = typeof window !== 'undefined' && email
+    ? md5(email.trim().toLowerCase())
+    : ''
+  const url = email
+    ? `https://www.gravatar.com/avatar/${hash}?d=identicon&s=40`
+    : 'https://www.gravatar.com/avatar/?d=mp&s=40'
+  return (
+    <img
+      src={url}
+      alt="Account"
+      className="w-10 h-10 rounded-full border-2 border-blue-700 bg-[#181a23] object-cover"
+      style={{ minWidth: 40, minHeight: 40 }}
+    />
+  )
+}
+
+function md5(str: string) {
+  function rhex(n: number) {
+    const s = '0123456789abcdef'
+    let j, str = ''
+    for (j = 0; j < 4; j++)
+      str += s.charAt((n >> (j * 8 + 4)) & 0x0F) + s.charAt((n >> (j * 8)) & 0x0F)
+    return str
+  }
+  function str2blks_MD5(str: string) {
+    let nblk = ((str.length + 8) >> 6) + 1, blks = new Array(nblk * 16).fill(0), i
+    for (i = 0; i < str.length; i++)
+      blks[i >> 2] |= str.charCodeAt(i) << ((i % 4) * 8)
+    blks[i >> 2] |= 0x80 << ((i % 4) * 8)
+    blks[nblk * 16 - 2] = str.length * 8
+    return blks
+  }
+  function add(x: number, y: number) {
+    return (((x & 0xFFFF) + (y & 0xFFFF)) ^ ((((x >> 16) + (y >> 16)) & 0xFFFF) << 16)) >>> 0
+  }
+  function rol(num: number, cnt: number) {
+    return ((num << cnt) | (num >>> (32 - cnt))) >>> 0
+  }
+  function cmn(q: number, a: number, b: number, x: number, s: number, t: number) {
+    return add(rol(add(add(a, q), add(x, t)), s), b)
+  }
+  function ff(a: number, b: number, c: number, d: number, x: number, s: number, t: number) {
+    return cmn((b & c) | (~b & d), a, b, x, s, t)
+  }
+  function gg(a: number, b: number, c: number, d: number, x: number, s: number, t: number) {
+    return cmn((b & d) | (c & ~d), a, b, x, s, t)
+  }
+  function hh(a: number, b: number, c: number, d: number, x: number, s: number, t: number) {
+    return cmn(b ^ c ^ d, a, b, x, s, t)
+  }
+  function ii(a: number, b: number, c: number, d: number, x: number, s: number, t: number) {
+    return cmn(c ^ (b | ~d), a, b, x, s, t)
+  }
+  let x = str2blks_MD5(str), a = 1732584193, b = -271733879, c = -1732584194, d = 271733878
+  for (let i = 0; i < x.length; i += 16) {
+    let olda = a, oldb = b, oldc = c, oldd = d
+    a = ff(a, b, c, d, x[i + 0], 7, -680876936)
+    d = ff(d, a, b, c, x[i + 1], 12, -389564586)
+    c = ff(c, d, a, b, x[i + 2], 17, 606105819)
+    b = ff(b, c, d, a, x[i + 3], 22, -1044525330)
+    a = ff(a, b, c, d, x[i + 4], 7, -176418897)
+    d = ff(d, a, b, c, x[i + 5], 12, 1200080426)
+    c = ff(c, d, a, b, x[i + 6], 17, -1473231341)
+    b = ff(b, c, d, a, x[i + 7], 22, -45705983)
+    a = ff(a, b, c, d, x[i + 8], 7, 1770035416)
+    d = ff(d, a, b, c, x[i + 9], 12, -1958414417)
+    c = ff(c, d, a, b, x[i + 10], 17, -42063)
+    b = ff(b, c, d, a, x[i + 11], 22, -1990404162)
+    a = ff(a, b, c, d, x[i + 12], 7, 1804603682)
+    d = ff(d, a, b, c, x[i + 13], 12, -40341101)
+    c = ff(c, d, a, b, x[i + 14], 17, -1502002290)
+    b = ff(b, c, d, a, x[i + 15], 22, 1236535329)
+    a = gg(a, b, c, d, x[i + 1], 5, -165796510)
+    d = gg(d, a, b, c, x[i + 6], 9, -1069501632)
+    c = gg(c, d, a, b, x[i + 11], 14, 643717713)
+    b = gg(b, c, d, a, x[i + 0], 20, -373897302)
+    a = gg(a, b, c, d, x[i + 5], 5, -701558691)
+    d = gg(d, a, b, c, x[i + 10], 9, 38016083)
+    c = gg(c, d, a, b, x[i + 15], 14, -660478335)
+    b = gg(b, c, d, a, x[i + 4], 20, -405537848)
+    a = gg(a, b, c, d, x[i + 9], 5, 568446438)
+    d = gg(d, a, b, c, x[i + 14], 9, -1019803690)
+    c = gg(c, d, a, b, x[i + 3], 14, -187363961)
+    b = gg(b, c, d, a, x[i + 8], 20, 1163531501)
+    a = gg(a, b, c, d, x[i + 13], 5, -1444681467)
+    d = gg(d, a, b, c, x[i + 2], 9, -51403784)
+    c = gg(c, d, a, b, x[i + 7], 14, 1735328473)
+    b = gg(b, c, d, a, x[i + 12], 20, -1926607734)
+    a = hh(a, b, c, d, x[i + 5], 4, -378558)
+    d = hh(d, a, b, c, x[i + 8], 11, -2022574463)
+    c = hh(c, d, a, b, x[i + 11], 16, 1839030562)
+    b = hh(b, c, d, a, x[i + 14], 23, -35309556)
+    a = hh(a, b, c, d, x[i + 1], 4, -1530992060)
+    d = hh(d, a, b, c, x[i + 4], 11, 1272893353)
+    c = hh(c, d, a, b, x[i + 7], 16, -155497632)
+    b = hh(b, c, d, a, x[i + 10], 23, -1094730640)
+    a = ii(a, b, c, d, x[i + 0], 6, 681279174)
+    d = ii(d, a, b, c, x[i + 7], 10, -358537222)
+    c = ii(c, d, a, b, x[i + 14], 15, -722521979)
+    b = ii(b, c, d, a, x[i + 5], 21, 76029189)
+    a = ii(a, b, c, d, x[i + 12], 6, -640364487)
+    d = ii(d, a, b, c, x[i + 3], 10, -421815835)
+    c = ii(c, d, a, b, x[i + 10], 15, 530742520)
+    b = ii(b, c, d, a, x[i + 1], 21, -995338651)
+    a = ii(a, b, c, d, x[i + 8], 6, -198630844)
+    d = ii(d, a, b, c, x[i + 15], 10, 1126891415)
+    c = ii(c, d, a, b, x[i + 6], 15, -1416354905)
+    b = ii(b, c, d, a, x[i + 13], 21, -57434055)
+    a = ii(a, b, c, d, x[i + 4], 6, 1700485571)
+    d = ii(d, a, b, c, x[i + 11], 10, -1894986606)
+    c = ii(c, d, a, b, x[i + 2], 15, -1051523)
+    b = ii(b, c, d, a, x[i + 9], 21, -2054922799)
+    a = add(a, olda)
+    b = add(b, oldb)
+    c = add(c, oldc)
+    d = add(d, oldd)
+  }
+  return rhex(a) + rhex(b) + rhex(c) + rhex(d)
+}
 function Hero() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    let w = (canvas.width = canvas.offsetWidth)
-    let h = (canvas.height = canvas.offsetHeight)
+    let w = (canvas.width = canvas.offsetWidth);
+    let h = (canvas.height = canvas.offsetHeight);
 
     function resize() {
-      w = canvas.width = canvas.offsetWidth
-      h = canvas.height = canvas.offsetHeight
+      w = canvas.width = canvas.offsetWidth;
+      h = canvas.height = canvas.offsetHeight;
     }
-    window.addEventListener('resize', resize, { passive: true })
+    window.addEventListener('resize', resize, { passive: true });
 
-    // Parameters
-    const DOTS = 1200
-    const earthRadius = Math.min(w, h) * 0.32
-    const cx = w * 0.62
-    const cy = h * 0.52
-
-    // --- EARTH SHAPE (sphere, with continents coloring, rotating) ---
-    function earthShapePoints(rotation: number) {
-      function isContinent(lat: number, lon: number) {
-        // Africa
-        if (lat > -10 && lat < 30 && lon > -20 && lon < 40) return true
-        // Eurasia
-        if (lat > 20 && lat < 70 && lon > -10 && lon < 120) return true
-        // Americas
-        if (lat > -60 && lat < 60 && lon > -110 && lon < -30) return true
-        // Australia
-        if (lat > -45 && lat < -10 && lon > 110 && lon < 160) return true
-        return false
-      }
-      const points: { x: number; y: number; color: string }[] = []
-      for (let i = 0; i < DOTS; i++) {
-        // Fibonacci sphere for even distribution
-        const phi = Math.acos(1 - 2 * (i + 0.5) / DOTS)
-        let theta = Math.PI * (1 + Math.sqrt(5)) * i
-        theta += rotation // rotate earth
-
-        // Convert to lat/lon for coloring
-        const lat = 90 - (phi * 180) / Math.PI
-        let lon = ((theta * 180) / Math.PI) % 360 - 180
-
-        // Spherical to 2D (orthographic, for a perfect circle)
-        const x3d = Math.sin(phi) * Math.cos(theta)
-        const y3d = Math.cos(phi)
-        const z3d = Math.sin(phi) * Math.sin(theta)
-        // No perspective, just a circle
-        const x = cx + earthRadius * z3d
-        const y = cy + earthRadius * y3d
-
-        // Color: blue for ocean, green/yellow for continents, white for poles
-        let color = '#38bdf8'
-        if (Math.abs(lat) > 70) color = '#e0f2fe'
-        else if (isContinent(lat, lon)) {
-          if (lat > 20) color = '#bef264'
-          else if (lat < -10) color = '#facc15'
-          else color = '#4ade80'
-        }
-        points.push({ x, y, color })
-      }
-      return points
-    }
-
-    // --- ORBIT PATH (for satellite dot) ---
-    function getOrbitPath(t: number) {
-      // Elliptical orbit around earth
-      const a = earthRadius * 1.18
-      const b = earthRadius * 0.92
-      const angle = t * 2 * Math.PI
-      return {
-        x: cx + a * Math.cos(angle),
-        y: cy + b * Math.sin(angle),
-      }
-    }
-
-    // Stars
+    // Static stars
     const stars: { x: number; y: number; r: number; alpha: number }[] = Array.from({ length: 90 }).map(() => ({
       x: Math.random() * w,
       y: Math.random() * h,
       r: Math.random() * 0.7 + 0.15,
       alpha: Math.random() * 0.5 + 0.2,
-    }))
+    }));
 
-    // Dots state: animate from random positions to their earth positions, then rotate
-    let earthRotation = 0
-    let raf = 0
-    let dots: {
-      x: number
-      y: number
-      vx: number
-      vy: number
-      phase: number
-      delay: number
-      color: string
-      earth: { x: number; y: number; color: string }
-    }[] = []
+    // Planet parameters
+    const planetRadius = Math.min(w, h) * 0.32;
+    const cx = w * 0.62;
+    const cy = h * 0.52;
 
-    function initDots() {
-      const earthPoints = earthShapePoints(0)
-      dots = []
-      for (let i = 0; i < DOTS; i++) {
-        const ep = earthPoints[i]
-        dots.push({
-          x: Math.random() * w,
-          y: Math.random() * h,
-          vx: 0,
-          vy: 0,
-          phase: Math.random() * Math.PI * 2,
-          delay: Math.random() * 80 + (i % 40) * 2,
-          color: ep.color,
-          earth: {
-            x: ep.x,
-            y: ep.y,
-            color: ep.color,
-          },
-        })
-      }
-    }
-    initDots()
+    // Orbiting energy lines parameters
+    const energyLines = [
+      { color: "#a78bfa", width: 2.5, radius: planetRadius * 0.95, speed: 0.008, phase: 0 },
+      { color: "#f472b6", width: 2, radius: planetRadius * 1.05, speed: -0.006, phase: Math.PI / 2 },
+      { color: "#38bdf8", width: 2, radius: planetRadius * 1.12, speed: 0.004, phase: Math.PI },
+    ];
 
-    let morphDone = false
-    let morphFrame = 0
-
+    let raf = 0;
     function draw(frame = 0) {
-      ctx.clearRect(0, 0, w, h)
-      ctx.fillStyle = '#090a10'
-      ctx.fillRect(0, 0, w, h)
+      ctx.clearRect(0, 0, w, h);
 
-      // Stars
+      // Background gradient
+      const grad = ctx.createLinearGradient(0, 0, w, h);
+      grad.addColorStop(0, "#0a1020");
+      grad.addColorStop(0.5, "#07102a");
+      grad.addColorStop(1, "#1a2a55");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Static stars
       for (const s of stars) {
-        ctx.globalAlpha = s.alpha + Math.sin(frame * 0.01 + s.x * 0.01 + s.y * 0.01) * 0.12
-        ctx.beginPath()
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
-        ctx.fillStyle = '#e0eaff'
-        ctx.fill()
+        ctx.globalAlpha = s.alpha;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = "#e0eaff";
+        ctx.shadowColor = "#7dd3fc";
+        ctx.shadowBlur = 12;
+        ctx.fill();
+        ctx.shadowBlur = 0;
       }
-      ctx.globalAlpha = 1
+      ctx.globalAlpha = 1;
 
-      // Morph dots to earth positions
-      if (!morphDone) {
-        morphFrame++
-        let allArrived = true
-        for (let i = 0; i < dots.length; i++) {
-          const d = dots[i]
-          const tx = d.earth.x
-          const ty = d.earth.y
-          if (frame > d.delay) {
-            const dx = tx - d.x
-            const dy = ty - d.y
-            d.vx += dx * 0.012
-            d.vy += dy * 0.012
-            d.vx *= 0.82
-            d.vy *= 0.82
-            d.x += d.vx
-            d.y += d.vy
-            if (Math.abs(dx) > 0.8 || Math.abs(dy) > 0.8) allArrived = false
-          } else {
-            allArrived = false
-          }
+      // Shiny, glassy planet
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, planetRadius, 0, Math.PI * 2);
+      ctx.closePath();
+      // More shiny radial gradient
+      const planetGrad = ctx.createRadialGradient(cx, cy, planetRadius * 0.05, cx, cy, planetRadius);
+      planetGrad.addColorStop(0, "rgba(255,255,255,0.35)");
+      planetGrad.addColorStop(0.18, "rgba(56,189,248,0.28)");
+      planetGrad.addColorStop(0.35, "rgba(168,139,250,0.38)");
+      planetGrad.addColorStop(0.55, "rgba(244,114,182,0.45)");
+      planetGrad.addColorStop(0.75, "rgba(168,139,250,0.52)");
+      planetGrad.addColorStop(0.9, "rgba(56,189,248,0.65)");
+      planetGrad.addColorStop(1, "rgba(56,189,248,0.85)");
+      ctx.fillStyle = planetGrad;
+      ctx.shadowColor = "#fff";
+      ctx.shadowBlur = 120;
+      ctx.globalAlpha = 1;
+      ctx.fill();
+      ctx.restore();
+
+      // Animated energy lines (orbiting)
+      energyLines.forEach((line, idx) => {
+        ctx.save();
+        ctx.globalAlpha = 0.65;
+        ctx.strokeStyle = line.color;
+        ctx.lineWidth = line.width;
+        ctx.shadowColor = line.color;
+        ctx.shadowBlur = 22;
+        ctx.beginPath();
+        for (let t = 0; t <= 1.001; t += 0.01) {
+          const angle = t * 2 * Math.PI + frame * line.speed + line.phase;
+          const wave = Math.sin(angle * 2 + frame * 0.02 + idx * 1.2) * (planetRadius * 0.06);
+          const r = line.radius + wave;
+          const x = cx + r * Math.cos(angle);
+          const y = cy + r * Math.sin(angle);
+          if (t === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
         }
-        if (allArrived || morphFrame > 220) {
-          morphDone = true
-        }
-      } else {
-        // Animate earth rotation
-        earthRotation += 0.012
-        const earthPoints = earthShapePoints(earthRotation)
-        for (let i = 0; i < dots.length; i++) {
-          dots[i].earth.x = earthPoints[i].x
-          dots[i].earth.y = earthPoints[i].y
-          dots[i].earth.color = earthPoints[i].color
-          // Smoothly follow new earth position
-          dots[i].x += (dots[i].earth.x - dots[i].x) * 0.16
-          dots[i].y += (dots[i].earth.y - dots[i].y) * 0.16
-          dots[i].color = dots[i].earth.color
-        }
-      }
+        ctx.stroke();
+        ctx.restore();
+      });
 
-      // Draw dots
-      for (let i = 0; i < dots.length; i++) {
-        const d = dots[i]
-        const pulse = 0.7 + 0.3 * Math.sin(frame * 0.09 + d.phase + i * 0.2)
-        ctx.beginPath()
-        ctx.arc(d.x, d.y, 1.3 + 0.7 * pulse, 0, Math.PI * 2)
-        ctx.globalAlpha = 0.7 * (0.7 + 0.4 * pulse)
-        ctx.fillStyle = d.color
-        ctx.shadowColor = ctx.fillStyle
-        ctx.shadowBlur = 7 * pulse
-        ctx.fill()
-        ctx.globalAlpha = 1
-        ctx.shadowBlur = 0
-      }
+      // Smooth highlight swirl (glass reflection)
+      ctx.save();
+      ctx.globalAlpha = 0.38;
+      ctx.translate(cx, cy);
+      ctx.rotate(Math.PI / 6 + Math.sin(frame * 0.008) * 0.2);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, planetRadius * 0.7, planetRadius * 0.22, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.8)";
+      ctx.shadowColor = "#f472b6";
+      ctx.shadowBlur = 60;
+      ctx.fill();
+      ctx.restore();
 
-      // Earth outline & orbit
-      ctx.save()
-      ctx.globalAlpha = 0.18
-      ctx.beginPath()
-      ctx.arc(cx, cy, earthRadius + 8, 0, Math.PI * 2)
-      ctx.strokeStyle = '#38bdf8'
-      ctx.lineWidth = 4
-      ctx.shadowColor = '#38bdf8'
-      ctx.shadowBlur = 18
-      ctx.stroke()
-      ctx.restore()
+      // Soft edge glow
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      ctx.beginPath();
+      ctx.arc(cx, cy, planetRadius + 14, 0, Math.PI * 2);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 7;
+      ctx.shadowColor = "#38bdf8";
+      ctx.shadowBlur = 28;
+      ctx.stroke();
+      ctx.restore();
 
-      ctx.save()
-      ctx.globalAlpha = 0.13
-      ctx.beginPath()
-      for (let t = 0; t <= 1.001; t += 0.01) {
-        const { x, y } = getOrbitPath(t)
-        if (t === 0) ctx.moveTo(x, y)
-        else ctx.lineTo(x, y)
-      }
-      ctx.strokeStyle = '#38bdf8'
-      ctx.lineWidth = 2
-      ctx.shadowColor = '#38bdf8'
-      ctx.shadowBlur = 10
-      ctx.stroke()
-      ctx.restore()
+      // Orbiting orb (blue, smooth)
+      const orbitRadius = planetRadius * 1.18;
+      const orbitY = planetRadius * 0.92;
+      const orbitT = ((frame * 0.003) % 1);
+      const angle = orbitT * 2 * Math.PI;
+      const orbX = cx + orbitRadius * Math.cos(angle);
+      const orbY = cy + orbitY * Math.sin(angle);
+      ctx.beginPath();
+      ctx.arc(orbX, orbY, 12, 0, Math.PI * 2);
+      ctx.globalAlpha = 0.95;
+      ctx.fillStyle = "#7dd3fc";
+      ctx.shadowColor = "#7dd3fc";
+      ctx.shadowBlur = 32;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
 
-      // Orbiting satellite dot
-      const orbitT = ((frame * 0.003) % 1)
-      const { x: ox, y: oy } = getOrbitPath(orbitT)
-      ctx.beginPath()
-      ctx.arc(ox, oy, 7, 0, Math.PI * 2)
-      ctx.globalAlpha = 0.85
-      ctx.fillStyle = '#7dd3fc'
-      ctx.shadowColor = '#7dd3fc'
-      ctx.shadowBlur = 18
-      ctx.fill()
-      ctx.globalAlpha = 1
-      ctx.shadowBlur = 0
-
-      raf = requestAnimationFrame(() => draw(frame + 1))
+      raf = requestAnimationFrame(() => draw(frame + 1));
     }
-    draw()
+    draw();
+
     return () => {
-      cancelAnimationFrame(raf)
-      window.removeEventListener('resize', resize)
-    }
-    // eslint-disable-next-line
-  }, [])
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', resize);
+    };
+  }, []);
 
+  // Hero section covers full viewport minus header
   return (
-    <section className="relative w-full flex items-center justify-center min-h-[100vh] h-[100dvh] overflow-hidden bg-[#090a10]">
+    <section
+      className="relative w-full flex items-center justify-center bg-[#090a10] overflow-hidden"
+      style={{
+        minHeight: 'calc(100vh - 72px)',
+        height: 'calc(100vh - 72px)',
+        paddingTop: '72px',
+      }}
+    >
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full block pointer-events-none"
         style={{ zIndex: 0 }}
       />
-      <div className="relative z-20 flex flex-col items-center justify-center text-center px-4 py-32 w-full">
+      <div
+        className="relative z-20 flex flex-col items-center justify-center text-center px-4 py-0 w-full"
+        style={{
+          minHeight: 'calc(100vh - 72px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         <h1 className="text-4xl md:text-6xl font-extrabold mb-6 leading-tight tracking-tight font-sans text-white drop-shadow-xl">
           Elevate Your Work.<br />
           <span className="font-semibold text-white bg-none">Hire AI-Powered Talent</span>
@@ -322,179 +415,138 @@ function Hero() {
           Discover, hire, and collaborate with the next generation of AI freelancers and digital creators.
           <span className="block mt-2 text-blue-200/80 italic">Your ideas, delivered smarter.</span>
         </p>
-        <form
-          className="flex justify-center w-full max-w-xl mx-auto mb-10 bg-[#181a23]/80 rounded-lg shadow backdrop-blur pointer-events-auto border border-blue-900"
-          action="/browse"
-          method="GET"
-        >
-          <input
-            type="text"
-            name="q"
-            placeholder="Search for services (e.g. logo, chatbot, voiceover)..."
-            className="w-full px-4 py-3 rounded-l-lg bg-transparent text-gray-100 placeholder-gray-400 border-none focus:outline-none"
-          />
-          <button
-            type="submit"
-            className="px-6 py-3 rounded-r-lg bg-blue-700 text-white font-semibold hover:bg-blue-800 transition"
-          >
-            Search
-          </button>
-        </form>
         <div className="flex gap-4 justify-center">
           <Link
             href="/browse"
-            className="px-8 py-4 rounded-full font-bold text-xl shadow transition relative overflow-hidden border-0 focus:outline-none group animate-gradient-move-btn"
-            style={{ background: 'linear-gradient(90deg, #2563eb, #38bdf8, #2563eb)', backgroundSize: '200% 200%' }}
+            className="btn-future px-7 py-3 rounded-md font-bold text-lg shadow-lg transition border border-blue-700 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500 text-white hover:from-blue-600 hover:to-blue-700 focus:outline-none"
           >
-            <span className="relative z-10 text-white">Browse Services</span>
-            <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            Browse Services
           </Link>
           <Link
             href="/seller/gigs/new"
-            className="px-8 py-4 rounded-full font-bold text-xl shadow transition relative overflow-hidden border-0 focus:outline-none group animate-gradient-move-btn"
-            style={{ background: 'linear-gradient(90deg, #38bdf8, #2563eb, #38bdf8)', backgroundSize: '200% 200%' }}
+            className="btn-future px-7 py-3 rounded-md font-bold text-lg shadow-lg transition border border-blue-700 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500 text-white hover:from-blue-600 hover:to-blue-700 focus:outline-none"
           >
-            <span className="relative z-10 text-white">Start Selling</span>
-            <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            Start Selling
           </Link>
         </div>
       </div>
+      <style jsx global>{`
+        .btn-future {
+          position: relative;
+          box-shadow: 0 0 18px 0 #38bdf855, 0 2px 8px #0ea5e9cc;
+          transition: box-shadow 0.3s, transform 0.3s, background 0.3s;
+        }
+        .btn-future:hover {
+          box-shadow: 0 0 32px 0 #38bdf8cc, 0 2px 16px #2563eb99;
+          transform: translateY(-2px) scale(1.04);
+        }
+      `}</style>
     </section>
-  )
+  );
 }
 
-/* HOW IT WORKS - smooth, thin, hand-drawn animated line, more natural */
 function HowItWorks() {
-  const pathRef = useRef<SVGPathElement | null>(null)
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const [drawn, setDrawn] = useState(false)
-
-  useEffect(() => {
-    const path = pathRef.current
-    if (!path) return
-    const length = path.getTotalLength()
-    path.style.strokeDasharray = `${length}`
-    path.style.strokeDashoffset = `${length}`
-
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            path.style.transition = 'stroke-dashoffset 2.2s cubic-bezier(.2,.9,.3,1)'
-            path.style.strokeDashoffset = '0'
-            setDrawn(true)
-          }
-        })
-      },
-      { threshold: 0.3 }
-    )
-    if (containerRef.current) io.observe(containerRef.current)
-    return () => io.disconnect()
-  }, [])
-
-  const steps = [
-    { n: 1, title: 'Find your service', desc: 'Search curated gigs across design, AI, and media.' },
-    { n: 2, title: 'Order & pay', desc: 'Clear scopes, secure payments, and milestone tracking.' },
-    { n: 3, title: 'Collaborate', desc: 'Built-in workspace for files, chat and feedback.' },
-    { n: 4, title: 'Receive & review', desc: 'Approve delivery or request revisions quickly.' },
+  const points = [
+    {
+      icon: (
+        <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
+          <circle cx="18" cy="18" r="18" fill="#2563eb" opacity="0.15" />
+          <path d="M11 19l5 5 9-12" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+      title: "Verified Sellers",
+      desc: "All sellers are vetted for quality and expertise, so you get the best results.",
+    },
+    {
+      icon: (
+        <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
+          <circle cx="18" cy="18" r="18" fill="#2563eb" opacity="0.15" />
+          <path d="M18 10v8l6 3" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+      title: "24/7 Support",
+      desc: "Our team is here to help you anytime, day or night.",
+    },
+    {
+      icon: (
+        <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
+          <circle cx="18" cy="18" r="18" fill="#2563eb" opacity="0.15" />
+          <path d="M12 18h12" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
+      ),
+      title: "Instant Messaging",
+      desc: "Chat instantly with freelancers and clients for smooth collaboration.",
+    },
+    {
+      icon: (
+        <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
+          <circle cx="18" cy="18" r="18" fill="#2563eb" opacity="0.15" />
+          <path d="M18 10a8 8 0 100 16 8 8 0 000-16z" stroke="#38bdf8" strokeWidth="2.5" />
+        </svg>
+      ),
+      title: "Secure Payments",
+      desc: "Your funds are protected until you approve the work delivered.",
+    },
+    {
+      icon: (
+        <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
+          <circle cx="18" cy="18" r="18" fill="#2563eb" opacity="0.15" />
+          <path d="M14 22l8-8M14 14h8v8" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+      title: "Easy Revisions",
+      desc: "Request changes easily and track progress with built-in tools.",
+    },
+    {
+      icon: (
+        <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
+          <circle cx="18" cy="18" r="18" fill="#2563eb" opacity="0.15" />
+          <path d="M18 10v16M10 18h16" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
+      ),
+      title: "AI-Powered Tools",
+      desc: "Boost productivity with integrated AI features for both buyers and sellers.",
+    },
+    {
+      icon: (
+        <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
+          <circle cx="18" cy="18" r="18" fill="#2563eb" opacity="0.15" />
+          <path d="M18 12v6h6" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+      title: "Milestone Tracking",
+      desc: "Track project milestones and progress with clear dashboards.",
+    },
+    {
+      icon: (
+        <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
+          <circle cx="18" cy="18" r="18" fill="#2563eb" opacity="0.15" />
+          <path d="M12 24l12-12" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
+      ),
+      title: "Money-Back Guarantee",
+      desc: "If you're not satisfied, we offer a money-back guarantee.",
+    },
   ]
-
   return (
-    <section ref={containerRef} className="relative max-w-6xl mx-auto px-4 py-20 mt-10">
-      <h2 className="text-3xl font-bold mb-10 text-center text-blue-200">How it works</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-        <div className="col-span-1 flex flex-col gap-8">
-          {steps.map((s) => (
-            <div key={s.n} className="flex items-start gap-4">
-              <div
-                className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-semibold ${
-                  drawn ? 'bg-gradient-to-br from-[#1e3a8a] to-[#2563eb] text-white shadow-lg' : 'bg-[#07102a] border-2 border-[#1e3a8a] text-blue-200'
-                } transition-all duration-500`}
-                aria-hidden
-              >
-                {s.n}
-              </div>
-              <div>
-                <div className="font-semibold text-white">{s.title}</div>
-                <div className="text-slate-300">{s.desc}</div>
-              </div>
+    <section className="w-full py-16 px-4 bg-[#090a10] border-t border-[#1e293b]">
+      <div className="max-w-6xl mx-auto">
+        <h2 className="text-3xl font-extrabold text-blue-200 mb-8 text-center">How it works</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {points.map((point, idx) => (
+            <div key={idx} className="flex-1 bg-[#181a23] border border-blue-900 rounded-2xl p-8 flex flex-col items-center text-center shadow">
+              <div className="mb-4">{point.icon}</div>
+              <h3 className="text-xl font-bold text-blue-100 mb-2">{point.title}</h3>
+              <p className="text-blue-200 text-base">{point.desc}</p>
             </div>
           ))}
-        </div>
-        <div className="col-span-1 flex items-center justify-center">
-          <svg viewBox="0 0 360 360" className="w-full max-w-[420px]" aria-hidden>
-            <path
-              ref={pathRef}
-              d="M40 120 Q120 40 180 120 Q240 200 320 120 Q340 100 320 180 Q300 260 180 240 Q60 220 120 320 Q180 360 320 320"
-              fill="none"
-              stroke="#38bdf8"
-              strokeWidth="1.1"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{
-                filter: 'drop-shadow(0 0 4px #38bdf8bb)',
-                strokeDasharray: undefined,
-                strokeDashoffset: undefined,
-              }}
-            />
-            {drawn && <AnimatedDot pathRef={pathRef} />}
-          </svg>
-        </div>
-        <div className="col-span-1">
-          <div className="rounded-2xl bg-gradient-to-br from-blue-900 via-[#0b1220] to-[#07102a] border border-blue-900 shadow-lg p-8">
-            <div className="text-xl font-semibold text-blue-200 mb-2">Simple, Fast, Secure</div>
-            <div className="text-slate-300">Humanae guides you from brief to delivery with clear milestones and quality checks.</div>
-            <div className="mt-6 grid gap-3">
-              <div className="p-3 rounded-lg bg-[#08182f] border border-[#123055]">Verified sellers</div>
-              <div className="p-3 rounded-lg bg-[#08182f] border border-[#123055]">24/7 support</div>
-            </div>
-          </div>
         </div>
       </div>
     </section>
   )
 }
 
-// Animated dot that moves smoothly along the SVG path
-function AnimatedDot({ pathRef }: { pathRef: React.RefObject<SVGPathElement> }) {
-  const [pos, setPos] = useState({ x: 0, y: 0 })
-
-  useEffect(() => {
-    let frame = 0
-    let raf: number
-    function animate() {
-      const path = pathRef.current
-      if (!path) return
-      const length = path.getTotalLength()
-      const t = (frame % 400) / 400
-      const point = path.getPointAtLength(length * t)
-      setPos({ x: point.x, y: point.y })
-      raf = requestAnimationFrame(() => {
-        frame++
-        animate()
-      })
-    }
-    animate()
-    return () => cancelAnimationFrame(raf)
-  }, [pathRef])
-
-  return (
-    <circle
-      cx={pos.x}
-      cy={pos.y}
-      r="6"
-      fill="#38bdf8"
-      opacity="0.85"
-      style={{
-        filter: 'drop-shadow(0 0 8px #38bdf8cc)',
-        transition: 'cx 0.1s, cy 0.1s',
-      }}
-    />
-  )
-}
-
-/* WHY HUMANAE — refined card grid */
-function WhyHumanae() {
+function WhyHumanaira() {
   const items = [
     {
       title: 'Curated Talent',
@@ -515,7 +567,7 @@ function WhyHumanae() {
   ]
   return (
     <section className="relative max-w-6xl mx-auto px-4 py-20 mt-10">
-      <h2 className="text-3xl font-bold mb-8 text-center text-blue-200">Why choose humanae</h2>
+      <h2 className="text-3xl font-bold mb-8 text-center text-blue-200">Why choose humanaira</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {items.map((it) => (
           <div key={it.title} className="p-6 rounded-2xl bg-[#071124] border border-[#123055] shadow hover:translate-y-[-4px] transition-transform">
@@ -529,7 +581,6 @@ function WhyHumanae() {
   )
 }
 
-/* FAQ — answers hidden until click; default closed */
 function FAQSection() {
   const faqs = [
     { q: 'How do payments work?', a: 'You pay securely via our gateway. Funds are held until you accept delivery.' },
@@ -571,7 +622,6 @@ function FAQSection() {
   )
 }
 
-/* Reviews */
 function Reviews({ current, setCurrent }: { current: number; setCurrent: (n: number) => void }) {
   return (
     <section className="relative max-w-2xl mx-auto px-4 py-20 mt-10">
@@ -602,13 +652,14 @@ function Reviews({ current, setCurrent }: { current: number; setCurrent: (n: num
   )
 }
 
-/* Footer with big name and animated hover effect */
 function Footer() {
   return (
-    <footer className="relative bg-[#00060b] mt-20 border-t border-[#0b2a59]">
+    <footer className="w-full bg-[#00060b] mt-20 border-t border-[#0b2a59]">
       <div className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-4 gap-8">
         <div className="space-y-4">
-          <div className="text-2xl font-extrabold text-white">humanae</div>
+          <div className="text-2xl font-extrabold text-white">
+            <FooterLogo />
+          </div>
           <div className="text-slate-300">AI-powered freelance marketplace</div>
           <div className="flex gap-3 mt-4">
             <a className="text-slate-400 hover:text-blue-300" href="https://twitter.com/" target="_blank" rel="noopener noreferrer">Twitter</a>
@@ -616,7 +667,7 @@ function Footer() {
             <a className="text-slate-400 hover:text-blue-300" href="https://instagram.com/" target="_blank" rel="noopener noreferrer">Instagram</a>
           </div>
         </div>
-        <div>
+        <div className="flex flex-col gap-2 items-center">
           <h5 className="text-sm font-semibold text-slate-200 mb-4">Products</h5>
           <ul className="space-y-2 text-slate-400">
             <li><Link href="/browse">Browse</Link></li>
@@ -625,7 +676,7 @@ function Footer() {
             <li><Link href="/api">API</Link></li>
           </ul>
         </div>
-        <div>
+        <div className="flex flex-col gap-2 items-center">
           <h5 className="text-sm font-semibold text-slate-200 mb-4">Company</h5>
           <ul className="space-y-2 text-slate-400">
             <li><Link href="/about">About</Link></li>
@@ -634,7 +685,7 @@ function Footer() {
             <li><Link href="/contact">Contact</Link></li>
           </ul>
         </div>
-        <div>
+        <div className="flex flex-col gap-2 items-center">
           <h5 className="text-sm font-semibold text-slate-200 mb-4">Support</h5>
           <ul className="space-y-2 text-slate-400">
             <li><Link href="/help">Help Center</Link></li>
@@ -644,21 +695,115 @@ function Footer() {
           </ul>
         </div>
       </div>
-      <div className="bg-[#02030a] border-t border-[#07204a] py-12 flex items-center justify-center">
-        <div className="relative">
-          <div className="footer-word relative group cursor-pointer select-none">
-            <span className="text-4xl md:text-5xl font-extrabold tracking-tight text-white block z-10 relative">humanae</span>
-            <div className="absolute inset-0 -z-10 pointer-events-none flex items-center justify-center">
-              <span className="w-56 h-16 rounded-full bg-gradient-to-r from-[#122a66] via-[#1e3a8a] to-[#0769d6] opacity-30 blur-3xl transform transition-all duration-500 group-hover:scale-105 group-hover:translate-y-[-6px]"></span>
-            </div>
-          </div>
-        </div>
-      </div>
     </footer>
   )
 }
 
-/* Global styles for animations and small helpers */
+function FooterLogo() {
+  const underlineRef = useRef<SVGPathElement | null>(null)
+
+  useEffect(() => {
+    const path = underlineRef.current
+    if (!path) return
+    const length = path.getTotalLength()
+    path.style.strokeDasharray = `${length}`
+    path.style.strokeDashoffset = `${length}`
+    setTimeout(() => {
+      path.style.transition = 'stroke-dashoffset 1.8s cubic-bezier(.2,.9,.3,1)'
+      path.style.strokeDashoffset = '0'
+    }, 400)
+  }, [])
+
+  return (
+    <span
+      className="relative flex items-center select-none"
+      style={{
+        letterSpacing: '-0.04em',
+        textShadow: '0 2px 8px #0f172a',
+        fontFamily: 'Inter, sans-serif',
+        fontWeight: 800,
+        fontSize: '2rem',
+        lineHeight: 1,
+      }}
+    >
+      <span style={{ color: '#2563eb' }}>hum</span>
+      <span style={{ color: '#fff' }}>an</span>
+      <span style={{ color: '#fff', position: 'relative', zIndex: 2 }}>
+        <span style={{ color: '#fff', fontWeight: 800 }}>a</span>
+        <span style={{ color: '#fff', fontWeight: 800, background: 'linear-gradient(90deg,#fff,#38bdf8 80%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>i</span>
+      </span>
+      <span style={{ color: '#38bdf8' }}>ra</span>
+      <svg
+        width={120}
+        height={18}
+        viewBox="0 0 120 18"
+        className="absolute left-0"
+        style={{ bottom: -8, zIndex: 1 }}
+        aria-hidden
+      >
+        <path
+          ref={underlineRef}
+          d="M8 12 Q40 20 80 10 Q110 2 118 14"
+          fill="none"
+          stroke="#38bdf8"
+          strokeWidth={2.2}
+          strokeLinecap="round"
+          style={{
+            filter: 'drop-shadow(0 0 6px #38bdf8cc)',
+            strokeDasharray: undefined,
+            strokeDashoffset: undefined,
+          }}
+        />
+        <FooterMovingOrb />
+      </svg>
+      <span className="inline-block align-middle ml-2 w-2.5 h-2.5 rounded-full bg-blue-700 animate-pulse shadow-lg"></span>
+    </span>
+  )
+}
+
+function FooterMovingOrb() {
+  const orbRef = useRef<SVGCircleElement | null>(null)
+  const pathRef = useRef<SVGPathElement | null>(null)
+
+  useEffect(() => {
+    if (!orbRef.current) return
+    const svg = orbRef.current.ownerSVGElement
+    if (!svg) return
+    const path = svg.querySelector('path')
+    if (!path) return
+    pathRef.current = path
+
+    let frame = 0
+    let raf: number
+    function animate() {
+      const length = path.getTotalLength()
+      const t = (Math.sin(frame * 0.025) * 0.5 + 0.5) * 0.85 + 0.08
+      const pt = path.getPointAtLength(length * t)
+      orbRef.current!.setAttribute('cx', pt.x.toString())
+      orbRef.current!.setAttribute('cy', pt.y.toString())
+      raf = requestAnimationFrame(() => {
+        frame++
+        animate()
+      })
+    }
+    animate()
+    return () => cancelAnimationFrame(raf)
+  }, [])
+
+  return (
+    <circle
+      ref={orbRef}
+      r="4"
+      fill="#38bdf8"
+      opacity="0.85"
+      style={{
+        filter: 'drop-shadow(0 0 8px #38bdf8cc)',
+        transition: 'cx 0.1s, cy 0.1s',
+      }}
+    />
+  )
+}
+
 function GlobalStyles() {
   useEffect(() => {
     const els = Array.from(document.querySelectorAll('.reveal'))
@@ -677,6 +822,8 @@ function GlobalStyles() {
     <style jsx global>{`
       :root { --accent: #2563eb; --soft: #07102a; }
       html, body { height: 100%; }
+      body { margin: 0; padding: 0; }
+      main { padding-top: 72px; }
       @keyframes gradient-move-btn {
         0% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
@@ -697,7 +844,6 @@ function GlobalStyles() {
   )
 }
 
-/* Scroll reveal hook */
 function useScrollReveal() {
   useEffect(() => {
     const els = Array.from(document.querySelectorAll('.reveal'))

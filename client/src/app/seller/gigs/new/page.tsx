@@ -4,18 +4,19 @@ import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '../../../api/lib/supabaseBrowser'
 
 const categories = [
-  'Writing',
-  'Design',
-  'Voiceover',
+  'AI Art & Design',
+  'Copywriting',
+  'Chatbot Development',
   'Automation',
-  'Video',
-  'Development',
-  'Marketing',
+  'Data Analysis',
+  'Voice & Audio',
+  'Video & Animation',
+  'Web & App',
   'Other',
 ]
 
 const tips = [
-  "Write a clear, concise gig title (e.g. 'I will design a modern AI logo').",
+  "Write a clear, compelling gig title (e.g. 'I will build a custom AI chatbot for your business').",
   "Describe exactly what you offer and what the client will get.",
   "Add relevant tags so your gig is easy to find.",
   "Use a high-quality cover image (no watermarks, no text overlays).",
@@ -127,33 +128,35 @@ export default function PostGigPage() {
       setSuccessMsg('Gig posted successfully!')
       setTimeout(() => router.push(`/seller/gigs/${gigData.slug}`), 1200)
     } catch (err: any) {
-  console.error('Full error:', err); // <-- Add this line
-  setErrorMsg(err.message || 'Failed to post gig. Please try again.');
-}
+      console.error('Full error:', err)
+      setErrorMsg(err.message || 'Failed to post gig. Please try again.')
+    }
     setLoading(false)
   }
 
   return (
-    <main className="min-h-screen bg-neutral-100 text-gray-900 font-inter">
-      <section className="max-w-3xl mx-auto px-4 py-16">
-        <h1 className="text-3xl md:text-4xl font-bold text-blue-900 mb-2 font-sans">
+    <main className="min-h-screen bg-gradient-to-br from-[#090a10] via-[#07102a] to-[#123055] text-gray-100 font-inter flex flex-col items-center pt-24 px-4">
+      <section className="max-w-3xl w-full bg-[#181a23] border border-blue-900 rounded-2xl shadow-2xl p-10 mb-12">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-blue-200 mb-6 text-center tracking-tight font-sans">
           Post a New Gig
         </h1>
-        <p className="text-gray-600 mb-8">
-          Create your gig and reach clients looking for AI-powered services. <span className="font-semibold">Tips:</span>
+        <p className="text-blue-200 mb-8 text-center">
+          Create your gig and reach clients looking for AI-powered services.
         </p>
-        <ul className="mb-8 bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-900 grid grid-cols-1 md:grid-cols-2 gap-2">
+        <ul className="mb-8 bg-blue-950/40 border border-blue-900 rounded-xl p-4 text-sm text-blue-200 grid grid-cols-1 md:grid-cols-2 gap-2">
           {tips.map((tip, i) => (
             <li key={i} className="flex items-start gap-2">
-              <span className="text-blue-600 mt-1">•</span>
+              <span className="text-blue-400 mt-1">•</span>
               <span>{tip}</span>
             </li>
           ))}
         </ul>
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow p-6 flex flex-col gap-6 border border-gray-200">
+        <form onSubmit={handleSubmit} className="bg-[#10131e] rounded-2xl shadow p-6 flex flex-col gap-6 border border-blue-900">
           {/* Title */}
           <div>
-            <label className="block font-semibold mb-1" htmlFor="title">Gig Title <span className="text-red-500">*</span></label>
+            <label className="block font-semibold mb-1 text-blue-100" htmlFor="title">
+              Gig Title <span className="text-blue-400">*</span>
+            </label>
             <input
               id="title"
               type="text"
@@ -161,19 +164,21 @@ export default function PostGigPage() {
               onChange={e => setTitle(e.target.value)}
               maxLength={80}
               required
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-100"
-              placeholder="e.g. I will design a modern AI logo"
+              className="w-full px-4 py-3 rounded-lg border border-blue-800 bg-[#07102a] text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-lg transition"
+              placeholder="e.g. I will build a custom AI chatbot for your business"
             />
-            <div className="text-xs text-gray-400 mt-1">{title.length}/80 characters</div>
+            <div className="text-xs text-blue-300 mt-1">{title.length}/80 characters</div>
           </div>
           {/* Category */}
           <div>
-            <label className="block font-semibold mb-1" htmlFor="category">Category <span className="text-red-500">*</span></label>
+            <label className="block font-semibold mb-1 text-blue-100" htmlFor="category">
+              Category <span className="text-blue-400">*</span>
+            </label>
             <select
               id="category"
               value={category}
               onChange={e => setCategory(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="w-full px-4 py-3 rounded-lg border border-blue-800 bg-[#07102a] text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-lg transition"
               required
             >
               {categories.map(cat => (
@@ -183,34 +188,38 @@ export default function PostGigPage() {
           </div>
           {/* Tags */}
           <div>
-            <label className="block font-semibold mb-1" htmlFor="tags">Tags</label>
+            <label className="block font-semibold mb-1 text-blue-100" htmlFor="tags">Tags</label>
             <input
               id="tags"
               type="text"
               value={tags}
               onChange={e => setTags(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-100"
-              placeholder="e.g. ai, logo, branding, chatbot"
+              className="w-full px-4 py-3 rounded-lg border border-blue-800 bg-[#07102a] text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-lg transition"
+              placeholder="e.g. ai, chatbot, automation, design"
             />
-            <div className="text-xs text-gray-400 mt-1">Comma separated (max 5 recommended)</div>
+            <div className="text-xs text-blue-300 mt-1">Comma separated (max 5 recommended)</div>
           </div>
           {/* Description */}
           <div>
-            <label className="block font-semibold mb-1" htmlFor="description">Description <span className="text-red-500">*</span></label>
+            <label className="block font-semibold mb-1 text-blue-100" htmlFor="description">
+              Description <span className="text-blue-400">*</span>
+            </label>
             <textarea
               id="description"
               value={description}
               onChange={e => setDescription(e.target.value)}
               rows={6}
               required
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="w-full px-4 py-3 rounded-lg border border-blue-800 bg-[#07102a] text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-lg transition"
               placeholder="Describe your service, what you offer, and what the client will get."
             />
-            <div className="text-xs text-gray-400 mt-1">{description.length}/1200 characters</div>
+            <div className="text-xs text-blue-300 mt-1">{description.length}/1200 characters</div>
           </div>
           {/* Cover Image */}
           <div>
-            <label className="block font-semibold mb-1">Cover Image <span className="text-red-500">*</span></label>
+            <label className="block font-semibold mb-1 text-blue-100">
+              Cover Image <span className="text-blue-400">*</span>
+            </label>
             <input
               ref={coverInputRef}
               type="file"
@@ -234,7 +243,7 @@ export default function PostGigPage() {
           </div>
           {/* Media Gallery */}
           <div>
-            <label className="block font-semibold mb-1">Gallery (images/videos, optional)</label>
+            <label className="block font-semibold mb-1 text-blue-100">Gallery (images/videos, optional)</label>
             <input
               ref={mediaInputRef}
               type="file"
@@ -262,11 +271,13 @@ export default function PostGigPage() {
           </div>
           {/* Packages */}
           <div>
-            <label className="block font-semibold mb-2">Packages <span className="text-gray-400">(at least one required)</span></label>
+            <label className="block font-semibold mb-2 text-blue-100">
+              Packages <span className="text-blue-300">(at least one required)</span>
+            </label>
             <div className="grid md:grid-cols-3 gap-4">
               {packages.map((pkg, idx) => (
-                <div key={pkg.tier} className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex flex-col gap-2">
-                  <div className="font-semibold mb-1">{pkg.tier}</div>
+                <div key={pkg.tier} className="bg-[#181a23] border border-blue-800 rounded-lg p-4 flex flex-col gap-2">
+                  <div className="font-semibold mb-1 text-blue-200">{pkg.tier}</div>
                   <input
                     type="number"
                     min={1}
@@ -277,7 +288,7 @@ export default function PostGigPage() {
                       const val = e.target.value
                       setPackages(pkgs => pkgs.map((p, i) => i === idx ? { ...p, price: val } : p))
                     }}
-                    className="w-full px-2 py-1 rounded border border-gray-200 bg-white"
+                    className="w-full px-2 py-1 rounded border border-blue-800 bg-[#07102a] text-white"
                   />
                   <input
                     type="number"
@@ -289,7 +300,7 @@ export default function PostGigPage() {
                       const val = e.target.value
                       setPackages(pkgs => pkgs.map((p, i) => i === idx ? { ...p, delivery_days: val } : p))
                     }}
-                    className="w-full px-2 py-1 rounded border border-gray-200 bg-white"
+                    className="w-full px-2 py-1 rounded border border-blue-800 bg-[#07102a] text-white"
                   />
                   <input
                     type="number"
@@ -301,7 +312,7 @@ export default function PostGigPage() {
                       const val = e.target.value
                       setPackages(pkgs => pkgs.map((p, i) => i === idx ? { ...p, revisions: val } : p))
                     }}
-                    className="w-full px-2 py-1 rounded border border-gray-200 bg-white"
+                    className="w-full px-2 py-1 rounded border border-blue-800 bg-[#07102a] text-white"
                   />
                   <textarea
                     placeholder="Package description"
@@ -310,13 +321,13 @@ export default function PostGigPage() {
                       const val = e.target.value
                       setPackages(pkgs => pkgs.map((p, i) => i === idx ? { ...p, desc: val } : p))
                     }}
-                    className="w-full px-2 py-1 rounded border border-gray-200 bg-white"
+                    className="w-full px-2 py-1 rounded border border-blue-800 bg-[#07102a] text-white"
                     rows={2}
                   />
                 </div>
               ))}
             </div>
-            <div className="text-xs text-gray-400 mt-1">
+            <div className="text-xs text-blue-300 mt-1">
               Set price, delivery, and revisions for each package. You can leave unused packages blank.
             </div>
           </div>
@@ -325,15 +336,18 @@ export default function PostGigPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-700 text-white rounded-lg py-3 font-semibold hover:bg-blue-800 transition"
+              className="w-full bg-gradient-to-r from-blue-700 to-blue-500 text-white rounded-lg py-3 font-semibold hover:from-blue-800 hover:to-blue-600 transition"
             >
               {loading ? 'Posting...' : 'Post Gig'}
             </button>
-            {errorMsg && <div className="text-red-600 mt-2">{errorMsg}</div>}
-            {successMsg && <div className="text-green-600 mt-2">{successMsg}</div>}
+            {errorMsg && <div className="text-red-400 mt-2">{errorMsg}</div>}
+            {successMsg && <div className="text-green-400 mt-2">{successMsg}</div>}
           </div>
         </form>
       </section>
+      <div className="max-w-3xl w-full text-center text-blue-200 text-sm opacity-80 mb-10">
+        <span className="font-semibold">Tips:</span> Write a clear, compelling title and description. Use relevant tags and choose a fair price. AI gigs get featured!
+      </div>
     </main>
   )
 }
