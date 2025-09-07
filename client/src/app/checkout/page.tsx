@@ -42,9 +42,17 @@ function CheckoutForm({ gigId, tier }: { gigId: string, tier: string }) {
   )
 }
 
-export default function CheckoutPage({ searchParams }: { searchParams: { gigId?: string, tier?: string } }) {
-  const gigId = searchParams.gigId || ''
-  const tier = searchParams.tier || 'BASIC'
+// Correct prop type for Next.js App Router
+interface CheckoutPageProps {
+  searchParams?: {
+    gigId?: string
+    tier?: string
+  }
+}
+
+export default function CheckoutPage({ searchParams }: CheckoutPageProps) {
+  const gigId = searchParams?.gigId || ''
+  const tier = searchParams?.tier || 'BASIC'
   return (
     <Elements stripe={stripePromise} options={{ appearance: { theme: 'stripe' } }}>
       <CheckoutForm gigId={gigId} tier={tier} />
