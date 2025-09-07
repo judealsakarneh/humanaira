@@ -1,1 +1,1 @@
-self.__RSC_SERVER_MANIFEST="{\"node\":{},\"edge\":{},\"encryptionKey\":\"process.env.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY\"}"
+self.__RSC_SERVER_MANIFEST="{\"node\":{\"4099f887b39b63d778ec56c4d433dd042e9df4324c\":{\"workers\":{\"app/api/checkout/route\":{\"moduleId\":\"10771\",\"async\":false}},\"layer\":{\"app/api/checkout/route\":\"rsc\"},\"filename\":\"../C:\\\\Users\\\\JUDE\\\\Desktop\\\\ZENTASK-AI\\\\client\\\\src\\\\app\\\\api\\\\checkout\\\\route.ts\",\"exportedName\":\"POST\"}},\"edge\":{},\"encryptionKey\":\"process.env.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY\"}"
