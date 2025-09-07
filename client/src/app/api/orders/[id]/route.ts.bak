@@ -1,0 +1,7 @@
+import { NextRequest, NextResponse } from 'next/server'
+
+// Example GET handler for /api/orders/[id]
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  // You can replace this with your actual logic
+  return NextResponse.json({ message: `Order ID is ${params.id}` })
+}

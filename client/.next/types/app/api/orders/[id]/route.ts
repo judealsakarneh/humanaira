@@ -1,8 +1,8 @@
 // File: C:\Users\JUDE\Desktop\ZENTASK-AI\client\src\app\api\orders\[id]\route.ts
-import * as entry from '../../../../../../src/app/api/orders/[id]/route.js'
+import * as entry from '../../../../../../src/app/api/orders/[id]/route.ts.bak'
 import type { NextRequest } from 'next/server.js'
 
-type TEntry = typeof import('../../../../../../src/app/api/orders/[id]/route.js')
+type TEntry = typeof import('../../../../../../src/app/api/orders/[id]/route.ts.bak')
 
 type SegmentParams<T extends Object = any> = T extends Record<string, any>
   ? { [K in keyof T]: T[K] extends string ? string | string[] | undefined : never }
