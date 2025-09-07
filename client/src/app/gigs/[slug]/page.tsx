@@ -1,7 +1,14 @@
 import { createSupabaseServer } from '../../api/lib/supabaseServer'
 import Link from 'next/link'
 
-export default async function GigPage({ params }: { params: { slug: string } }) {
+// Correct prop type for Next.js App Router
+interface GigPageProps {
+  params: {
+    slug: string
+  }
+}
+
+export default async function GigPage({ params }: GigPageProps) {
   const supabase = createSupabaseServer()
   const { data: gig } = await supabase
     .from('gigs')
@@ -47,7 +54,7 @@ export default async function GigPage({ params }: { params: { slug: string } }) 
             <p className="text-gray-700 whitespace-pre-line mb-6">{gig.description}</p>
             <h2 className="text-xl font-semibold mb-4">Packages</h2>
             <div className="grid md:grid-cols-1 gap-4">
-              {(pkgs || []).map(p => (
+              {(pkgs || []).map((p: any) => (
                 <div key={p.id} className="border border-gray-200 rounded-lg p-4 mb-2 bg-gray-50">
                   <div className="font-semibold mb-1">{p.tier}</div>
                   <div className="text-2xl font-bold mb-1 text-blue-800">${(p.price_cents / 100).toFixed(2)}</div>
