@@ -1,14 +1,7 @@
 import { createSupabaseServer } from '../../api/lib/supabaseServer'
 import Link from 'next/link'
 
-// Correct prop type for Next.js App Router
-interface GigPageProps {
-  params: {
-    slug: string
-  }
-}
-
-export default async function GigPage({ params }: GigPageProps) {
+export default async function GigPage({ params }: { params: { slug: string } }) {
   const supabase = createSupabaseServer()
   const { data: gig } = await supabase
     .from('gigs')
