@@ -1,12 +1,13 @@
 import { createSupabaseServer } from '../../api/lib/supabaseServer'
 import Link from 'next/link'
 
-export default async function GigPage({ params }: { params: { slug: string } }) {
+export default async function GigPage({ params }: PageProps<"/gigs/[slug]">) {
+  const { slug } = await params
   const supabase = createSupabaseServer()
   const { data: gig } = await supabase
     .from('gigs')
     .select('id,title,description,cover_image_url,media_urls,seller_id,category')
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .single()
 
   if (!gig) return <div className="p-10">Gig not found</div>
