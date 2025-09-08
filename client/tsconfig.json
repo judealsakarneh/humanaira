@@ -39,8 +39,9 @@
     "next-env.d.ts",
     "src/app/api/orders/[id]/route.ts.bak",
     "src/app/api/products/route.ts.bak",
-    "src/app/order/[id]/route.ts.bak"
-    ],
+    "src/app/order/[id]/route.ts.bak",
+    ".next/types/**/*.ts"
+  ],
   "exclude": [
     "node_modules"
   ]
