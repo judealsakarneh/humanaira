@@ -51,9 +51,9 @@ export default function UserMenu({ user }: { user: any }) {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 min-w-[220px] bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-100">
+        <div className="absolute right-0 mt-2 min-w-[220px] bg-[#181a23] rounded-lg shadow-xl py-2 z-50 border border-blue-900">
           <button
-            className="w-full text-left px-5 py-3 hover:bg-blue-50 text-gray-700 text-base font-medium"
+            className="w-full text-left px-5 py-3 hover:bg-blue-900/40 text-blue-100 text-base font-medium"
             onClick={() => {
               setOpen(false)
               router.push('/account')
@@ -63,27 +63,27 @@ export default function UserMenu({ user }: { user: any }) {
           </button>
           <Link
             href="/seller/dashboard"
-            className="block px-5 py-3 hover:bg-blue-50 text-gray-700 text-base font-medium"
+            className="block px-5 py-3 hover:bg-blue-900/40 text-blue-100 text-base font-medium"
             onClick={() => setOpen(false)}
           >
             Dashboard
           </Link>
           <Link
             href="/seller/gigs/new"
-            className="block px-5 py-3 hover:bg-blue-50 text-gray-700 text-base font-medium"
+            className="block px-5 py-3 hover:bg-blue-900/40 text-blue-100 text-base font-medium"
             onClick={() => setOpen(false)}
           >
             Post a Gig
           </Link>
           <Link
             href="/saved"
-            className="block px-5 py-3 hover:bg-blue-50 text-gray-700 text-base font-medium"
+            className="block px-5 py-3 hover:bg-blue-900/40 text-blue-100 text-base font-medium"
             onClick={() => setOpen(false)}
           >
             Saved Gigs
           </Link>
           <button
-            className="w-full text-left px-5 py-3 hover:bg-blue-50 text-gray-700 text-base font-medium"
+            className="w-full text-left px-5 py-3 hover:bg-blue-900/40 text-blue-100 text-base font-medium"
             onClick={handleSignOut}
           >
             Sign Out

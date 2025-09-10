@@ -57,7 +57,7 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#090a10] text-gray-100 font-inter">
-      <Header user={user} />
+      {/* REMOVE THIS LINE: <Header user={user} /> */}
       <Hero />
       <HowItWorks />
       <WhyHumanaira />
@@ -227,8 +227,12 @@ function md5(str: string) {
 }
 function Hero() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [search, setSearch] = useState('');
+  const router = require('next/navigation').useRouter?.() || null;
 
   useEffect(() => {
+    // ...existing canvas animation code...
+    // (keep your canvas animation code unchanged)
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -383,7 +387,14 @@ function Hero() {
     };
   }, []);
 
-  // Hero section covers full viewport minus header
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    if (search.trim()) {
+      if (router) router.push(`/browse?q=${encodeURIComponent(search.trim())}`);
+      else window.location.href = `/browse?q=${encodeURIComponent(search.trim())}`;
+    }
+  }
+
   return (
     <section
       className="relative w-full flex items-center justify-center bg-[#090a10] overflow-hidden"
@@ -415,20 +426,27 @@ function Hero() {
           Discover, hire, and collaborate with the next generation of AI freelancers and digital creators.
           <span className="block mt-2 text-blue-200/80 italic">Your ideas, delivered smarter.</span>
         </p>
-        <div className="flex gap-4 justify-center">
-          <Link
-            href="/browse"
-            className="btn-future px-7 py-3 rounded-md font-bold text-lg shadow-lg transition border border-blue-700 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500 text-white hover:from-blue-600 hover:to-blue-700 focus:outline-none"
+        {/* New Search Bar */}
+        <form
+          onSubmit={handleSearch}
+          className="w-full max-w-md mx-auto flex items-center bg-[#181a23] rounded-xl shadow border border-blue-700 px-3 py-2"
+          style={{ marginBottom: '2rem' }}
+        >
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search for services, gigs, or talent..."
+            className="flex-1 bg-transparent border-none outline-none text-white text-base px-2 py-2"
+            style={{ minWidth: 0 }}
+          />
+          <button
+            type="submit"
+            className="ml-2 px-4 py-2 rounded-lg bg-blue-700 text-white font-semibold hover:bg-blue-800 transition text-base"
           >
-            Browse Services
-          </Link>
-          <Link
-            href="/seller/gigs/new"
-            className="btn-future px-7 py-3 rounded-md font-bold text-lg shadow-lg transition border border-blue-700 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500 text-white hover:from-blue-600 hover:to-blue-700 focus:outline-none"
-          >
-            Start Selling
-          </Link>
-        </div>
+            Search
+          </button>
+        </form>
       </div>
       <style jsx global>{`
         .btn-future {
