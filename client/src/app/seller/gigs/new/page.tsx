@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '../../../api/lib/supabaseBrowser'
 
@@ -44,13 +44,51 @@ export default function PostGigPage() {
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
+  const [checking, setChecking] = useState(true)
+  const [accessError, setAccessError] = useState('')
   const coverInputRef = useRef<HTMLInputElement>(null)
   const mediaInputRef = useRef<HTMLInputElement>(null)
+
+  // Only allow freelancers to access this page
+  useEffect(() => {
+    async function checkFreelancer() {
+      setChecking(true)
+      setAccessError('')
+      const supabase = createSupabaseBrowser()
+      const { data: { session }, error } = await supabase.auth.getSession()
+      if (error || !session?.user) {
+        setAccessError('You must be logged in to post a gig.')
+        setChecking(false)
+        setTimeout(() => router.replace('/account'), 2000)
+        return
+      }
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_freelancer')
+        .eq('id', session.user.id)
+        .single()
+      if (profileError || !profile) {
+        setAccessError('Could not load your profile.')
+        setChecking(false)
+        setTimeout(() => router.replace('/account'), 2000)
+        return
+      }
+      if (!profile.is_freelancer) {
+        setAccessError('Only freelancers can post gigs. Enable freelancer mode in your account settings.')
+        setChecking(false)
+        setTimeout(() => router.replace('/account/settings'), 2500)
+        return
+      }
+      setChecking(false)
+    }
+    checkFreelancer()
+    // eslint-disable-next-line
+  }, [])
 
   async function handleImageUpload(file: File) {
     const supabase = createSupabaseBrowser()
     const fileName = `cover_${Date.now()}_${file.name}`
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from('gig-media')
       .upload(fileName, file, { upsert: true })
     if (error) throw error
@@ -132,6 +170,22 @@ export default function PostGigPage() {
       setErrorMsg(err.message || 'Failed to post gig. Please try again.')
     }
     setLoading(false)
+  }
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#090a10]">
+        <div className="text-blue-400 text-lg font-semibold animate-pulse">Checking access...</div>
+      </div>
+    )
+  }
+
+  if (accessError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#090a10]">
+        <div className="text-red-400 text-lg font-semibold">{accessError}</div>
+      </div>
+    )
   }
 
   return (

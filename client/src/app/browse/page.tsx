@@ -39,7 +39,7 @@ export default function BrowsePage() {
   useEffect(() => {
     const supabase = createSupabaseBrowser()
     async function fetchGigs() {
-      let req = supabase.from('gigs').select('*').order('created_at', { ascending: false })
+      let req = supabase.from('gigs').select('*')
 
       if (query.trim()) {
         req = req.ilike('title', `%${query}%`)
@@ -56,13 +56,17 @@ export default function BrowsePage() {
       if (maxPrice) {
         req = req.lte('price_cents', Number(maxPrice) * 100)
       }
+
+      // Only apply one order based on sort
       if (sort === 'price_low') {
         req = req.order('price_cents', { ascending: true })
       } else if (sort === 'price_high') {
         req = req.order('price_cents', { ascending: false })
       } else if (sort === 'newest') {
         req = req.order('created_at', { ascending: false })
-      } else {
+      } else if (sort === 'best') {
+        // Best selling: sort by sales if available, else by rating
+        req = req.order('sales', { ascending: false })
         req = req.order('rating', { ascending: false })
       }
 

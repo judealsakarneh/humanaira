@@ -4,7 +4,34 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
 
-export default function UserMenu({ user }: { user: any }) {
+type UserMenuProps = {
+  user: any
+  avatarUrl?: string
+  username?: string
+}
+
+function UserAvatar({ avatarUrl, username }: { avatarUrl?: string; username?: string }) {
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={username || 'Profile'}
+        className="w-10 h-10 rounded-xl object-cover border-2 border-blue-700 bg-[#10131e]"
+        style={{ borderRadius: '1rem' }}
+      />
+    )
+  }
+  return (
+    <div
+      className="w-10 h-10 rounded-xl bg-blue-800 flex items-center justify-center text-white font-bold border-2 border-blue-700"
+      style={{ borderRadius: '1rem' }}
+    >
+      {username?.[0]?.toUpperCase() || "?"}
+    </div>
+  )
+}
+
+export default function UserMenu({ user, avatarUrl, username }: UserMenuProps) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const supabase = createSupabaseBrowser()
@@ -20,17 +47,6 @@ export default function UserMenu({ user }: { user: any }) {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  const initials =
-    user?.user_metadata?.name
-      ? user.user_metadata.name
-          .split(' ')
-          .map((n: string) => n[0])
-          .join('')
-          .toUpperCase()
-      : user?.email?.slice(0, 2).toUpperCase()
-
-  const avatarUrl = user?.user_metadata?.avatar_url
-
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push('/')
@@ -40,15 +56,12 @@ export default function UserMenu({ user }: { user: any }) {
   return (
     <div className="relative" ref={menuRef}>
       <button
-        className="w-10 h-10 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-lg hover:bg-blue-700 transition focus:outline-none"
+        className="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center text-lg hover:bg-blue-700 transition focus:outline-none"
         onClick={() => setOpen((v) => !v)}
         aria-label="User menu"
+        style={{ borderRadius: '1rem' }}
       >
-        {avatarUrl ? (
-          <img src={avatarUrl} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
-        ) : (
-          initials
-        )}
+        <UserAvatar avatarUrl={avatarUrl} username={username} />
       </button>
       {open && (
         <div className="absolute right-0 mt-2 min-w-[220px] bg-[#181a23] rounded-lg shadow-xl py-2 z-50 border border-blue-900">

@@ -3,39 +3,8 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { createSupabaseBrowser } from './api/lib/supabaseBrowser'
 
-const reviews = [
-  {
-    name: 'Sarah A.',
-    avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
-    text: 'Humanaira made it so easy to find the perfect freelancer for my project. Fast, reliable, and great support!',
-    rating: 5,
-    role: 'Startup Founder',
-  },
-  {
-    name: 'Mohammed K.',
-    avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-    text: 'I love how simple and transparent the platform is. The AI tools really help me deliver better gigs.',
-    rating: 5,
-    role: 'AI Freelancer',
-  },
-  {
-    name: 'Lina S.',
-    avatar: 'https://randomuser.me/api/portraits/women/65.jpg',
-    text: 'Best freelance experience I’ve had. The money-back guarantee gave me peace of mind.',
-    rating: 4,
-    role: 'Business Owner',
-  },
-  {
-    name: 'James T.',
-    avatar: 'https://randomuser.me/api/portraits/men/76.jpg',
-    text: 'Great community and support. I got my logo delivered in less than 24 hours!',
-    rating: 5,
-    role: 'Entrepreneur',
-  },
-]
-
+// --- Main Home Page ---
 export default function HomePage() {
-  const [current, setCurrent] = useState(0)
   const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
@@ -46,9 +15,7 @@ export default function HomePage() {
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null)
     })
-    const interval = setInterval(() => setCurrent((c) => (c + 1) % reviews.length), 5000)
     return () => {
-      clearInterval(interval)
       listener?.subscription.unsubscribe()
     }
   }, [])
@@ -56,23 +23,28 @@ export default function HomePage() {
   useScrollReveal()
 
   return (
-    <main className="min-h-screen bg-[#090a10] text-gray-100 font-inter">
-      {/* REMOVE THIS LINE: <Header user={user} /> */}
+    <main className="min-h-screen bg-[#090a10] text-gray-100 font-inter relative overflow-x-hidden">
       <Hero />
+      <SectionDivider />
+      <AIStats />
+      <SectionDivider />
       <HowItWorks />
+      <SectionDivider />
       <WhyHumanaira />
+      <SectionDivider />
       <FAQSection />
-      <Reviews current={current} setCurrent={setCurrent} />
       <Footer />
       <GlobalStyles />
+      <BackgroundBrand />
     </main>
   )
 }
 
+// --- Header ---
 function Header({ user }: { user: any }) {
   return (
-    <header className="w-full px-8 py-5 flex items-center justify-between bg-[#090a10] border-b border-[#1e293b] z-30 fixed top-0 left-0 right-0 h-[72px]">
-      <Link href="/" className="flex items-center gap-2 font-extrabold text-2xl text-white select-none">
+    <header className="w-full px-8 py-5 flex items-center justify-between bg-[#090a10]/90 border-b border-[#1e293b] z-30 fixed top-0 left-0 right-0 h-[72px] backdrop-blur-md">
+      <Link href="/" className="flex items-center gap-2 font-extrabold text-2xl text-white select-none tracking-tight" style={{ letterSpacing: '-0.04em' }}>
         <span style={{ color: '#2563eb' }}>hum</span>
         <span style={{ color: '#fff' }}>an</span>
         <span style={{ color: '#fff', fontWeight: 800 }}>a</span>
@@ -86,10 +58,10 @@ function Header({ user }: { user: any }) {
         <span style={{ color: '#38bdf8' }}>ra</span>
       </Link>
       <nav className="flex items-center gap-6">
-        <Link href="/browse" className="text-blue-200 hover:text-blue-400 font-medium">Browse</Link>
-        <Link href="/seller/gigs/new" className="text-blue-200 hover:text-blue-400 font-medium">Start Selling</Link>
-        <Link href="/enterprise" className="text-blue-200 hover:text-blue-400 font-medium">Enterprise</Link>
-        <Link href="/help" className="text-blue-200 hover:text-blue-400 font-medium">Help</Link>
+        <Link href="/browse" className="text-blue-200 hover:text-blue-400 font-medium transition">Browse</Link>
+        <Link href="/seller/gigs/new" className="text-blue-200 hover:text-blue-400 font-medium transition">Start Selling</Link>
+        <Link href="/enterprise" className="text-blue-200 hover:text-blue-400 font-medium transition">Enterprise</Link>
+        <Link href="/help" className="text-blue-200 hover:text-blue-400 font-medium transition">Help</Link>
         {user ? (
           <Link href="/account" className="ml-4">
             <Avatar email={user.email} />
@@ -225,173 +197,165 @@ function md5(str: string) {
   }
   return rhex(a) + rhex(b) + rhex(c) + rhex(d)
 }
-function Hero() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [search, setSearch] = useState('');
-  const router = require('next/navigation').useRouter?.() || null;
+
+// --- Hero Section ---
+export function Hero() {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const [search, setSearch] = useState('')
+  const router = typeof window !== 'undefined' ? require('next/navigation').useRouter?.() : null
 
   useEffect(() => {
-    // ...existing canvas animation code...
-    // (keep your canvas animation code unchanged)
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
 
-    let w = (canvas.width = canvas.offsetWidth);
-    let h = (canvas.height = canvas.offsetHeight);
+    let w = (canvas.width = canvas.offsetWidth)
+    let h = (canvas.height = canvas.offsetHeight)
 
     function resize() {
-      w = canvas.width = canvas.offsetWidth;
-      h = canvas.height = canvas.offsetHeight;
+      w = canvas.width = canvas.offsetWidth
+      h = canvas.height = canvas.offsetHeight
     }
-    window.addEventListener('resize', resize, { passive: true });
+    window.addEventListener('resize', resize, { passive: true })
 
-    // Static stars
     const stars: { x: number; y: number; r: number; alpha: number }[] = Array.from({ length: 90 }).map(() => ({
       x: Math.random() * w,
       y: Math.random() * h,
       r: Math.random() * 0.7 + 0.15,
       alpha: Math.random() * 0.5 + 0.2,
-    }));
+    }))
 
-    // Planet parameters
-    const planetRadius = Math.min(w, h) * 0.32;
-    const cx = w * 0.62;
-    const cy = h * 0.52;
+    const planetRadius = Math.min(w, h) * 0.32
+    const cx = w * 0.62
+    const cy = h * 0.52
 
-    // Orbiting energy lines parameters
     const energyLines = [
-      { color: "#a78bfa", width: 2.5, radius: planetRadius * 0.95, speed: 0.008, phase: 0 },
-      { color: "#f472b6", width: 2, radius: planetRadius * 1.05, speed: -0.006, phase: Math.PI / 2 },
+      { color: "#38bdf8", width: 2.5, radius: planetRadius * 0.95, speed: 0.008, phase: 0 },
+      { color: "#60a5fa", width: 2, radius: planetRadius * 1.05, speed: -0.006, phase: Math.PI / 2 },
       { color: "#38bdf8", width: 2, radius: planetRadius * 1.12, speed: 0.004, phase: Math.PI },
-    ];
+    ]
 
-    let raf = 0;
+    let raf = 0
     function draw(frame = 0) {
-      ctx.clearRect(0, 0, w, h);
+      ctx.clearRect(0, 0, w, h)
 
-      // Background gradient
-      const grad = ctx.createLinearGradient(0, 0, w, h);
-      grad.addColorStop(0, "#0a1020");
-      grad.addColorStop(0.5, "#07102a");
-      grad.addColorStop(1, "#1a2a55");
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, w, h);
+      const grad = ctx.createLinearGradient(0, 0, w, h)
+      grad.addColorStop(0, "#0a1020")
+      grad.addColorStop(0.5, "#07102a")
+      grad.addColorStop(1, "#1a2a55")
+      ctx.fillStyle = grad
+      ctx.fillRect(0, 0, w, h)
 
-      // Static stars
       for (const s of stars) {
-        ctx.globalAlpha = s.alpha;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = "#e0eaff";
-        ctx.shadowColor = "#7dd3fc";
-        ctx.shadowBlur = 12;
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        ctx.globalAlpha = s.alpha
+        ctx.beginPath()
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
+        ctx.fillStyle = "#e0eaff"
+        ctx.shadowColor = "#7dd3fc"
+        ctx.shadowBlur = 12
+        ctx.fill()
+        ctx.shadowBlur = 0
       }
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = 1
 
-      // Shiny, glassy planet
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, planetRadius, 0, Math.PI * 2);
-      ctx.closePath();
-      // More shiny radial gradient
-      const planetGrad = ctx.createRadialGradient(cx, cy, planetRadius * 0.05, cx, cy, planetRadius);
-      planetGrad.addColorStop(0, "rgba(255,255,255,0.35)");
-      planetGrad.addColorStop(0.18, "rgba(56,189,248,0.28)");
-      planetGrad.addColorStop(0.35, "rgba(168,139,250,0.38)");
-      planetGrad.addColorStop(0.55, "rgba(244,114,182,0.45)");
-      planetGrad.addColorStop(0.75, "rgba(168,139,250,0.52)");
-      planetGrad.addColorStop(0.9, "rgba(56,189,248,0.65)");
-      planetGrad.addColorStop(1, "rgba(56,189,248,0.85)");
-      ctx.fillStyle = planetGrad;
-      ctx.shadowColor = "#fff";
-      ctx.shadowBlur = 120;
-      ctx.globalAlpha = 1;
-      ctx.fill();
-      ctx.restore();
+      ctx.save()
+      ctx.beginPath()
+      ctx.arc(cx, cy, planetRadius, 0, Math.PI * 2)
+      ctx.closePath()
+      const planetGrad = ctx.createRadialGradient(cx, cy, planetRadius * 0.05, cx, cy, planetRadius)
+      planetGrad.addColorStop(0, "rgba(255,255,255,0.35)")
+      planetGrad.addColorStop(0.18, "rgba(56,189,248,0.28)")
+      planetGrad.addColorStop(0.35, "rgba(96,165,250,0.38)")
+      planetGrad.addColorStop(0.55, "rgba(56,189,248,0.45)")
+      planetGrad.addColorStop(0.75, "rgba(96,165,250,0.52)")
+      planetGrad.addColorStop(0.9, "rgba(56,189,248,0.65)")
+      planetGrad.addColorStop(1, "rgba(56,189,248,0.85)")
+      ctx.fillStyle = planetGrad
+      ctx.shadowColor = "#fff"
+      ctx.shadowBlur = 120
+      ctx.globalAlpha = 1
+      ctx.fill()
+      ctx.restore()
 
-      // Animated energy lines (orbiting)
       energyLines.forEach((line, idx) => {
-        ctx.save();
-        ctx.globalAlpha = 0.65;
-        ctx.strokeStyle = line.color;
-        ctx.lineWidth = line.width;
-        ctx.shadowColor = line.color;
-        ctx.shadowBlur = 22;
-        ctx.beginPath();
+        ctx.save()
+        ctx.globalAlpha = 0.65
+        ctx.strokeStyle = line.color
+        ctx.lineWidth = line.width
+        ctx.shadowColor = line.color
+        ctx.shadowBlur = 22
+        ctx.beginPath()
         for (let t = 0; t <= 1.001; t += 0.01) {
-          const angle = t * 2 * Math.PI + frame * line.speed + line.phase;
-          const wave = Math.sin(angle * 2 + frame * 0.02 + idx * 1.2) * (planetRadius * 0.06);
-          const r = line.radius + wave;
-          const x = cx + r * Math.cos(angle);
-          const y = cy + r * Math.sin(angle);
-          if (t === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
+          const angle = t * 2 * Math.PI + frame * line.speed + line.phase
+          const wave = Math.sin(angle * 2 + frame * 0.02 + idx * 1.2) * (planetRadius * 0.06)
+          const r = line.radius + wave
+          const x = cx + r * Math.cos(angle)
+          const y = cy + r * Math.sin(angle)
+          if (t === 0) ctx.moveTo(x, y)
+          else ctx.lineTo(x, y)
         }
-        ctx.stroke();
-        ctx.restore();
-      });
+        ctx.stroke()
+        ctx.restore()
+      })
 
-      // Smooth highlight swirl (glass reflection)
-      ctx.save();
-      ctx.globalAlpha = 0.38;
-      ctx.translate(cx, cy);
-      ctx.rotate(Math.PI / 6 + Math.sin(frame * 0.008) * 0.2);
-      ctx.beginPath();
-      ctx.ellipse(0, 0, planetRadius * 0.7, planetRadius * 0.22, 0, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255,255,255,0.8)";
-      ctx.shadowColor = "#f472b6";
-      ctx.shadowBlur = 60;
-      ctx.fill();
-      ctx.restore();
+      ctx.save()
+      ctx.globalAlpha = 0.38
+      ctx.translate(cx, cy)
+      ctx.rotate(Math.PI / 6 + Math.sin(frame * 0.008) * 0.2)
+      ctx.beginPath()
+      ctx.ellipse(0, 0, planetRadius * 0.7, planetRadius * 0.22, 0, 0, Math.PI * 2)
+      ctx.fillStyle = "rgba(255,255,255,0.8)"
+      ctx.shadowColor = "#38bdf8"
+      ctx.shadowBlur = 60
+      ctx.fill()
+      ctx.restore()
 
-      // Soft edge glow
-      ctx.save();
-      ctx.globalAlpha = 0.18;
-      ctx.beginPath();
-      ctx.arc(cx, cy, planetRadius + 14, 0, Math.PI * 2);
-      ctx.strokeStyle = "#38bdf8";
-      ctx.lineWidth = 7;
-      ctx.shadowColor = "#38bdf8";
-      ctx.shadowBlur = 28;
-      ctx.stroke();
-      ctx.restore();
+      ctx.save()
+      ctx.globalAlpha = 0.18
+      ctx.beginPath()
+      ctx.arc(cx, cy, planetRadius + 14, 0, Math.PI * 2)
+      ctx.strokeStyle = "#38bdf8"
+      ctx.lineWidth = 7
+      ctx.shadowColor = "#38bdf8"
+      ctx.shadowBlur = 28
+      ctx.stroke()
+      ctx.restore()
 
-      // Orbiting orb (blue, smooth)
-      const orbitRadius = planetRadius * 1.18;
-      const orbitY = planetRadius * 0.92;
-      const orbitT = ((frame * 0.003) % 1);
-      const angle = orbitT * 2 * Math.PI;
-      const orbX = cx + orbitRadius * Math.cos(angle);
-      const orbY = cy + orbitY * Math.sin(angle);
-      ctx.beginPath();
-      ctx.arc(orbX, orbY, 12, 0, Math.PI * 2);
-      ctx.globalAlpha = 0.95;
-      ctx.fillStyle = "#7dd3fc";
-      ctx.shadowColor = "#7dd3fc";
-      ctx.shadowBlur = 32;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      ctx.shadowBlur = 0;
+      const orbitRadius = planetRadius * 1.18
+      const orbitY = planetRadius * 0.92
+      const orbitT = ((frame * 0.003) % 1)
+      const angle = orbitT * 2 * Math.PI
+      const orbX = cx + orbitRadius * Math.cos(angle)
+      const orbY = cy + orbitY * Math.sin(angle)
+      ctx.beginPath()
+      ctx.arc(orbX, orbY, 12, 0, Math.PI * 2)
+      ctx.globalAlpha = 0.95
+      ctx.fillStyle = "#7dd3fc"
+      ctx.shadowColor = "#7dd3fc"
+      ctx.shadowBlur = 32
+      ctx.fill()
+      ctx.globalAlpha = 1
+      ctx.shadowBlur = 0
 
-      raf = requestAnimationFrame(() => draw(frame + 1));
+      raf = requestAnimationFrame(() => draw(frame + 1))
     }
-    draw();
+    draw()
 
     return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('resize', resize);
-    };
-  }, []);
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', resize)
+    }
+  }, [])
 
   function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
+    e.preventDefault()
     if (search.trim()) {
-      if (router) router.push(`/browse?q=${encodeURIComponent(search.trim())}`);
-      else window.location.href = `/browse?q=${encodeURIComponent(search.trim())}`;
+      if (router && typeof router.push === 'function') {
+        router.push(`/browse?q=${encodeURIComponent(search.trim())}`)
+      } else {
+        window.location.href = `/browse?q=${encodeURIComponent(search.trim())}`
+      }
     }
   }
 
@@ -399,11 +363,14 @@ function Hero() {
     <section
       className="relative w-full flex items-center justify-center bg-[#090a10] overflow-hidden"
       style={{
-        minHeight: 'calc(100vh - 72px)',
-        height: 'calc(100vh - 72px)',
-        paddingTop: '72px',
+        minHeight: 'calc(100vh - 80px)',
+        height: 'calc(100vh - 80px)',
+        paddingTop: '80px',
       }}
     >
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@900&family=Manrope:wght@800&family=DM+Sans:wght@700&family=Pacifico:wght@400&display=swap');
+      `}</style>
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full block pointer-events-none"
@@ -412,57 +379,174 @@ function Hero() {
       <div
         className="relative z-20 flex flex-col items-center justify-center text-center px-4 py-0 w-full"
         style={{
-          minHeight: 'calc(100vh - 72px)',
+          minHeight: 'calc(100vh - 80px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <h1 className="text-4xl md:text-6xl font-extrabold mb-6 leading-tight tracking-tight font-sans text-white drop-shadow-xl">
-          Elevate Your Work.<br />
-          <span className="font-semibold text-white bg-none">Hire AI-Powered Talent</span>
+        <h1
+          className="mb-5 leading-tight tracking-tight drop-shadow-xl"
+          style={{
+            fontFamily: "'Inter', 'Manrope', 'DM Sans', Arial, sans-serif",
+            fontWeight: 800,
+            fontSize: 'clamp(2.5rem, 7vw, 4.2rem)',
+            letterSpacing: '-0.03em',
+            lineHeight: 1.1,
+            color: '#fff',
+            marginBottom: '0.5rem',
+            textShadow: '0 4px 32px #38bdf855, 0 2px 8px #0ea5e9cc',
+          }}
+        >
+          Elevate Your Next Project <br />
+          <span
+            style={{
+              fontFamily: "'Pacifico', cursive",
+              color: '#38bdf8',
+              fontWeight: 400,
+              fontSize: '1.1em',
+              letterSpacing: '0.01em',
+              background: 'none',
+              WebkitBackgroundClip: 'unset',
+              WebkitTextFillColor: 'unset',
+              filter: 'none',
+              verticalAlign: 'middle',
+              padding: '0 0.1em',
+              display: 'inline-block',
+            }}
+          >
+            with Humanaira
+          </span>
         </h1>
-        <p className="text-lg md:text-2xl text-gray-200 mb-10 max-w-2xl mx-auto font-medium">
+        <p
+          className="text-base md:text-xl mb-3 max-w-2xl mx-auto font-medium"
+          style={{
+            fontFamily: "'Inter', 'Manrope', 'DM Sans', Arial, sans-serif",
+            color: '#e0eaff',
+            fontWeight: 600,
+            letterSpacing: '0.01em',
+            fontSize: '1.25rem',
+            textShadow: '0 2px 12px #10131e99',
+          }}
+        >
           Discover, hire, and collaborate with the next generation of AI freelancers and digital creators.
-          <span className="block mt-2 text-blue-200/80 italic">Your ideas, delivered smarter.</span>
         </p>
-        {/* New Search Bar */}
+<div
+  className="mb-8 italic text-blue-200 text-xl"
+  style={{ opacity: 0.85 }}
+>
+  Your ideas, delivered smarter.
+</div>
         <form
           onSubmit={handleSearch}
-          className="w-full max-w-md mx-auto flex items-center bg-[#181a23] rounded-xl shadow border border-blue-700 px-3 py-2"
-          style={{ marginBottom: '2rem' }}
+          className="w-full max-w-md mx-auto flex items-center justify-center bg-[#181a23] rounded-xl shadow border border-blue-800 px-3 py-2"
+          style={{ marginBottom: '1.5rem' }}
         >
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search for services, gigs, or talent..."
-            className="flex-1 bg-transparent border-none outline-none text-white text-base px-2 py-2"
-            style={{ minWidth: 0 }}
+            className="flex-1 bg-transparent border-none outline-none text-white text-base px-2 py-2 placeholder:text-blue-200 placeholder:font-normal placeholder:text-opacity-60"
+            style={{ minWidth: 0, fontWeight: 400, fontSize: '0.98rem' }}
           />
           <button
             type="submit"
-            className="ml-2 px-4 py-2 rounded-lg bg-blue-700 text-white font-semibold hover:bg-blue-800 transition text-base"
+            className="ml-2 px-4 py-2 rounded-lg bg-blue-700 text-white font-semibold hover:bg-blue-800 transition text-sm"
+            style={{ fontSize: '0.98rem' }}
           >
             Search
           </button>
         </form>
+        <div className="mt-3">
+          <Link
+            href="/browse"
+            className="inline-block px-6 py-2 rounded-lg bg-[#101a2a] border border-blue-800 text-blue-200 font-semibold text-base shadow hover:bg-blue-900/60 hover:text-white transition-all duration-200"
+            style={{
+              boxShadow: '0 2px 12px #2563eb22',
+              letterSpacing: '0.01em',
+              fontSize: '0.98rem',
+            }}
+          >
+            Browse All Services
+          </Link>
+        </div>
       </div>
-      <style jsx global>{`
-        .btn-future {
-          position: relative;
-          box-shadow: 0 0 18px 0 #38bdf855, 0 2px 8px #0ea5e9cc;
-          transition: box-shadow 0.3s, transform 0.3s, background 0.3s;
-        }
-        .btn-future:hover {
-          box-shadow: 0 0 32px 0 #38bdf8cc, 0 2px 16px #2563eb99;
-          transform: translateY(-2px) scale(1.04);
-        }
-      `}</style>
     </section>
-  );
+  )
 }
 
+// --- Section Divider ---
+function SectionDivider() {
+  return (
+    <div className="w-full flex justify-center items-center py-0 relative">
+      <div className="w-2/3 h-[1.5px] bg-gradient-to-r from-transparent via-blue-900 to-transparent opacity-60 my-0" />
+    </div>
+  )
+}
+
+// --- AI Stats Section ---
+function AIStats() {
+  return (
+    <section className="relative w-full flex flex-col items-center justify-center py-24 bg-[#0b1220] overflow-hidden">
+      <div className="relative z-10 max-w-5xl mx-auto px-4">
+        <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-10 text-center tracking-tight">
+          The Rise of AI Freelancers
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
+          <FactCard
+            stat="+70%"
+            label="AI Freelance Job Growth"
+            desc="AI-related freelance jobs have grown by 70% since 2023. (Upwork, 2024)"
+          />
+          <FactCard
+            stat="82%"
+            label="Companies Hiring AI Talent"
+            desc="82% of companies plan to increase their use of AI freelancers. (Gartner, 2025)"
+          />
+          <FactCard
+            stat="3x"
+            label="Faster Delivery"
+            desc="AI-powered teams deliver projects 3x faster on average. (McKinsey, 2024)"
+          />
+          <FactCard
+            stat="92%"
+            label="Buyer Satisfaction"
+            desc="92% of buyers report improved outcomes with AI freelancers. (Freelancer.com, 2024)"
+          />
+        </div>
+        <div className="text-center text-blue-200 text-xl font-medium mt-8 max-w-2xl mx-auto">
+          <span className="italic">AI freelancers are transforming how companies innovate, scale, and win.</span>
+        </div>
+      </div>
+      <span
+        className="absolute left-0 bottom-[-120px] text-[12vw] font-extrabold uppercase pointer-events-none select-none opacity-10"
+        style={{
+          fontFamily: "'Manrope', 'Inter', Arial, sans-serif",
+          color: '#38bdf8',
+          whiteSpace: 'nowrap',
+          zIndex: 1,
+          userSelect: 'none',
+          letterSpacing: '-0.06em',
+        }}
+      >
+        HUMANAIRA
+      </span>
+    </section>
+  )
+}
+
+function FactCard({ stat, label, desc }: { stat: string; label: string; desc: string }) {
+  return (
+    <div className="bg-[#181a23] border border-blue-900 rounded-2xl p-8 flex flex-col items-center text-center shadow min-w-[220px] max-w-xs mx-auto">
+      <div className="text-4xl md:text-5xl font-extrabold text-blue-400 mb-2">{stat}</div>
+      <div className="text-lg font-semibold text-white mb-1">{label}</div>
+      <div className="text-blue-200 text-base">{desc}</div>
+    </div>
+  )
+}
+
+// --- How It Works Section ---
 function HowItWorks() {
   const points = [
     {
@@ -547,9 +631,9 @@ function HowItWorks() {
     },
   ]
   return (
-    <section className="w-full py-16 px-4 bg-[#090a10] border-t border-[#1e293b]">
+    <section className="w-full py-24 px-4 bg-[#090a10] border-t border-[#1e293b]">
       <div className="max-w-6xl mx-auto">
-        <h2 className="text-3xl font-extrabold text-blue-200 mb-8 text-center">How it works</h2>
+        <h2 className="text-4xl font-extrabold text-blue-200 mb-12 text-center tracking-tight">How it works</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {points.map((point, idx) => (
             <div key={idx} className="flex-1 bg-[#181a23] border border-blue-900 rounded-2xl p-8 flex flex-col items-center text-center shadow">
@@ -564,6 +648,7 @@ function HowItWorks() {
   )
 }
 
+// --- Why Humanaira Section ---
 function WhyHumanaira() {
   const items = [
     {
@@ -584,21 +669,35 @@ function WhyHumanaira() {
     },
   ]
   return (
-    <section className="relative max-w-6xl mx-auto px-4 py-20 mt-10">
-      <h2 className="text-3xl font-bold mb-8 text-center text-blue-200">Why choose humanaira</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <section className="relative max-w-7xl mx-auto px-4 py-24">
+      <h2 className="text-4xl font-bold mb-12 text-center text-blue-200 tracking-tight">Why choose humanaira</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {items.map((it) => (
-          <div key={it.title} className="p-6 rounded-2xl bg-[#071124] border border-[#123055] shadow hover:translate-y-[-4px] transition-transform">
-            <div className="text-blue-300 text-2xl mb-3">✓</div>
-            <div className="font-semibold text-white">{it.title}</div>
+          <div key={it.title} className="p-8 rounded-2xl bg-[#071124] border border-[#123055] shadow hover:translate-y-[-4px] transition-transform flex flex-col items-center text-center">
+            <div className="text-blue-300 text-3xl mb-3">✓</div>
+            <div className="font-semibold text-white text-lg">{it.title}</div>
             <div className="text-slate-300 mt-2">{it.desc}</div>
           </div>
         ))}
       </div>
+      <span
+        className="absolute right-[-10vw] top-1/2 -translate-y-1/2 text-[12vw] font-extrabold uppercase pointer-events-none select-none opacity-10"
+        style={{
+          fontFamily: "'Manrope', 'Inter', Arial, sans-serif",
+          color: '#2563eb',
+          whiteSpace: 'nowrap',
+          zIndex: 1,
+          userSelect: 'none',
+          letterSpacing: '-0.06em',
+        }}
+      >
+        HUMANAIRA
+      </span>
     </section>
   )
 }
 
+// --- FAQ Section ---
 function FAQSection() {
   const faqs = [
     { q: 'How do payments work?', a: 'You pay securely via our gateway. Funds are held until you accept delivery.' },
@@ -609,8 +708,8 @@ function FAQSection() {
   const [open, setOpen] = useState<number | null>(null)
 
   return (
-    <section className="relative max-w-5xl mx-auto px-4 py-16">
-      <h2 className="text-3xl font-bold mb-8 text-center text-white">Frequently asked questions</h2>
+    <section className="relative max-w-5xl mx-auto px-4 py-24">
+      <h2 className="text-4xl font-bold mb-12 text-center text-white tracking-tight">Frequently asked questions</h2>
       <div className="space-y-4">
         {faqs.map((f, idx) => (
           <div key={f.q} className="bg-[#07102a] border border-[#102948] rounded-xl overflow-hidden">
@@ -640,188 +739,70 @@ function FAQSection() {
   )
 }
 
-function Reviews({ current, setCurrent }: { current: number; setCurrent: (n: number) => void }) {
-  return (
-    <section className="relative max-w-2xl mx-auto px-4 py-20 mt-10">
-      <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center text-blue-200 tracking-tight">What People Are Saying</h2>
-      <div className="relative bg-[#181a23] rounded-2xl shadow-xl border border-blue-900 p-8 flex flex-col items-center">
-        <div className="flex flex-col items-center text-center">
-          <img src={reviews[current].avatar} alt={reviews[current].name} className="w-20 h-20 rounded-full object-cover border-4 border-blue-900 mb-4" />
-          <div className="flex gap-1 mb-2 justify-center">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <span key={i} className={i < reviews[current].rating ? 'text-yellow-400 text-xl' : 'text-gray-700 text-xl'}>★</span>
-            ))}
-          </div>
-          <p className="text-lg text-gray-200 mb-4 font-medium">&ldquo;{reviews[current].text}&rdquo;</p>
-          <div className="font-semibold text-blue-400">{reviews[current].name}</div>
-          <div className="text-gray-400 text-sm">{reviews[current].role}</div>
-        </div>
-        <div className="flex gap-4 mt-8">
-          <button onClick={() => setCurrent((current - 1 + reviews.length) % reviews.length)} aria-label="Previous review" className="w-10 h-10 rounded-full bg-blue-900 text-blue-200 hover:bg-blue-800 flex items-center justify-center text-2xl font-bold transition">‹</button>
-          <button onClick={() => setCurrent((current + 1) % reviews.length)} aria-label="Next review" className="w-10 h-10 rounded-full bg-blue-900 text-blue-200 hover:bg-blue-800 flex items-center justify-center text-2xl font-bold transition">›</button>
-        </div>
-        <div className="flex gap-2 mt-4">
-          {reviews.map((_, idx) => (
-            <button key={idx} onClick={() => setCurrent(idx)} className={`w-3 h-3 rounded-full ${idx === current ? 'bg-blue-400' : 'bg-blue-900'} transition`} aria-label={`Go to review ${idx + 1}`} />
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
+// --- Footer ---
 function Footer() {
   return (
-    <footer className="w-full bg-[#00060b] mt-20 border-t border-[#0b2a59]">
-      <div className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-4 gap-8">
-        <div className="space-y-4">
-          <div className="text-2xl font-extrabold text-white">
-            <FooterLogo />
+    <footer className="w-full bg-[#00060b] border-t border-[#0b2a59] pt-16 pb-12">
+      <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row md:items-start md:justify-between gap-12">
+        {/* Logo and description */}
+        <div className="flex flex-col items-start gap-3">
+          <div className="text-4xl font-extrabold select-none" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.04em' }}>
+            <span style={{ color: '#2563eb' }}>hum</span>
+            <span style={{ color: '#fff' }}>an</span>
+            <span style={{ color: '#fff', fontWeight: 800 }}>a</span>
+            <span style={{ color: '#fff', fontWeight: 800 }}>i</span>
+            <span style={{ color: '#2563eb' }}>ra</span>
           </div>
-          <div className="text-slate-300">AI-powered freelance marketplace</div>
-          <div className="flex gap-3 mt-4">
-            <a className="text-slate-400 hover:text-blue-300" href="https://twitter.com/" target="_blank" rel="noopener noreferrer">Twitter</a>
-            <a className="text-slate-400 hover:text-blue-300" href="https://linkedin.com/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-            <a className="text-slate-400 hover:text-blue-300" href="https://instagram.com/" target="_blank" rel="noopener noreferrer">Instagram</a>
+          <div className="text-slate-300 text-base max-w-xs mt-2">
+            The next-generation AI-powered freelance marketplace. Built for professionals, by professionals.
           </div>
         </div>
-        <div className="flex flex-col gap-2 items-center">
-          <h5 className="text-sm font-semibold text-slate-200 mb-4">Products</h5>
-          <ul className="space-y-2 text-slate-400">
-            <li><Link href="/browse">Browse</Link></li>
-            <li><Link href="/seller/gigs/new">For Sellers</Link></li>
-            <li><Link href="/enterprise">Enterprise</Link></li>
-            <li><Link href="/api">API</Link></li>
-          </ul>
+        {/* Essential Links */}
+        <div className="flex flex-col gap-4">
+          <div className="text-blue-200 font-semibold mb-2 text-lg">Explore</div>
+          <Link href="/blog" className="footer-link">Blog</Link>
+          <Link href="/browse" className="footer-link">Browse</Link>
+          <Link href="/help" className="footer-link">Help Center</Link>
         </div>
-        <div className="flex flex-col gap-2 items-center">
-          <h5 className="text-sm font-semibold text-slate-200 mb-4">Company</h5>
-          <ul className="space-y-2 text-slate-400">
-            <li><Link href="/about">About</Link></li>
-            <li><Link href="/careers">Careers</Link></li>
-            <li><Link href="/press">Press</Link></li>
-            <li><Link href="/contact">Contact</Link></li>
-          </ul>
+        {/* Social & Policy */}
+        <div className="flex flex-col gap-4">
+          <div className="text-blue-200 font-semibold mb-2 text-lg">Connect</div>
+          <a className="footer-link" href="https://linkedin.com/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+          <a className="footer-link" href="https://instagram.com/" target="_blank" rel="noopener noreferrer">Instagram</a>
+          <Link href="/terms" className="footer-link">Terms</Link>
+          <Link href="/privacy" className="footer-link">Privacy</Link>
         </div>
-        <div className="flex flex-col gap-2 items-center">
-          <h5 className="text-sm font-semibold text-slate-200 mb-4">Support</h5>
-          <ul className="space-y-2 text-slate-400">
-            <li><Link href="/help">Help Center</Link></li>
-            <li><Link href="/terms">Terms</Link></li>
-            <li><Link href="/privacy">Privacy</Link></li>
-            <li><Link href="/security">Security</Link></li>
-          </ul>
-        </div>
+      </div>
+      <div className="text-center text-slate-500 text-xs mt-12 opacity-70">
+        &copy; {new Date().getFullYear()} Humanaira. All rights reserved.
       </div>
     </footer>
   )
 }
 
-function FooterLogo() {
-  const underlineRef = useRef<SVGPathElement | null>(null)
-
-  useEffect(() => {
-    const path = underlineRef.current
-    if (!path) return
-    const length = path.getTotalLength()
-    path.style.strokeDasharray = `${length}`
-    path.style.strokeDashoffset = `${length}`
-    setTimeout(() => {
-      path.style.transition = 'stroke-dashoffset 1.8s cubic-bezier(.2,.9,.3,1)'
-      path.style.strokeDashoffset = '0'
-    }, 400)
-  }, [])
-
+// --- Transparent Brand Background for sections ---
+function BackgroundBrand() {
   return (
-    <span
-      className="relative flex items-center select-none"
-      style={{
-        letterSpacing: '-0.04em',
-        textShadow: '0 2px 8px #0f172a',
-        fontFamily: 'Inter, sans-serif',
-        fontWeight: 800,
-        fontSize: '2rem',
-        lineHeight: 1,
-      }}
-    >
-      <span style={{ color: '#2563eb' }}>hum</span>
-      <span style={{ color: '#fff' }}>an</span>
-      <span style={{ color: '#fff', position: 'relative', zIndex: 2 }}>
-        <span style={{ color: '#fff', fontWeight: 800 }}>a</span>
-        <span style={{ color: '#fff', fontWeight: 800, background: 'linear-gradient(90deg,#fff,#38bdf8 80%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>i</span>
-      </span>
-      <span style={{ color: '#38bdf8' }}>ra</span>
-      <svg
-        width={120}
-        height={18}
-        viewBox="0 0 120 18"
-        className="absolute left-0"
-        style={{ bottom: -8, zIndex: 1 }}
+    <>
+      <span
+        className="fixed left-[-10vw] top-[60vh] text-[18vw] font-extrabold uppercase pointer-events-none select-none opacity-5 z-0"
+        style={{
+          fontFamily: "'Manrope', 'Inter', Arial, sans-serif",
+          color: '#38bdf8',
+          whiteSpace: 'nowrap',
+          userSelect: 'none',
+          letterSpacing: '-0.06em',
+          lineHeight: 1,
+        }}
         aria-hidden
       >
-        <path
-          ref={underlineRef}
-          d="M8 12 Q40 20 80 10 Q110 2 118 14"
-          fill="none"
-          stroke="#38bdf8"
-          strokeWidth={2.2}
-          strokeLinecap="round"
-          style={{
-            filter: 'drop-shadow(0 0 6px #38bdf8cc)',
-            strokeDasharray: undefined,
-            strokeDashoffset: undefined,
-          }}
-        />
-        <FooterMovingOrb />
-      </svg>
-      <span className="inline-block align-middle ml-2 w-2.5 h-2.5 rounded-full bg-blue-700 animate-pulse shadow-lg"></span>
-    </span>
+        HUMANAIRA
+      </span>
+    </>
   )
 }
 
-function FooterMovingOrb() {
-  const orbRef = useRef<SVGCircleElement | null>(null)
-  const pathRef = useRef<SVGPathElement | null>(null)
-
-  useEffect(() => {
-    if (!orbRef.current) return
-    const svg = orbRef.current.ownerSVGElement
-    if (!svg) return
-    const path = svg.querySelector('path')
-    if (!path) return
-    pathRef.current = path
-
-    let frame = 0
-    let raf: number
-    function animate() {
-      const length = path.getTotalLength()
-      const t = (Math.sin(frame * 0.025) * 0.5 + 0.5) * 0.85 + 0.08
-      const pt = path.getPointAtLength(length * t)
-      orbRef.current!.setAttribute('cx', pt.x.toString())
-      orbRef.current!.setAttribute('cy', pt.y.toString())
-      raf = requestAnimationFrame(() => {
-        frame++
-        animate()
-      })
-    }
-    animate()
-    return () => cancelAnimationFrame(raf)
-  }, [])
-
-  return (
-    <circle
-      ref={orbRef}
-      r="4"
-      fill="#38bdf8"
-      opacity="0.85"
-      style={{
-        filter: 'drop-shadow(0 0 8px #38bdf8cc)',
-        transition: 'cx 0.1s, cy 0.1s',
-      }}
-    />
-  )
-}
-
+// --- Global Styles ---
 function GlobalStyles() {
   useEffect(() => {
     const els = Array.from(document.querySelectorAll('.reveal'))
@@ -842,6 +823,18 @@ function GlobalStyles() {
       html, body { height: 100%; }
       body { margin: 0; padding: 0; }
       main { padding-top: 72px; }
+      .footer-link {
+        color: #b6d0f7;
+        font-size: 1rem;
+        font-weight: 500;
+        padding: 0.25rem 0;
+        text-decoration: none;
+        transition: color 0.2s;
+        display: block;
+      }
+      .footer-link:hover {
+        color: #38bdf8;
+      }
       @keyframes gradient-move-btn {
         0% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
@@ -862,6 +855,7 @@ function GlobalStyles() {
   )
 }
 
+// --- Scroll Reveal Hook ---
 function useScrollReveal() {
   useEffect(() => {
     const els = Array.from(document.querySelectorAll('.reveal'))

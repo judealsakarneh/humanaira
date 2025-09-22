@@ -1,193 +1,260 @@
 'use client'
+
 import { useEffect, useState, useRef } from 'react'
-import { useParams } from 'next/navigation'
-import toast from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
+import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
+const supabase = createSupabaseBrowser()
 
-export default function OrderRoom() {
-  const { id } = useParams<{ id: string }>()
-  const [order, setOrder] = useState<any>(null)
-  const [note, setNote] = useState('')
-  const [review, setReview] = useState({ rating: 5, comment: '' })
-  const [reviewed, setReviewed] = useState(false)
-  const [messages, setMessages] = useState<any[]>([])
-  const [msg, setMsg] = useState('')
-  const [userId, setUserId] = useState<string | null>(null)
-  const chatRef = useRef<HTMLDivElement>(null)
+const HEADER_HEIGHT = 64
+
+const toolbarActions = [
+  { label: 'Bold', command: 'bold', icon: <b>B</b> },
+  { label: 'Italic', command: 'italic', icon: <i>I</i> },
+  { label: 'Underline', command: 'underline', icon: <u>U</u> },
+  { label: 'Bullet List', command: 'insertUnorderedList', icon: <span>&bull; List</span> },
+  { label: 'Numbered List', command: 'insertOrderedList', icon: <span>1. List</span> },
+  { label: 'Link', command: 'createLink', icon: <span>🔗</span> },
+]
+
+export default function EditProfilePage() {
+  const router = useRouter()
+  const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [bio, setBio] = useState('')
+  const bioRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    (async () => {
-      const res = await fetch(`/api/order/${id}`)
-      const json = await res.json()
-      setOrder(json.order)
-      setUserId(json.order?.buyer_id || json.order?.seller_id || null)
-      if (json.order?.status === 'COMPLETED') {
-        const r = await fetch(`/api/reviews?order_id=${id}`)
-        const rjson = await r.json()
-        setReviewed(!!rjson.review)
+    async function fetchUser() {
+      setLoading(true)
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        setLoading(false)
+        setMessage('You must be logged in to edit your profile.')
+        return
       }
-    })()
-  }, [id])
+      setUser(user)
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+      if (profileError || !profileData) {
+        setMessage('Could not load your profile.')
+      } else {
+        setProfile(profileData)
+        setUsername(profileData.username || '')
+        setEmail(user.email || '')
+        setAvatarUrl(profileData.avatar_url || '')
+        setBio(profileData.bio || '')
+      }
+      setLoading(false)
+    }
+    fetchUser()
+  }, [])
+
+  function handleToolbarAction(command: string) {
+    if (command === 'createLink') {
+      const url = prompt('Enter the link URL:')
+      if (url) document.execCommand(command, false, url)
+    } else {
+      document.execCommand(command, false, undefined)
+    }
+  }
+
+  function handleBioInput() {
+    setBio(bioRef.current?.innerHTML || '')
+  }
 
   useEffect(() => {
-    let interval: NodeJS.Timeout
-    const fetchMessages = async () => {
-      const res = await fetch(`/api/messages?order_id=${id}`)
-      const json = await res.json()
-      setMessages(json.messages || [])
-      setTimeout(() => {
-        chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' })
-      }, 100)
+    if (bioRef.current && bioRef.current.innerHTML !== bio) {
+      bioRef.current.innerHTML = bio
     }
-    fetchMessages()
-    interval = setInterval(fetchMessages, 3000)
-    return () => clearInterval(interval)
-  }, [id])
+  }, [bio])
 
-  const sendMsg = async (e: any) => {
+  // Handle avatar upload (fixed for policy and public URL)
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+    setSaving(true)
+    setMessage('')
+    const fileExt = file.name.split('.').pop()
+    const filePath = `${user.id}/avatar.${fileExt}` // folder is user.id, matches policy
+    // Remove previous avatar if needed (optional, upsert will overwrite)
+    const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true })
+    if (uploadError) {
+      setMessage('Failed to upload avatar.')
+      setSaving(false)
+      return
+    }
+    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
+    setAvatarUrl(urlData.publicUrl)
+    setSaving(false)
+  }
+
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault()
-    if (!msg.trim()) return
-    const res = await fetch('/api/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ order_id: id, content: msg })
-    })
-    if (res.ok) toast.success('Message sent!')
-    else toast.error('Failed to send message')
-    setMsg('')
-  }
-
-  const action = async (next: string) => {
-    const res = await fetch(`/api/order/${id}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: next, note })
-    })
-    const json = await res.json()
-    if (!res.ok) toast.error(json.error || 'Error')
-    else {
-      setOrder(json.order)
-      toast.success('Order updated!')
-    }
-  }
-
-  const submitReview = async () => {
-    const res = await fetch('/api/reviews', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ order_id: id, ...review })
-    })
-    if (res.ok) {
-      toast.success('Review submitted!')
-      setReviewed(true)
+    if (!user) return
+    setSaving(true)
+    setMessage('')
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        username,
+        avatar_url: avatarUrl,
+        bio,
+      })
+      .eq('id', user.id)
+    setSaving(false)
+    if (updateError) {
+      setMessage('Failed to update profile.')
     } else {
-      toast.error('Error submitting review')
+      setMessage('Profile updated!')
+      setTimeout(() => {
+        setMessage('')
+        router.push('/account')
+      }, 1200)
     }
   }
 
-  if (!order) return (
-    <div className="flex justify-center items-center py-10">
-      <svg className="animate-spin h-8 w-8 text-blue-600" viewBox="0 0 24 24">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-      </svg>
-    </div>
-  )
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center bg-[#0a0d14]">
+        <div className="text-blue-400 text-lg font-semibold animate-pulse">Loading profile...</div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center bg-[#0a0d14]">
+        <div className="text-red-400 text-lg font-semibold mb-4">{message || 'You must be logged in.'}</div>
+      </div>
+    )
+  }
 
   return (
-    <main className="max-w-3xl mx-auto px-6 py-10">
-      <h1 className="text-2xl font-semibold mb-3">{order.gig?.title}</h1>
-      <div className="text-sm text-gray-600 mb-4">Status: {order.status}</div>
-      <textarea
-        className="border w-full p-3 focus:outline-none focus:ring focus:ring-blue-300"
-        rows={4}
-        placeholder="Message or delivery note"
-        value={note}
-        onChange={e => setNote(e.target.value)}
-      />
-
-      <div className="flex gap-3 mt-3">
-        {order.status === 'IN_PROGRESS' && (
-          <button
-            onClick={() => action('DELIVER')}
-            className="px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition focus:outline-none focus:ring focus:ring-blue-300"
-          >
-            Deliver
-          </button>
-        )}
-        {order.status === 'DELIVERED' && (
-          <button
-            onClick={() => action('ACCEPT')}
-            className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 transition focus:outline-none focus:ring focus:ring-green-300"
-          >
-            Accept
-          </button>
-        )}
-      </div>
-
-      {/* Chat section */}
-      <div className="mt-10">
-        <h2 className="text-lg font-semibold mb-2">Order Chat</h2>
-        <div ref={chatRef} className="border rounded h-64 overflow-y-auto bg-white p-3 mb-2">
-          {messages.length === 0 && <div className="text-gray-400">No messages yet.</div>}
-          {messages.map((m, i) => (
-            <div key={m.id || i} className={`mb-2 flex ${m.sender_id === userId ? 'justify-end' : 'justify-start'}`}>
-              <div className={`px-3 py-2 rounded ${m.sender_id === userId ? 'bg-blue-100' : 'bg-gray-100'}`}>
-                <span className="text-sm">{m.content}</span>
-                <div className="text-xs text-gray-400 mt-1">{new Date(m.created_at).toLocaleTimeString()}</div>
-              </div>
+    <main
+      className="min-h-screen w-full bg-[#090a10] flex flex-col items-center pb-12 px-2 md:px-0"
+      style={{ paddingTop: HEADER_HEIGHT + 24 }}
+    >
+      <section className="relative z-10 w-full max-w-2xl bg-[#181a23] rounded-2xl shadow-2xl border border-blue-900/60 p-8 mt-0">
+        <h1 className="text-2xl font-bold text-white mb-8 text-center">Edit Profile</h1>
+        <form onSubmit={handleSave} className="flex flex-col gap-8">
+          {/* Avatar */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="relative">
+              <img
+                src={avatarUrl || '/default-avatar.png'}
+                alt="Avatar"
+                className="w-24 h-24 rounded-full border-2 border-blue-700 object-cover bg-[#10131e]"
+              />
+              <button
+                type="button"
+                className="absolute bottom-0 right-0 bg-blue-700 text-white rounded-full p-2 text-xs hover:bg-blue-800 shadow"
+                onClick={() => fileInputRef.current?.click()}
+                title="Change avatar"
+              >
+                ✏️
+              </button>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={handleAvatarChange}
+              />
             </div>
-          ))}
-        </div>
-        <form onSubmit={sendMsg} className="flex gap-2">
-          <input
-            className="border rounded w-full p-2 focus:outline-none focus:ring focus:ring-blue-300"
-            placeholder="Type a message…"
-            value={msg}
-            onChange={e => setMsg(e.target.value)}
-          />
-          <button
-            className="px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition focus:outline-none focus:ring focus:ring-blue-300"
-            type="submit"
-          >
-            Send
-          </button>
-        </form>
-      </div>
-
-      {/* Review form for completed orders */}
-      {order.status === 'COMPLETED' && !reviewed && (
-        <div className="mt-8 border-t pt-6">
-          <h2 className="text-lg font-semibold mb-2">Leave a Review</h2>
-          <div className="flex items-center gap-2 mb-2">
-            <span>Rating:</span>
-            <input
-              type="number"
-              min={1}
-              max={5}
-              value={review.rating}
-              onChange={e => setReview(r => ({ ...r, rating: Number(e.target.value) }))}
-              className="border rounded w-16 p-1 focus:outline-none focus:ring focus:ring-blue-300"
-            />
-            <span className="text-yellow-600">{'★'.repeat(review.rating)}</span>
           </div>
-          <textarea
-            className="border w-full p-2 mb-2 focus:outline-none focus:ring focus:ring-blue-300"
-            rows={3}
-            placeholder="Write your review..."
-            value={review.comment}
-            onChange={e => setReview(r => ({ ...r, comment: e.target.value }))}
-          />
-          <button
-            onClick={submitReview}
-            className="px-4 py-2 rounded bg-black text-white hover:bg-gray-800 transition focus:outline-none focus:ring focus:ring-blue-300"
-          >
-            Submit Review
-          </button>
-        </div>
-      )}
-      {order.status === 'COMPLETED' && reviewed && (
-        <div className="mt-8 text-green-600">You have already reviewed this order.</div>
-      )}
+          {/* Username */}
+          <div>
+            <label className="block text-blue-100 font-semibold mb-1" htmlFor="username">
+              Username
+            </label>
+            <input
+              id="username"
+              type="text"
+              className="w-full px-4 py-3 rounded-lg border border-blue-800 bg-[#10131e] text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              autoComplete="username"
+              required
+            />
+          </div>
+          {/* Email (read-only) */}
+          <div>
+            <label className="block text-blue-100 font-semibold mb-1" htmlFor="email">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              className="w-full px-4 py-3 rounded-lg border border-blue-800 bg-[#10131e] text-white text-base opacity-70"
+              value={email}
+              readOnly
+              disabled
+            />
+          </div>
+          {/* Bio (Rich Text Editor) */}
+          <div>
+            <label className="block text-blue-100 font-semibold mb-1" htmlFor="bio">
+              Bio
+            </label>
+            <div className="mb-2 flex gap-2 flex-wrap">
+              {toolbarActions.map(action => (
+                <button
+                  key={action.command}
+                  type="button"
+                  className="px-2 py-1 rounded bg-blue-950 text-blue-200 hover:bg-blue-900 border border-blue-800 text-sm font-semibold"
+                  title={action.label}
+                  tabIndex={-1}
+                  onMouseDown={e => {
+                    e.preventDefault()
+                    handleToolbarAction(action.command)
+                  }}
+                >
+                  {action.icon}
+                </button>
+              ))}
+            </div>
+            <div
+              ref={bioRef}
+              className="w-full min-h-[80px] px-4 py-3 rounded-lg border border-blue-800 bg-[#10131e] text-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500 prose prose-blue max-w-none"
+              contentEditable
+              suppressContentEditableWarning
+              onInput={handleBioInput}
+              spellCheck={true}
+              aria-label="Bio"
+              style={{ whiteSpace: 'pre-wrap', outline: 'none', listStylePosition: 'inside' }}
+            />
+            <div className="text-xs text-blue-300 mt-1">
+              Highlight text to format. Supports bold, italic, underline, lists, and links.
+            </div>
+          </div>
+          {/* Save Button */}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              className="px-8 py-3 rounded-full bg-blue-700 text-white font-bold text-lg shadow hover:bg-blue-800 transition disabled:opacity-60"
+              disabled={saving}
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+          {/* Success/Error Message */}
+          {message && (
+            <div className={`text-center text-sm font-semibold ${message.includes('Failed') ? 'text-red-400' : 'text-green-400'}`}>
+              {message}
+            </div>
+          )}
+        </form>
+      </section>
     </main>
   )
 }

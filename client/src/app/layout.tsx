@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast'
 import React from 'react'
 import { headers } from 'next/headers'
 import ClientLayout from './ClientLayout'
+import ClientProviders from './ClientProviders'
 
 export const metadata = {
   title: 'Humanaira',
@@ -19,9 +20,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en">
       <body className="bg-gray-50 text-gray-900">
         <Toaster position="top-right" />
-        <ClientLayout showNav={showNav}>
-          {children}
-        </ClientLayout>
+        <ClientProviders>
+          <ClientLayout showNav={showNav}>
+            {children}
+          </ClientLayout>
+        </ClientProviders>
       </body>
     </html>
   )

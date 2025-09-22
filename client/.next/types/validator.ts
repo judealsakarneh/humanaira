@@ -53,10 +53,22 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/about">
 }
 
+// Validate ../../src/app/account/edit/page.tsx
+{
+  const handler = {} as typeof import("../../src/app/account/edit/page.js")
+  handler satisfies AppPageConfig<"/account/edit">
+}
+
 // Validate ../../src/app/account/page.tsx
 {
   const handler = {} as typeof import("../../src/app/account/page.js")
   handler satisfies AppPageConfig<"/account">
+}
+
+// Validate ../../src/app/account/settings/page.tsx
+{
+  const handler = {} as typeof import("../../src/app/account/settings/page.js")
+  handler satisfies AppPageConfig<"/account/settings">
 }
 
 // Validate ../../src/app/browse/page.tsx
