@@ -199,7 +199,7 @@ function md5(str: string) {
 }
 
 // --- Hero Section ---
-export function Hero() {
+ function Hero() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [search, setSearch] = useState('')
   const router = typeof window !== 'undefined' ? require('next/navigation').useRouter?.() : null
