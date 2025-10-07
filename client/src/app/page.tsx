@@ -1,401 +1,310 @@
+// app/page.tsx
 'use client'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+
+// --- ⚠️ DEPENDENCY NOTES ---
+// 1. Placeholder for Supabase: Replace with your actual path.
 import { createSupabaseBrowser } from './api/lib/supabaseBrowser'
+// 2. Placeholder for MD5: You MUST install 'blueimp-md5' or similar.
+import md5 from 'blueimp-md5'
 
-// --- Main Home Page ---
-export default function HomePage() {
-  const [user, setUser] = useState<any>(null)
+// ====================================================================
+// --- UTILITY HOOKS & COMPONENTS ---
+// ====================================================================
 
-  useEffect(() => {
-    const supabase = createSupabaseBrowser()
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data?.user || null)
-    })
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null)
-    })
-    return () => {
-      listener?.subscription.unsubscribe()
-    }
-  }, [])
-
-  useScrollReveal()
-
-  return (
-    <main className="min-h-screen bg-[#090a10] text-gray-100 font-inter relative overflow-x-hidden">
-      <Hero />
-      <SectionDivider />
-      <AIStats />
-      <SectionDivider />
-      <HowItWorks />
-      <SectionDivider />
-      <WhyHumanaira />
-      <SectionDivider />
-      <FAQSection />
-      <Footer />
-      <GlobalStyles />
-      <BackgroundBrand />
-    </main>
-  )
-}
-
-// --- Header ---
-function Header({ user }: { user: any }) {
-  return (
-    <header className="w-full px-8 py-5 flex items-center justify-between bg-[#090a10]/90 border-b border-[#1e293b] z-30 fixed top-0 left-0 right-0 h-[72px] backdrop-blur-md">
-      <Link href="/" className="flex items-center gap-2 font-extrabold text-2xl text-white select-none tracking-tight" style={{ letterSpacing: '-0.04em' }}>
-        <span style={{ color: '#2563eb' }}>hum</span>
-        <span style={{ color: '#fff' }}>an</span>
-        <span style={{ color: '#fff', fontWeight: 800 }}>a</span>
-        <span style={{
-          color: '#fff',
-          fontWeight: 800,
-          background: 'linear-gradient(90deg,#fff,#38bdf8 80%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent'
-        }}>i</span>
-        <span style={{ color: '#38bdf8' }}>ra</span>
-      </Link>
-      <nav className="flex items-center gap-6">
-        <Link href="/browse" className="text-blue-200 hover:text-blue-400 font-medium transition">Browse</Link>
-        <Link href="/seller/gigs/new" className="text-blue-200 hover:text-blue-400 font-medium transition">Start Selling</Link>
-        <Link href="/enterprise" className="text-blue-200 hover:text-blue-400 font-medium transition">Enterprise</Link>
-        <Link href="/help" className="text-blue-200 hover:text-blue-400 font-medium transition">Help</Link>
-        {user ? (
-          <Link href="/account" className="ml-4">
-            <Avatar email={user.email} />
-          </Link>
-        ) : (
-          <>
-            <Link href="/signin" className="ml-4 px-5 py-2 rounded-lg bg-blue-700 text-white font-semibold hover:bg-blue-800 transition">Sign In</Link>
-            <Link href="/signup" className="ml-2 px-5 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition">Sign Up</Link>
-          </>
-        )}
-      </nav>
-    </header>
-  )
-}
-
-function Avatar({ email }: { email: string }) {
-  const hash = typeof window !== 'undefined' && email
-    ? md5(email.trim().toLowerCase())
-    : ''
-  const url = email
-    ? `https://www.gravatar.com/avatar/${hash}?d=identicon&s=40`
-    : 'https://www.gravatar.com/avatar/?d=mp&s=40'
-  return (
-    <img
-      src={url}
-      alt="Account"
-      className="w-10 h-10 rounded-full border-2 border-blue-700 bg-[#181a23] object-cover"
-      style={{ minWidth: 40, minHeight: 40 }}
-    />
-  )
-}
-
-function md5(str: string) {
-  function rhex(n: number) {
-    const s = '0123456789abcdef'
-    let j, str = ''
-    for (j = 0; j < 4; j++)
-      str += s.charAt((n >> (j * 8 + 4)) & 0x0F) + s.charAt((n >> (j * 8)) & 0x0F)
-    return str
-  }
-  function str2blks_MD5(str: string) {
-    let nblk = ((str.length + 8) >> 6) + 1, blks = new Array(nblk * 16).fill(0), i
-    for (i = 0; i < str.length; i++)
-      blks[i >> 2] |= str.charCodeAt(i) << ((i % 4) * 8)
-    blks[i >> 2] |= 0x80 << ((i % 4) * 8)
-    blks[nblk * 16 - 2] = str.length * 8
-    return blks
-  }
-  function add(x: number, y: number) {
-    return (((x & 0xFFFF) + (y & 0xFFFF)) ^ ((((x >> 16) + (y >> 16)) & 0xFFFF) << 16)) >>> 0
-  }
-  function rol(num: number, cnt: number) {
-    return ((num << cnt) | (num >>> (32 - cnt))) >>> 0
-  }
-  function cmn(q: number, a: number, b: number, x: number, s: number, t: number) {
-    return add(rol(add(add(a, q), add(x, t)), s), b)
-  }
-  function ff(a: number, b: number, c: number, d: number, x: number, s: number, t: number) {
-    return cmn((b & c) | (~b & d), a, b, x, s, t)
-  }
-  function gg(a: number, b: number, c: number, d: number, x: number, s: number, t: number) {
-    return cmn((b & d) | (c & ~d), a, b, x, s, t)
-  }
-  function hh(a: number, b: number, c: number, d: number, x: number, s: number, t: number) {
-    return cmn(b ^ c ^ d, a, b, x, s, t)
-  }
-  function ii(a: number, b: number, c: number, d: number, x: number, s: number, t: number) {
-    return cmn(c ^ (b | ~d), a, b, x, s, t)
-  }
-  let x = str2blks_MD5(str), a = 1732584193, b = -271733879, c = -1732584194, d = 271733878
-  for (let i = 0; i < x.length; i += 16) {
-    let olda = a, oldb = b, oldc = c, oldd = d
-    a = ff(a, b, c, d, x[i + 0], 7, -680876936)
-    d = ff(d, a, b, c, x[i + 1], 12, -389564586)
-    c = ff(c, d, a, b, x[i + 2], 17, 606105819)
-    b = ff(b, c, d, a, x[i + 3], 22, -1044525330)
-    a = ff(a, b, c, d, x[i + 4], 7, -176418897)
-    d = ff(d, a, b, c, x[i + 5], 12, 1200080426)
-    c = ff(c, d, a, b, x[i + 6], 17, -1473231341)
-    b = ff(b, c, d, a, x[i + 7], 22, -45705983)
-    a = ff(a, b, c, d, x[i + 8], 7, 1770035416)
-    d = ff(d, a, b, c, x[i + 9], 12, -1958414417)
-    c = ff(c, d, a, b, x[i + 10], 17, -42063)
-    b = ff(b, c, d, a, x[i + 11], 22, -1990404162)
-    a = ff(a, b, c, d, x[i + 12], 7, 1804603682)
-    d = ff(d, a, b, c, x[i + 13], 12, -40341101)
-    c = ff(c, d, a, b, x[i + 14], 17, -1502002290)
-    b = ff(b, c, d, a, x[i + 15], 22, 1236535329)
-    a = gg(a, b, c, d, x[i + 1], 5, -165796510)
-    d = gg(d, a, b, c, x[i + 6], 9, -1069501632)
-    c = gg(c, d, a, b, x[i + 11], 14, 643717713)
-    b = gg(b, c, d, a, x[i + 0], 20, -373897302)
-    a = gg(a, b, c, d, x[i + 5], 5, -701558691)
-    d = gg(d, a, b, c, x[i + 10], 9, 38016083)
-    c = gg(c, d, a, b, x[i + 15], 14, -660478335)
-    b = gg(b, c, d, a, x[i + 4], 20, -405537848)
-    a = gg(a, b, c, d, x[i + 9], 5, 568446438)
-    d = gg(d, a, b, c, x[i + 14], 9, -1019803690)
-    c = gg(c, d, a, b, x[i + 3], 14, -187363961)
-    b = gg(b, c, d, a, x[i + 8], 20, 1163531501)
-    a = gg(a, b, c, d, x[i + 13], 5, -1444681467)
-    d = gg(d, a, b, c, x[i + 2], 9, -51403784)
-    c = gg(c, d, a, b, x[i + 7], 14, 1735328473)
-    b = gg(b, c, d, a, x[i + 12], 20, -1926607734)
-    a = hh(a, b, c, d, x[i + 5], 4, -378558)
-    d = hh(d, a, b, c, x[i + 8], 11, -2022574463)
-    c = hh(c, d, a, b, x[i + 11], 16, 1839030562)
-    b = hh(b, c, d, a, x[i + 14], 23, -35309556)
-    a = hh(a, b, c, d, x[i + 1], 4, -1530992060)
-    d = hh(d, a, b, c, x[i + 4], 11, 1272893353)
-    c = hh(c, d, a, b, x[i + 7], 16, -155497632)
-    b = hh(b, c, d, a, x[i + 10], 23, -1094730640)
-    a = ii(a, b, c, d, x[i + 0], 6, 681279174)
-    d = ii(d, a, b, c, x[i + 7], 10, -358537222)
-    c = ii(c, d, a, b, x[i + 14], 15, -722521979)
-    b = ii(b, c, d, a, x[i + 5], 21, 76029189)
-    a = ii(a, b, c, d, x[i + 12], 6, -640364487)
-    d = ii(d, a, b, c, x[i + 3], 10, -421815835)
-    c = ii(c, d, a, b, x[i + 10], 15, 530742520)
-    b = ii(b, c, d, a, x[i + 1], 21, -995338651)
-    a = ii(a, b, c, d, x[i + 8], 6, -198630844)
-    d = ii(d, a, b, c, x[i + 15], 10, 1126891415)
-    c = ii(c, d, a, b, x[i + 6], 15, -1416354905)
-    b = ii(b, c, d, a, x[i + 13], 21, -57434055)
-    a = ii(a, b, c, d, x[i + 4], 6, 1700485571)
-    d = ii(d, a, b, c, x[i + 11], 10, -1894986606)
-    c = ii(c, d, a, b, x[i + 2], 15, -1051523)
-    b = ii(b, c, d, a, x[i + 9], 21, -2054922799)
-    a = add(a, olda)
-    b = add(b, oldb)
-    c = add(c, oldc)
-    d = add(d, oldd)
-  }
-  return rhex(a) + rhex(b) + rhex(c) + rhex(d)
-}
-
-// --- Hero Section ---
- function Hero() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const [search, setSearch] = useState('')
-  const router = typeof window !== 'undefined' ? require('next/navigation').useRouter?.() : null
+/**
+ * Custom hook to detect when an element scrolls into view.
+ */
+const useInView = (threshold = 0.18) => {
+  const ref = useRef<HTMLDivElement>(null)
+  const [inView, setInView] = useState(false)
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    const el = ref.current
+    if (!el || typeof window.IntersectionObserver === 'undefined') return
 
-    let w = (canvas.width = canvas.offsetWidth)
-    let h = (canvas.height = canvas.offsetHeight)
-
-    function resize() {
-      w = canvas.width = canvas.offsetWidth
-      h = canvas.height = canvas.offsetHeight
-    }
-    window.addEventListener('resize', resize, { passive: true })
-
-    const stars: { x: number; y: number; r: number; alpha: number }[] = Array.from({ length: 90 }).map(() => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      r: Math.random() * 0.7 + 0.15,
-      alpha: Math.random() * 0.5 + 0.2,
-    }))
-
-    const planetRadius = Math.min(w, h) * 0.32
-    const cx = w * 0.62
-    const cy = h * 0.52
-
-    const energyLines = [
-      { color: "#38bdf8", width: 2.5, radius: planetRadius * 0.95, speed: 0.008, phase: 0 },
-      { color: "#60a5fa", width: 2, radius: planetRadius * 1.05, speed: -0.006, phase: Math.PI / 2 },
-      { color: "#38bdf8", width: 2, radius: planetRadius * 1.12, speed: 0.004, phase: Math.PI },
-    ]
-
-    let raf = 0
-    function draw(frame = 0) {
-      ctx.clearRect(0, 0, w, h)
-
-      const grad = ctx.createLinearGradient(0, 0, w, h)
-      grad.addColorStop(0, "#0a1020")
-      grad.addColorStop(0.5, "#07102a")
-      grad.addColorStop(1, "#1a2a55")
-      ctx.fillStyle = grad
-      ctx.fillRect(0, 0, w, h)
-
-      for (const s of stars) {
-        ctx.globalAlpha = s.alpha
-        ctx.beginPath()
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
-        ctx.fillStyle = "#e0eaff"
-        ctx.shadowColor = "#7dd3fc"
-        ctx.shadowBlur = 12
-        ctx.fill()
-        ctx.shadowBlur = 0
-      }
-      ctx.globalAlpha = 1
-
-      ctx.save()
-      ctx.beginPath()
-      ctx.arc(cx, cy, planetRadius, 0, Math.PI * 2)
-      ctx.closePath()
-      const planetGrad = ctx.createRadialGradient(cx, cy, planetRadius * 0.05, cx, cy, planetRadius)
-      planetGrad.addColorStop(0, "rgba(255,255,255,0.35)")
-      planetGrad.addColorStop(0.18, "rgba(56,189,248,0.28)")
-      planetGrad.addColorStop(0.35, "rgba(96,165,250,0.38)")
-      planetGrad.addColorStop(0.55, "rgba(56,189,248,0.45)")
-      planetGrad.addColorStop(0.75, "rgba(96,165,250,0.52)")
-      planetGrad.addColorStop(0.9, "rgba(56,189,248,0.65)")
-      planetGrad.addColorStop(1, "rgba(56,189,248,0.85)")
-      ctx.fillStyle = planetGrad
-      ctx.shadowColor = "#fff"
-      ctx.shadowBlur = 120
-      ctx.globalAlpha = 1
-      ctx.fill()
-      ctx.restore()
-
-      energyLines.forEach((line, idx) => {
-        ctx.save()
-        ctx.globalAlpha = 0.65
-        ctx.strokeStyle = line.color
-        ctx.lineWidth = line.width
-        ctx.shadowColor = line.color
-        ctx.shadowBlur = 22
-        ctx.beginPath()
-        for (let t = 0; t <= 1.001; t += 0.01) {
-          const angle = t * 2 * Math.PI + frame * line.speed + line.phase
-          const wave = Math.sin(angle * 2 + frame * 0.02 + idx * 1.2) * (planetRadius * 0.06)
-          const r = line.radius + wave
-          const x = cx + r * Math.cos(angle)
-          const y = cy + r * Math.sin(angle)
-          if (t === 0) ctx.moveTo(x, y)
-          else ctx.lineTo(x, y)
+    const observer = new window.IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true)
+          observer.unobserve(el)
         }
-        ctx.stroke()
-        ctx.restore()
-      })
-
-      ctx.save()
-      ctx.globalAlpha = 0.38
-      ctx.translate(cx, cy)
-      ctx.rotate(Math.PI / 6 + Math.sin(frame * 0.008) * 0.2)
-      ctx.beginPath()
-      ctx.ellipse(0, 0, planetRadius * 0.7, planetRadius * 0.22, 0, 0, Math.PI * 2)
-      ctx.fillStyle = "rgba(255,255,255,0.8)"
-      ctx.shadowColor = "#38bdf8"
-      ctx.shadowBlur = 60
-      ctx.fill()
-      ctx.restore()
-
-      ctx.save()
-      ctx.globalAlpha = 0.18
-      ctx.beginPath()
-      ctx.arc(cx, cy, planetRadius + 14, 0, Math.PI * 2)
-      ctx.strokeStyle = "#38bdf8"
-      ctx.lineWidth = 7
-      ctx.shadowColor = "#38bdf8"
-      ctx.shadowBlur = 28
-      ctx.stroke()
-      ctx.restore()
-
-      const orbitRadius = planetRadius * 1.18
-      const orbitY = planetRadius * 0.92
-      const orbitT = ((frame * 0.003) % 1)
-      const angle = orbitT * 2 * Math.PI
-      const orbX = cx + orbitRadius * Math.cos(angle)
-      const orbY = cy + orbitY * Math.sin(angle)
-      ctx.beginPath()
-      ctx.arc(orbX, orbY, 12, 0, Math.PI * 2)
-      ctx.globalAlpha = 0.95
-      ctx.fillStyle = "#7dd3fc"
-      ctx.shadowColor = "#7dd3fc"
-      ctx.shadowBlur = 32
-      ctx.fill()
-      ctx.globalAlpha = 1
-      ctx.shadowBlur = 0
-
-      raf = requestAnimationFrame(() => draw(frame + 1))
-    }
-    draw()
-
+      },
+      { threshold }
+    )
+    observer.observe(el)
     return () => {
-      cancelAnimationFrame(raf)
-      window.removeEventListener('resize', resize)
+      if (el) observer.unobserve(el)
     }
-  }, [])
+  }, [threshold])
+
+  return { ref, inView }
+}
+
+// --- Section Divider ---
+function SectionDivider() {
+  return (
+    <div className="w-full flex justify-center items-center py-0 relative">
+      <div className="w-2/3 h-[1px] bg-gradient-to-r from-transparent via-blue-900 to-transparent opacity-50 my-0" />
+    </div>
+  )
+}
+
+// ====================================================================
+// --- PLANET & HERO COMPONENTS ---
+// ====================================================================
+
+// --- 3D Grid/Starfield Background Component for Hero (Unchanged) ---
+function HeroOrbitGrid() {
+  return (
+    <div
+      className="absolute inset-0 overflow-hidden pointer-events-none"
+      style={{
+        zIndex: 0,
+        perspective: '800px',
+        transformStyle: 'preserve-3d',
+      }}
+    >
+      {/* Container for the Grid - positioned right of center */}
+      <div
+        className="absolute top-1/2 left-1/2 w-full h-full opacity-10"
+        style={{
+          transform: 'translate(10vw, -50%) rotateX(60deg) rotateZ(45deg)',
+        }}
+      >
+        <div className="orbit-grid w-full h-full" />
+      </div>
+
+      <style jsx>{`
+        .orbit-grid {
+          background-image: linear-gradient(
+              to right,
+              rgba(59, 130, 246, 0.2) 1px,
+              transparent 1px
+            ),
+            linear-gradient(to bottom, rgba(59, 130, 246, 0.2) 1px, transparent 1px);
+          background-size: 50px 50px;
+          mask-image: radial-gradient(
+            circle at center,
+            white 0%,
+            transparent 70%
+          );
+          animation: spin-grid 120s linear infinite;
+        }
+        @keyframes spin-grid {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+// --- Orbiting Satellite (Moon) - No direct light, ellipsoid shape, 3D orbit ---
+function OrbitingSatellite() {
+    const SATELLITE_WIDTH = 40; // Width of the ellipsoid
+    const SATELLITE_HEIGHT = 24; // Height of the ellipsoid
+    const ORBIT_DISTANCE = 250; // Distance from the planet's center
+    const ORBIT_DURATION = 20; // Seconds for one full orbit (faster than planet)
+    const ORBIT_PERSPECTIVE_ANGLE = 60; // How much it 'leans' into the screen
+
+    // Subtle noise texture for realism (if desired for the moon)
+    const noiseTexture = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E")`;
+
+    return (
+        <div className="satellite-orbit-container" style={{
+            position: 'absolute',
+            width: '1px', // This container is the pivot for the orbit animation
+            height: '1px',
+            top: 0,
+            left: 0,
+            animation: `satellite-orbit ${ORBIT_DURATION}s linear infinite`,
+            transformStyle: 'preserve-3d', // Important for 3D rotation
+            perspective: '1000px',
+        }}>
+            <div className="satellite-body" style={{
+                width: SATELLITE_WIDTH,
+                height: SATELLITE_HEIGHT,
+                borderRadius: '50% / 30%', // Ellipsoid shape
+                background: `#343a40 ${noiseTexture}`, // Dark grey with noise, no strong light reflection
+                boxShadow: '0 0 12px rgba(167, 183, 201, 0.25)', // Increased subtle glow
+                position: 'absolute',
+                top: -SATELLITE_HEIGHT / 2, 
+                left: -SATELLITE_WIDTH / 2,
+                transformStyle: 'preserve-3d',
+                animation: `satellite-spin ${ORBIT_DURATION / 2}s linear infinite`, // Self-rotation
+            }} />
+            <style jsx>{`
+                .satellite-orbit-container {
+                  @keyframes satellite-orbit {
+                      0% { 
+                          transform: rotateY(0deg) translateX(${ORBIT_DISTANCE}px) rotateY(-${ORBIT_PERSPECTIVE_ANGLE}deg); 
+                          z-index: 2; /* In front */
+                      }
+                      25% { 
+                          transform: rotateY(90deg) translateX(${ORBIT_DISTANCE}px) rotateY(-${ORBIT_PERSPECTIVE_ANGLE}deg);
+                          z-index: 2;
+                      }
+                      50% { 
+                          transform: rotateY(180deg) translateX(${ORBIT_DISTANCE}px) rotateY(-${ORBIT_PERSPECTIVE_ANGLE}deg); 
+                          z-index: 0; /* Behind */
+                      }
+                      75% { 
+                          transform: rotateY(270deg) translateX(${ORBIT_DISTANCE}px) rotateY(-${ORBIT_PERSPECTIVE_ANGLE}deg);
+                          z-index: 0;
+                      }
+                      100% { 
+                          transform: rotateY(360deg) translateX(${ORBIT_DISTANCE}px) rotateY(-${ORBIT_PERSPECTIVE_ANGLE}deg); 
+                          z-index: 2; /* In front again */
+                      }
+                  }
+                }
+                
+                .satellite-body {
+                    @keyframes satellite-spin {
+                        from { transform: rotateZ(0deg); }
+                        to { transform: rotateZ(360deg); }
+                    }
+                }
+            `}</style>
+        </div>
+    );
+}
+
+
+// --- ROTATING PLANET with INTENSE, FADED GRADIENT CIRCLES ---
+function RotatingPlanet() {
+    const PLANET_SIZE = 480; 
+
+    // Define colors for the main planet (Darker base for contrast)
+    const DEEP_BLUE_PLANET = '#020711'; // Very deep blue
+    const DEEPER_BLUE_EDGE = '#000000'; // Almost black for edge depth
+
+    // Define colors for the highly visible, faded inner gradients
+    const gradientColors = [
+        'rgba(0, 191, 255, 0.9)',    // Deep Sky Blue, high opacity
+        'rgba(173, 216, 230, 0.8)', // Light Blue, high opacity
+        'rgba(30, 144, 255, 0.8)',    // Dodger Blue, high opacity
+        'rgba(255, 255, 255, 0.9)', // White/Near-fluorescent, highest opacity
+    ];
+
+    return (
+        <div className="absolute top-1/2 left-1/2 hidden md:block" style={{
+            transform: 'translate(25vw, -50%)', 
+            zIndex: 1,
+            width: PLANET_SIZE, 
+            height: PLANET_SIZE,
+            borderRadius: '50%',
+            position: 'absolute',
+            top: -PLANET_SIZE / 2, 
+            left: -PLANET_SIZE / 2,
+            overflow: 'visible', // Allow gradients to spill out slightly for a softer effect
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+        }}>
+            {/* The Main Planet (The dark base structure) */}
+            <div className="main-planet" style={{
+                width: '100%', 
+                height: '100%',
+                borderRadius: 'inherit',
+                background: `radial-gradient(circle at center, ${DEEP_BLUE_PLANET} 50%, ${DEEPER_BLUE_EDGE} 100%)`,
+                boxShadow: '0 0 150px rgba(59, 130, 246, 0.4), inset 0 0 60px rgba(0,0,0,0.9)', 
+                animation: `spin-planet 90s linear infinite`, 
+                zIndex: 1,
+                position: 'absolute',
+            }} />
+
+            {/* **INTENSE FADED GRADIENT CIRCLES** - Highly visible and exaggerated movement */}
+            {gradientColors.map((color, index) => (
+                <div 
+                    key={index}
+                    className="intense-gradient-circle"
+                    style={{
+                        position: 'absolute',
+                        width: `${PLANET_SIZE * (1.2 + index * 0.3)}px`, // MUCH larger sizes (up to 180% of planet)
+                        height: `${PLANET_SIZE * (1.2 + index * 0.3)}px`,
+                        borderRadius: '50%',
+                        // Using a strong radial gradient with massive spread
+                        background: `radial-gradient(circle at center, ${color} 0%, transparent 40%)`,
+                        // Exaggerated animation for clear visibility
+                        animation: `float-fade ${20 + index * 8}s linear infinite alternate${index % 2 === 0 ? '-reverse' : ''}`, 
+                        filter: 'blur(50px)', // MASSIVE blur for the "fady" soft glow effect
+                        opacity: 0.9,
+                        zIndex: 2, // Layered above the main planet
+                        pointerEvents: 'none',
+                    }}
+                />
+            ))}
+            
+            <OrbitingSatellite /> {/* <-- The orbiting satellite (zIndex 3 by default) */}
+
+            <style jsx>{`
+                @keyframes spin-planet {
+                    from { 
+                        transform: rotateZ(0deg);
+                    }
+                    to { 
+                        transform: rotateZ(360deg);
+                    }
+                }
+
+                @keyframes float-fade {
+                    0% {
+                        /* Exaggerated movement */
+                        transform: translate(-30%, -30%) scale(0.9);
+                        opacity: 0.9;
+                    }
+                    50% {
+                        transform: translate(30%, 30%) scale(1.05);
+                        opacity: 0.6;
+                    }
+                    100% {
+                        transform: translate(-30%, -30%) scale(0.9);
+                        opacity: 0.9;
+                    }
+                }
+            `}</style>
+        </div>
+    )
+}
+
+
+// --- Hero Section (Unchanged) ---
+function Hero() {
+  const [search, setSearch] = useState('')
+  const router = useRouter()
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     if (search.trim()) {
-      if (router && typeof router.push === 'function') {
-        router.push(`/browse?q=${encodeURIComponent(search.trim())}`)
-      } else {
-        window.location.href = `/browse?q=${encodeURIComponent(search.trim())}`
-      }
+      const query = `/browse?q=${encodeURIComponent(search.trim())}`
+      router.push(query)
     }
   }
 
   return (
     <section
-      className="relative w-full flex items-center justify-center bg-[#090a10] overflow-hidden"
-      style={{
-        minHeight: 'calc(100vh - 80px)',
-        height: 'calc(100vh - 80px)',
-        paddingTop: '80px',
-      }}
+      className="relative w-full flex items-center justify-center bg-gray-950 overflow-hidden"
+      style={{ minHeight: 'calc(100vh - 72px)' }}
     >
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@900&family=Manrope:wght@800&family=DM+Sans:wght@700&family=Pacifico:wght@400&display=swap');
-      `}</style>
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 w-full h-full block pointer-events-none"
-        style={{ zIndex: 0 }}
-      />
-      <div
-        className="relative z-20 flex flex-col items-center justify-center text-center px-4 py-0 w-full"
-        style={{
-          minHeight: 'calc(100vh - 80px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
+      <HeroOrbitGrid />
+      <RotatingPlanet /> {/* <-- The central rotating planet, now with satellite */}
+      
+      <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 py-20 w-full min-h-[calc(100vh-72px)]">
         <h1
-          className="mb-5 leading-tight tracking-tight drop-shadow-xl"
+          className="mb-6 leading-tight tracking-tight drop-shadow-xl font-extrabold text-white"
           style={{
-            fontFamily: "'Inter', 'Manrope', 'DM Sans', Arial, sans-serif",
-            fontWeight: 800,
-            fontSize: 'clamp(2.5rem, 7vw, 4.2rem)',
-            letterSpacing: '-0.03em',
+            fontSize: 'clamp(2.5rem, 7vw, 4.5rem)',
+            letterSpacing: '-0.04em',
             lineHeight: 1.1,
-            color: '#fff',
-            marginBottom: '0.5rem',
-            textShadow: '0 4px 32px #38bdf855, 0 2px 8px #0ea5e9cc',
+            textShadow: '0 4px 32px #3b82f655, 0 2px 8px #1d4ed8cc',
           }}
         >
           Elevate Your Next Project <br />
@@ -409,66 +318,53 @@ function md5(str: string) {
               background: 'none',
               WebkitBackgroundClip: 'unset',
               WebkitTextFillColor: 'unset',
-              filter: 'none',
-              verticalAlign: 'middle',
-              padding: '0 0.1em',
+              textShadow: '0 2px 15px rgba(59, 130, 246, 0.5)',
               display: 'inline-block',
+              verticalAlign: 'middle',
             }}
           >
             with Humanaira
           </span>
         </h1>
         <p
-          className="text-base md:text-xl mb-3 max-w-2xl mx-auto font-medium"
-          style={{
-            fontFamily: "'Inter', 'Manrope', 'DM Sans', Arial, sans-serif",
-            color: '#e0eaff',
-            fontWeight: 600,
-            letterSpacing: '0.01em',
-            fontSize: '1.25rem',
-            textShadow: '0 2px 12px #10131e99',
-          }}
+          className="text-lg md:text-xl mb-6 max-w-3xl mx-auto font-medium text-gray-300"
+          style={{ letterSpacing: '0.01em', textShadow: '0 2px 12px #00000099' }}
         >
-          Discover, hire, and collaborate with the next generation of AI freelancers and digital creators.
+          Discover, hire, and collaborate with the next generation of AI talent and digital
+          creators.
         </p>
-<div
-  className="mb-8 italic text-blue-200 text-xl"
-  style={{ opacity: 0.85 }}
->
-  Your ideas, delivered smarter.
-</div>
         <form
           onSubmit={handleSearch}
-          className="w-full max-w-md mx-auto flex items-center justify-center bg-[#181a23] rounded-xl shadow border border-blue-800 px-3 py-2"
-          style={{ marginBottom: '1.5rem' }}
+          className="w-full max-w-xl mx-auto flex items-center justify-center bg-gray-800/60 backdrop-blur-sm rounded-xl border border-blue-700 p-2 shadow-2xl"
+          style={{ marginBottom: '2rem' }}
         >
           <input
             type="text"
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search for services, gigs, or talent..."
-            className="flex-1 bg-transparent border-none outline-none text-white text-base px-2 py-2 placeholder:text-blue-200 placeholder:font-normal placeholder:text-opacity-60"
-            style={{ minWidth: 0, fontWeight: 400, fontSize: '0.98rem' }}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search for AI services, Gigs, or specialized talent..."
+            className="flex-1 bg-transparent border-none outline-none text-white text-base px-3 py-3 placeholder:text-gray-400 placeholder:font-light"
+            style={{ minWidth: 0, fontSize: '1rem' }}
           />
           <button
             type="submit"
-            className="ml-2 px-4 py-2 rounded-lg bg-blue-700 text-white font-semibold hover:bg-blue-800 transition text-sm"
-            style={{ fontSize: '0.98rem' }}
+            className="ml-2 px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition text-base shadow-md"
           >
             Search
           </button>
         </form>
-        <div className="mt-3">
+        <div className="flex flex-wrap gap-4 justify-center items-center font-medium">
           <Link
             href="/browse"
-            className="inline-block px-6 py-2 rounded-lg bg-[#101a2a] border border-blue-800 text-blue-200 font-semibold text-base shadow hover:bg-blue-900/60 hover:text-white transition-all duration-200"
-            style={{
-              boxShadow: '0 2px 12px #2563eb22',
-              letterSpacing: '0.01em',
-              fontSize: '0.98rem',
-            }}
+            className="inline-block px-5 py-2.5 rounded-lg bg-gray-800/80 border border-gray-700 text-blue-300 hover:text-blue-400 transition"
           >
-            Browse All Services
+            Browse Services →
+          </Link>
+          <Link
+            href="/seller/gigs/new"
+            className="inline-block px-5 py-2.5 rounded-lg bg-blue-600 border border-blue-700 text-white hover:bg-blue-700 transition shadow-lg shadow-blue-500/20"
+          >
+            Start Selling AI Services
           </Link>
         </div>
       </div>
@@ -476,171 +372,184 @@ function md5(str: string) {
   )
 }
 
-// --- Section Divider ---
-function SectionDivider() {
-  return (
-    <div className="w-full flex justify-center items-center py-0 relative">
-      <div className="w-2/3 h-[1.5px] bg-gradient-to-r from-transparent via-blue-900 to-transparent opacity-60 my-0" />
-    </div>
-  )
-}
-
-// --- AI Stats Section ---
+// --- AI Stats Section (Unchanged) ---
 function AIStats() {
+  const stats = [
+    {
+      stat: '+70%',
+      label: 'AI Freelance Job Growth',
+      desc: 'AI-related freelance jobs have grown by 70% since last year.',
+      index: 0,
+    },
+    {
+      stat: '82%',
+      label: 'Companies Hiring AI Talent',
+      desc: '82% of companies plan to increase their use of AI freelancers.',
+      index: 1,
+    },
+    {
+      stat: '3x',
+      label: 'Faster Delivery',
+      desc: 'AI-powered teams deliver projects 3x faster on average.',
+      index: 2,
+    },
+    {
+      stat: '92%',
+      label: 'Buyer Satisfaction',
+      desc: '92% of buyers report improved outcomes with AI freelancers.',
+      index: 3,
+    },
+  ]
   return (
-    <section className="relative w-full flex flex-col items-center justify-center py-24 bg-[#0b1220] overflow-hidden">
-      <div className="relative z-10 max-w-5xl mx-auto px-4">
-        <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-10 text-center tracking-tight">
-          The Rise of AI Freelancers
+    <section className="relative w-full flex flex-col items-center justify-center py-24 bg-gray-900 overflow-hidden">
+      <div className="relative z-10 max-w-6xl mx-auto px-6">
+        <h2 className="text-4xl md:text-5xl font-bold text-white mb-14 text-center tracking-tight">
+          The Future of Freelancing
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
-          <FactCard
-            stat="+70%"
-            label="AI Freelance Job Growth"
-            desc="AI-related freelance jobs have grown by 70% since 2023. (Upwork, 2024)"
-          />
-          <FactCard
-            stat="82%"
-            label="Companies Hiring AI Talent"
-            desc="82% of companies plan to increase their use of AI freelancers. (Gartner, 2025)"
-          />
-          <FactCard
-            stat="3x"
-            label="Faster Delivery"
-            desc="AI-powered teams deliver projects 3x faster on average. (McKinsey, 2024)"
-          />
-          <FactCard
-            stat="92%"
-            label="Buyer Satisfaction"
-            desc="92% of buyers report improved outcomes with AI freelancers. (Freelancer.com, 2024)"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {stats.map((s) => (
+            <FactCard key={s.label} {...s} />
+          ))}
         </div>
-        <div className="text-center text-blue-200 text-xl font-medium mt-8 max-w-2xl mx-auto">
-          <span className="italic">AI freelancers are transforming how companies innovate, scale, and win.</span>
+        <div className="text-center text-blue-300 text-xl font-light mt-16 max-w-3xl mx-auto">
+          <span className="italic font-normal">
+            AI freelancers are transforming how companies innovate, scale, and win.
+          </span>
         </div>
       </div>
-      <span
-        className="absolute left-0 bottom-[-120px] text-[12vw] font-extrabold uppercase pointer-events-none select-none opacity-10"
-        style={{
-          fontFamily: "'Manrope', 'Inter', Arial, sans-serif",
-          color: '#38bdf8',
-          whiteSpace: 'nowrap',
-          zIndex: 1,
-          userSelect: 'none',
-          letterSpacing: '-0.06em',
-        }}
-      >
-        HUMANAIRA
-      </span>
     </section>
   )
 }
 
-function FactCard({ stat, label, desc }: { stat: string; label: string; desc: string }) {
+// --- Fact Card with Slide Up Animation (Unchanged) ---
+function FactCard({
+  stat,
+  label,
+  desc,
+  index,
+}: {
+  stat: string
+  label: string
+  desc: string
+  index: number
+}) {
+  const { ref, inView } = useInView(0.25)
   return (
-    <div className="bg-[#181a23] border border-blue-900 rounded-2xl p-8 flex flex-col items-center text-center shadow min-w-[220px] max-w-xs mx-auto">
-      <div className="text-4xl md:text-5xl font-extrabold text-blue-400 mb-2">{stat}</div>
-      <div className="text-lg font-semibold text-white mb-1">{label}</div>
-      <div className="text-blue-200 text-base">{desc}</div>
+    <div
+      ref={ref}
+      className={`bg-gray-800 border border-gray-700 rounded-2xl p-6 flex flex-col items-center text-center shadow-xl shadow-gray-900/50 transition-all duration-700 ease-[cubic-bezier(.2,.9,.3,1)] hover:border-blue-600 hover:shadow-blue-900/30
+        ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
+      style={{
+        transitionDelay: inView ? `${index * 80 + 80}ms` : '0ms',
+        willChange: 'opacity, transform',
+      }}
+    >
+      <div className="text-5xl font-extrabold text-blue-400 mb-3">{stat}</div>
+      <div className="text-lg font-semibold text-white mb-2">{label}</div>
+      <div className="text-gray-400 text-base">{desc}</div>
     </div>
   )
 }
 
-// --- How It Works Section ---
+// --- How It Works Section (Unchanged) ---
 function HowItWorks() {
   const points = [
     {
       icon: (
-        <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
-          <circle cx="18" cy="18" r="18" fill="#2563eb" opacity="0.15" />
-          <path d="M11 19l5 5 9-12" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            stroke="#3b82f6"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
         </svg>
       ),
-      title: "Verified Sellers",
-      desc: "All sellers are vetted for quality and expertise, so you get the best results.",
+      title: 'Vetted AI Talent',
+      desc: 'All sellers are rigorously vetted for expertise and AI-specific skills.',
     },
     {
       icon: (
-        <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
-          <circle cx="18" cy="18" r="18" fill="#2563eb" opacity="0.15" />
-          <path d="M18 10v8l6 3" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M12 8v4l3 3m-3 7a9 9 0 110-18 9 9 0 010 18z"
+            stroke="#3b82f6"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
         </svg>
       ),
-      title: "24/7 Support",
-      desc: "Our team is here to help you anytime, day or night.",
+      title: '24/7 Support',
+      desc: 'Our team is here to help you anytime, day or night.',
     },
     {
       icon: (
-        <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
-          <circle cx="18" cy="18" r="18" fill="#2563eb" opacity="0.15" />
-          <path d="M12 18h12" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M8 10h.01M16 10h.01M12 12c-3.1 0-6 2.3-6 5h12c0-2.7-2.9-5-6-5z"
+            stroke="#3b82f6"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
         </svg>
       ),
-      title: "Instant Messaging",
-      desc: "Chat instantly with freelancers and clients for smooth collaboration.",
+      title: 'Instant Collaboration',
+      desc: 'Chat instantly with AI freelancers for smooth project execution.',
     },
     {
       icon: (
-        <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
-          <circle cx="18" cy="18" r="18" fill="#2563eb" opacity="0.15" />
-          <path d="M18 10a8 8 0 100 16 8 8 0 000-16z" stroke="#38bdf8" strokeWidth="2.5" />
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M12 3v18M4 7h16M4 17h16"
+            stroke="#3b82f6"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
         </svg>
       ),
-      title: "Secure Payments",
-      desc: "Your funds are protected until you approve the work delivered.",
-    },
-    {
-      icon: (
-        <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
-          <circle cx="18" cy="18" r="18" fill="#2563eb" opacity="0.15" />
-          <path d="M14 22l8-8M14 14h8v8" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ),
-      title: "Easy Revisions",
-      desc: "Request changes easily and track progress with built-in tools.",
-    },
-    {
-      icon: (
-        <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
-          <circle cx="18" cy="18" r="18" fill="#2563eb" opacity="0.15" />
-          <path d="M18 10v16M10 18h16" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
-        </svg>
-      ),
-      title: "AI-Powered Tools",
-      desc: "Boost productivity with integrated AI features for both buyers and sellers.",
-    },
-    {
-      icon: (
-        <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
-          <circle cx="18" cy="18" r="18" fill="#2563eb" opacity="0.15" />
-          <path d="M18 12v6h6" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ),
-      title: "Milestone Tracking",
-      desc: "Track project milestones and progress with clear dashboards.",
-    },
-    {
-      icon: (
-        <svg width="36" height="36" fill="none" viewBox="0 0 36 36">
-          <circle cx="18" cy="18" r="18" fill="#2563eb" opacity="0.15" />
-          <path d="M12 24l12-12" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
-        </svg>
-      ),
-      title: "Money-Back Guarantee",
-      desc: "If you're not satisfied, we offer a money-back guarantee.",
+      title: 'Secure Escrow Payments',
+      desc: 'Your funds are protected until you approve the final, delivered work.',
     },
   ]
   return (
-    <section className="w-full py-24 px-4 bg-[#090a10] border-t border-[#1e293b]">
+    <section className="w-full py-24 px-4 bg-gray-950">
       <div className="max-w-6xl mx-auto">
-        <h2 className="text-4xl font-extrabold text-blue-200 mb-12 text-center tracking-tight">How it works</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <h2 className="text-4xl font-bold text-blue-300 mb-14 text-center tracking-tight">
+          How it works
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {points.map((point, idx) => (
-            <div key={idx} className="flex-1 bg-[#181a23] border border-blue-900 rounded-2xl p-8 flex flex-col items-center text-center shadow">
-              <div className="mb-4">{point.icon}</div>
-              <h3 className="text-xl font-bold text-blue-100 mb-2">{point.title}</h3>
-              <p className="text-blue-200 text-base">{point.desc}</p>
-            </div>
+            <HowItWorksCard
+              key={idx}
+              icon={point.icon}
+              title={point.title}
+              desc={point.desc}
+              index={idx}
+            />
           ))}
         </div>
       </div>
@@ -648,83 +557,185 @@ function HowItWorks() {
   )
 }
 
-// --- Why Humanaira Section ---
+// --- How It Works Card with Slide Up Animation (Unchanged) ---
+function HowItWorksCard({
+  icon,
+  title,
+  desc,
+  index,
+}: {
+  icon: React.ReactNode
+  title: string
+  desc: string
+  index: number
+}) {
+  const { ref, inView } = useInView(0.18)
+  return (
+    <div
+      ref={ref}
+      className={`bg-gray-800 border border-gray-700 rounded-xl p-6 flex flex-col items-center text-center shadow-lg transition-all duration-700 ease-[cubic-bezier(.2,.9,.3,1)] hover:shadow-blue-900/30
+        ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
+      style={{
+        transitionDelay: inView ? `${index * 80 + 80}ms` : '0ms',
+        willChange: 'opacity, transform',
+      }}
+    >
+      <div className="mb-4 p-3 rounded-full bg-blue-900/30">{icon}</div>
+      <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>
+      <p className="text-gray-400 text-base">{desc}</p>
+    </div>
+  )
+}
+
+// --- Why Humanaira Section (ICONS REMOVED, as requested) ---
 function WhyHumanaira() {
   const items = [
     {
-      title: 'Curated Talent',
-      desc: 'Top performers only. We vet portfolios, reviews and delivery history.',
+      title: 'Curated AI Talent',
+      desc: 'Top performers only. We vet portfolios and delivery history for AI-specific projects.',
     },
     {
-      title: 'AI-assisted Workflows',
-      desc: 'Faster iterations with AI tooling while humans ensure quality.',
+      title: 'AI-First Workflows',
+      desc: 'Faster iterations with integrated AI tooling while human expertise ensures final quality.',
     },
     {
       title: 'Transparent Pricing',
-      desc: 'Clear fees and milestone-based payments. No surprises.',
+      desc: 'Clear fees and milestone-based payments. No surprises or hidden costs.',
     },
     {
-      title: 'Global, Reliable Support',
-      desc: 'Multilingual team and SLA-backed support for important projects.',
+      title: 'Reliable Global Support',
+      desc: 'SLA-backed, multilingual support for your most important AI initiatives.',
     },
   ]
   return (
     <section className="relative max-w-7xl mx-auto px-4 py-24">
-      <h2 className="text-4xl font-bold mb-12 text-center text-blue-200 tracking-tight">Why choose humanaira</h2>
+      <h2 className="text-4xl font-bold mb-14 text-center text-white tracking-tight">
+        Why Choose Humanaira
+      </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-        {items.map((it) => (
-          <div key={it.title} className="p-8 rounded-2xl bg-[#071124] border border-[#123055] shadow hover:translate-y-[-4px] transition-transform flex flex-col items-center text-center">
-            <div className="text-blue-300 text-3xl mb-3">✓</div>
-            <div className="font-semibold text-white text-lg">{it.title}</div>
-            <div className="text-slate-300 mt-2">{it.desc}</div>
-          </div>
+        {items.map((it, idx) => (
+          <WhyCard
+            key={it.title}
+            title={it.title}
+            desc={it.desc}
+            index={idx}
+          />
         ))}
       </div>
-      <span
-        className="absolute right-[-10vw] top-1/2 -translate-y-1/2 text-[12vw] font-extrabold uppercase pointer-events-none select-none opacity-10"
-        style={{
-          fontFamily: "'Manrope', 'Inter', Arial, sans-serif",
-          color: '#2563eb',
-          whiteSpace: 'nowrap',
-          zIndex: 1,
-          userSelect: 'none',
-          letterSpacing: '-0.06em',
-        }}
-      >
-        HUMANAIRA
-      </span>
     </section>
   )
 }
 
-// --- FAQ Section ---
+// --- Why Card with Slide Up Animation (NO icon rendering) ---
+function WhyCard({
+  title,
+  desc,
+  index,
+}: {
+  title: string
+  desc: string
+  index: number
+}) {
+  const { ref, inView } = useInView(0.18)
+  return (
+    <div
+      ref={ref}
+      className={`p-6 rounded-xl bg-gray-900 border border-blue-900 shadow-xl shadow-blue-900/10 hover:translate-y-[-4px] transition-transform duration-300 flex flex-col items-center text-center transition-all duration-700 ease-[cubic-bezier(.2,.9,.3,1)]
+        ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
+      style={{
+        transitionDelay: inView ? `${index * 80 + 80}ms` : '0ms',
+        willChange: 'opacity, transform',
+      }}
+    >
+      {/* Icon div remains removed */}
+      <div className="font-semibold text-white text-lg mb-2">{title}</div>
+      <div className="text-gray-400 text-sm">{desc}</div>
+    </div>
+  )
+}
+
+// --- NEW SECTION: Call to Action (CTA) ---
+function ReadyToMakeTheChangeCTA() {
+  const { ref, inView } = useInView(0.3)
+  return (
+    <section className="relative max-w-7xl mx-auto px-4 py-24">
+      <div
+        ref={ref}
+        className={`bg-gray-900 border border-blue-700/50 rounded-3xl p-10 md:p-20 text-center shadow-2xl shadow-blue-900/20 transition-all duration-1000 ease-out
+        ${inView ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+      >
+        <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight"
+            style={{ textShadow: '0 2px 10px rgba(59, 130, 246, 0.4)' }}>
+          Elevate Your Ambition
+        </h2>
+        <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-10">
+          Join the platform where tomorrow's AI innovations are built today.
+        </p>
+        <div className="flex flex-col sm:flex-row justify-center gap-6">
+          <Link
+            href="/browse"
+            className="px-10 py-4 text-lg font-bold rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition shadow-lg shadow-blue-500/30 transform hover:scale-[1.03]"
+          >
+            Explore AI Services
+          </Link>
+          <Link
+            href="/seller/gigs/new"
+            className="px-10 py-4 text-lg font-bold rounded-xl bg-gray-700 text-gray-200 border border-gray-600 hover:bg-gray-600 transition transform hover:scale-[1.03]"
+          >
+            Start Selling Today
+          </Link>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+
+// --- FAQ Section (Unchanged) ---
 function FAQSection() {
   const faqs = [
-    { q: 'How do payments work?', a: 'You pay securely via our gateway. Funds are held until you accept delivery.' },
-    { q: 'What if I need revisions?', a: 'Most sellers include revisions; you can request changes via the order workspace.' },
-    { q: 'Do you offer refunds?', a: 'We have a satisfaction policy. Contact support and we will review your case.' },
-    { q: 'Can I hire a team?', a: 'Yes. Post a brief or work with multiple sellers to assemble a team.' },
+    {
+      q: 'How do payments work?',
+      a: 'You pay securely via our gateway. Funds are held in escrow until you formally accept the delivered work. This protects both the buyer and the seller.',
+    },
+    {
+      q: 'What if I need revisions on AI-generated content?',
+      a: 'Most AI freelancers include 1-3 rounds of revisions to fine-tune the output. You can request changes directly via the order workspace for better tracking.',
+    },
+    {
+      q: 'Is there a money-back guarantee?',
+      a: 'We have a strong satisfaction policy. If the delivered work does not meet the agreed-upon standards or specifications, contact support within 7 days and we will review your case for a full refund.',
+    },
   ]
   const [open, setOpen] = useState<number | null>(null)
 
   return (
     <section className="relative max-w-5xl mx-auto px-4 py-24">
-      <h2 className="text-4xl font-bold mb-12 text-center text-white tracking-tight">Frequently asked questions</h2>
+      <h2 className="text-4xl font-bold mb-12 text-center text-white tracking-tight">
+        Frequently Asked Questions
+      </h2>
       <div className="space-y-4">
         {faqs.map((f, idx) => (
-          <div key={f.q} className="bg-[#07102a] border border-[#102948] rounded-xl overflow-hidden">
+          <div
+            key={f.q}
+            className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden shadow-xl"
+          >
             <button
               onClick={() => setOpen(open === idx ? null : idx)}
               aria-expanded={open === idx}
-              className="w-full text-left px-6 py-4 flex justify-between items-center"
+              className="w-full text-left px-6 py-4 flex justify-between items-center transition hover:bg-gray-800/80"
             >
-              <div className="font-medium text-white">{f.q}</div>
-              <div className="text-blue-300 text-2xl" aria-hidden>
-                {open === idx ? '−' : '+'}
+              <div className="font-medium text-white text-lg">{f.q}</div>
+              <div
+                className="text-blue-400 text-3xl transition-transform duration-300"
+                style={{ transform: open === idx ? 'rotate(45deg)' : 'rotate(0deg)' }}
+                aria-hidden
+              >
+                +
               </div>
             </button>
             <div
-              className="px-6 pb-4 text-slate-300 faq-answer"
+              className="px-6 pb-6 text-gray-300 faq-answer text-base"
               style={{
                 maxHeight: open === idx ? 240 : 0,
                 opacity: open === idx ? 1 : 0,
@@ -739,56 +750,136 @@ function FAQSection() {
   )
 }
 
-// --- Footer ---
+// --- Footer (Unchanged) ---
 function Footer() {
   return (
-    <footer className="w-full bg-[#00060b] border-t border-[#0b2a59] pt-16 pb-12">
+    <footer className="w-full bg-gray-950 border-t border-gray-800 pt-16 pb-12">
       <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row md:items-start md:justify-between gap-12">
         {/* Logo and description */}
         <div className="flex flex-col items-start gap-3">
-          <div className="text-4xl font-extrabold select-none" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.04em' }}>
-            <span style={{ color: '#2563eb' }}>hum</span>
-            <span style={{ color: '#fff' }}>an</span>
-            <span style={{ color: '#fff', fontWeight: 800 }}>a</span>
-            <span style={{ color: '#fff', fontWeight: 800 }}>i</span>
-            <span style={{ color: '#2563eb' }}>ra</span>
+          <div
+            className="text-4xl font-extrabold select-none"
+            style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '-0.04em' }}
+          >
+            <span className="text-blue-500">human</span>
+            <span className="text-gray-50">ai</span>
+            <span className="text-blue-500">ra</span>
           </div>
-          <div className="text-slate-300 text-base max-w-xs mt-2">
-            The next-generation AI-powered freelance marketplace. Built for professionals, by professionals.
+          <div className="text-gray-400 text-sm max-w-xs mt-2">
+            The premium AI-powered freelance marketplace. Built for professionals, by professionals.
           </div>
         </div>
-        {/* Essential Links */}
-        <div className="flex flex-col gap-4">
-          <div className="text-blue-200 font-semibold mb-2 text-lg">Explore</div>
-          <Link href="/blog" className="footer-link">Blog</Link>
-          <Link href="/browse" className="footer-link">Browse</Link>
-          <Link href="/help" className="footer-link">Help Center</Link>
-        </div>
-        {/* Social & Policy */}
-        <div className="flex flex-col gap-4">
-          <div className="text-blue-200 font-semibold mb-2 text-lg">Connect</div>
-          <a className="footer-link" href="https://linkedin.com/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-          <a className="footer-link" href="https://instagram.com/" target="_blank" rel="noopener noreferrer">Instagram</a>
-          <Link href="/terms" className="footer-link">Terms</Link>
-          <Link href="/privacy" className="footer-link">Privacy</Link>
+        {/* Navigation Links */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-12 gap-y-6">
+          <FooterSection title="Explore">
+            <Link
+              href="/blog"
+              className="footer-link"
+            >
+              Blog
+            </Link>
+            <Link
+              href="/browse"
+              className="footer-link"
+            >
+              Browse Gigs
+            </Link>
+            <Link
+              href="/help"
+              className="footer-link"
+            >
+              Help Center
+            </Link>
+          </FooterSection>
+          <FooterSection title="Company">
+            <Link
+              href="/about"
+              className="footer-link"
+            >
+              About Us
+            </Link>
+            <Link
+              href="/careers"
+              className="footer-link"
+            >
+              Careers
+            </Link>
+            <Link
+              href="/investors"
+              className="footer-link"
+            >
+              Investors
+            </Link>
+          </FooterSection>
+          <FooterSection title="Legal">
+            <Link
+              href="/terms"
+              className="footer-link"
+            >
+              Terms of Service
+            </Link>
+            <Link
+              href="/privacy"
+              className="footer-link"
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              href="/cookies"
+              className="footer-link"
+            >
+              Cookie Settings
+            </Link>
+          </FooterSection>
         </div>
       </div>
-      <div className="text-center text-slate-500 text-xs mt-12 opacity-70">
+      <div className="text-center text-gray-500 text-xs mt-12 pt-8 border-t border-gray-900 opacity-70">
         &copy; {new Date().getFullYear()} Humanaira. All rights reserved.
       </div>
+      <style jsx global>{`
+        .footer-link {
+          color: #a7b7c9;
+          font-size: 0.95rem;
+          padding: 0.35rem 0;
+          text-decoration: none;
+          transition: color 0.2s;
+          display: block;
+          font-weight: 400;
+        }
+        .footer-link:hover {
+          color: #60a5fa;
+        }
+      `}</style>
     </footer>
   )
 }
 
-// --- Transparent Brand Background for sections ---
+function FooterSection({
+  title,
+  children,
+}: {
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="text-blue-400 font-semibold mb-2 text-base uppercase tracking-wider">
+        {title}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+// --- Transparent Brand Background (Unchanged) ---
 function BackgroundBrand() {
   return (
     <>
       <span
         className="fixed left-[-10vw] top-[60vh] text-[18vw] font-extrabold uppercase pointer-events-none select-none opacity-5 z-0"
         style={{
-          fontFamily: "'Manrope', 'Inter', Arial, sans-serif",
-          color: '#38bdf8',
+          fontFamily: "'Inter', Arial, sans-serif",
+          color: '#3b82f6',
           whiteSpace: 'nowrap',
           userSelect: 'none',
           letterSpacing: '-0.06em',
@@ -802,72 +893,103 @@ function BackgroundBrand() {
   )
 }
 
-// --- Global Styles ---
+// --- Global Styles (Unchanged) ---
 function GlobalStyles() {
-  useEffect(() => {
-    const els = Array.from(document.querySelectorAll('.reveal'))
-    const observer = new window.IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) entry.target.classList.add('in-view')
-        })
-      },
-      { threshold: 0.12 }
-    )
-    els.forEach((el) => observer.observe(el))
-    return () => observer.disconnect()
-  }, [])
   return (
     <style jsx global>{`
-      :root { --accent: #2563eb; --soft: #07102a; }
-      html, body { height: 100%; }
-      body { margin: 0; padding: 0; }
-      main { padding-top: 72px; }
-      .footer-link {
-        color: #b6d0f7;
-        font-size: 1rem;
-        font-weight: 500;
-        padding: 0.25rem 0;
-        text-decoration: none;
-        transition: color 0.2s;
-        display: block;
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Pacifico&display=swap');
+
+      :root {
+        --accent: #3b82f6;
+        --soft: #0c1a2c;
       }
-      .footer-link:hover {
-        color: #38bdf8;
+      body {
+        margin: 0;
+        padding: 0;
+        background: #080911;
+        font-family: 'Inter', sans-serif;
       }
-      @keyframes gradient-move-btn {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
+      .faq-answer {
+        transition: max-height 420ms ease, opacity 300ms ease;
+        overflow: hidden;
       }
-      .animate-gradient-move-btn { animation: gradient-move-btn 3s ease-in-out infinite; }
-      .footer-word { transition: transform 360ms cubic-bezier(.2,.9,.3,1); }
-      .footer-word:hover { transform: translateY(-6px) scale(1.01); }
-      .footer-word span { transition: filter 0.4s, opacity 0.4s; }
-      .reveal { opacity: 0; transform: translateY(12px); transition: opacity 600ms cubic-bezier(.2,.9,.3,1), transform 600ms cubic-bezier(.2,.9,.3,1); }
-      .reveal.in-view { opacity: 1; transform: translateY(0); }
-      .faq-answer { transition: max-height 420ms ease, opacity 300ms ease; overflow: hidden; }
-      ::-webkit-scrollbar { width: 10px; height: 10px; }
-      ::-webkit-scrollbar-thumb { background: linear-gradient(180deg,var(--accent),#0ea5e9); border-radius: 10px; }
-      ::-webkit-scrollbar-track { background: #07102a; }
-      img { display: block; }
+
+      /* Professional Scrollbar (Dark Theme) */
+      ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #3b82f6;
+        border-radius: 10px;
+        border: 3px solid #080911;
+      }
+      ::-webkit-scrollbar-track {
+        background: #1f2937;
+      }
     `}</style>
   )
 }
 
-// --- Scroll Reveal Hook ---
-function useScrollReveal() {
+// --- Avatar Component (Kept for compatibility) ---
+function Avatar({ email }: { email: string }) {
+  const hash =
+    typeof window !== 'undefined' && email ? md5(email.trim().toLowerCase()) : ''
+  const url = email
+    ? `https://www.gravatar.com/avatar/${hash}?d=identicon&s=40`
+    : 'https://www.gravatar.com/avatar/?d=mp&s=40'
+  return (
+    <img
+      src={url}
+      alt="User Avatar"
+      className="w-10 h-10 rounded-full border-2 border-blue-600 bg-gray-800 object-cover ring-2 ring-blue-500/50"
+      style={{ minWidth: 40, minHeight: 40 }}
+    />
+  )
+}
+
+// ====================================================================
+// --- MAIN HOME PAGE COMPONENT ---
+// ====================================================================
+
+export default function HomePage() {
+  const [user, setUser] = useState<any>(null)
+
+  // Hydrate user session from Supabase on client-load and listen for changes
   useEffect(() => {
-    const els = Array.from(document.querySelectorAll('.reveal'))
-    const observer = new window.IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) entry.target.classList.add('in-view')
-        })
-      },
-      { threshold: 0.12 }
+    const supabase = createSupabaseBrowser()
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data?.user || null)
+    })
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user || null)
+      }
     )
-    els.forEach((el) => observer.observe(el))
-    return () => observer.disconnect()
+    return () => {
+      listener?.subscription.unsubscribe()
+    }
   }, [])
+
+  return (
+    <main className="min-h-screen bg-gray-950 text-gray-100 font-sans relative overflow-x-hidden">
+      {/* This div provides the main padding-top for the fixed Header */}
+      <div className="pt-[72px]">
+        <Hero />
+        <SectionDivider />
+        <AIStats />
+        <SectionDivider />
+        <HowItWorks />
+        <SectionDivider />
+        <WhyHumanaira />
+        <SectionDivider />
+        <ReadyToMakeTheChangeCTA />
+        <SectionDivider />
+        <FAQSection />
+        <Footer />
+        <GlobalStyles />
+        <BackgroundBrand />
+      </div>
+    </main>
+  )
 }

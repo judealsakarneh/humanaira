@@ -55,8 +55,8 @@ export default function PostGigPage() {
       setChecking(true)
       setAccessError('')
       const supabase = createSupabaseBrowser()
-      const { data: { session }, error } = await supabase.auth.getSession()
-      if (error || !session?.user) {
+      const { data: { user }, error } = await supabase.auth.getUser()
+      if (error || !user) {
         setAccessError('You must be logged in to post a gig.')
         setChecking(false)
         setTimeout(() => router.replace('/account'), 2000)
@@ -65,7 +65,7 @@ export default function PostGigPage() {
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('is_freelancer')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single()
       if (profileError || !profile) {
         setAccessError('Could not load your profile.')
@@ -134,8 +134,15 @@ export default function PostGigPage() {
         uploadedMediaUrls = await handleMediaUpload(mediaFiles)
         setMediaUrls(uploadedMediaUrls)
       }
-      // Insert gig
+      // Get current user ID from Supabase Auth
       const supabase = createSupabaseBrowser()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        setErrorMsg('Could not get your user info. Please log in again.')
+        setLoading(false)
+        return
+      }
+      // Insert gig with seller_id
       const { data: gigData, error: gigError } = await supabase
         .from('gigs')
         .insert([{
@@ -146,6 +153,7 @@ export default function PostGigPage() {
           tags: tags.split(',').map(t => t.trim()).filter(Boolean),
           cover_image_url: uploadedCoverUrl,
           media_urls: uploadedMediaUrls,
+          seller_id: user.id // <-- THIS IS THE KEY LINE
         }])
         .select()
         .single()

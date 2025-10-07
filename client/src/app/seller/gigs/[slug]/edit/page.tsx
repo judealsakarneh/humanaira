@@ -18,6 +18,7 @@ export default function EditGigPage() {
   const [gig, setGig] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [message, setMessage] = useState('')
   const [showSuccess, setShowSuccess] = useState(false)
   const [title, setTitle] = useState('')
@@ -45,7 +46,7 @@ export default function EditGigPage() {
         setDescription(data.description)
         setCategory(data.category)
         setPrice((data.price_cents / 100).toString())
-        setDeliveryTime(data.delivery_time_days.toString())
+        setDeliveryTime(data.delivery_time_days?.toString() || '1')
         setExistingMedia(data.media_urls || [])
       }
       setLoading(false)
@@ -78,25 +79,37 @@ export default function EditGigPage() {
     }
 
     // Upload new media files if present
-    let uploadedMediaUrls: string[] = []
-    if (mediaFiles.length > 0) {
-      const supabase = createSupabaseBrowser()
-      for (const file of mediaFiles) {
-        const ext = file.name.split('.').pop()
-        const filePath = `gigs/${gig.seller_id}-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-        const { error: uploadError } = await supabase.storage
-          .from('gigs')
-          .upload(filePath, file, { upsert: true })
-        if (uploadError) {
-          setMessage('Media upload failed.')
-          setSaving(false)
-          console.error(uploadError)
-          return
-        }
-        const { data: urlData } = supabase.storage.from('gigs').getPublicUrl(filePath)
-        uploadedMediaUrls.push(urlData.publicUrl)
-      }
+    // ...inside handleSubmit, replace your upload block with this...
+
+// ...inside handleSubmit, replace your upload block with this...
+
+let uploadedMediaUrls: string[] = []
+if (mediaFiles.length > 0) {
+  const supabase = createSupabaseBrowser()
+  for (const file of mediaFiles) {
+    const ext = file.name.split('.').pop()
+    // DO NOT prefix with 'gigs/' here, just use the filename
+    const filePath = `${gig.seller_id}-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const { error: uploadError } = await supabase.storage
+      .from('gigs')
+      .upload(filePath, file, { upsert: true })
+    if (uploadError) {
+      setMessage('Media upload failed.')
+      setSaving(false)
+      console.error(uploadError)
+      return
     }
+    // Get public URL (ensure it's always a valid URL)
+    const { data: urlData } = supabase.storage.from('gigs').getPublicUrl(filePath)
+    if (urlData && urlData.publicUrl) {
+      uploadedMediaUrls.push(urlData.publicUrl)
+    } else {
+      setMessage('Failed to get public URL for uploaded media.')
+      setSaving(false)
+      return
+    }
+  }
+}
 
     // Combine existing and new media
     const allMedia = [...existingMedia, ...uploadedMediaUrls]
@@ -109,7 +122,7 @@ export default function EditGigPage() {
       category,
       price_cents: Math.round(Number(price) * 100),
       delivery_time_days: Number(deliveryTime),
-      cover_image_url: allMedia[0] || '',
+      cover_image_url: allMedia[0] || '', // Always use the first image as cover
       media_urls: allMedia,
       updated_at: new Date().toISOString(),
     }).eq('id', gig.id)
@@ -124,16 +137,45 @@ export default function EditGigPage() {
     }
   }
 
-  if (loading) return <div className="pt-24 text-center text-blue-600">Loading gig...</div>
-  if (!gig) return <div className="pt-24 text-center text-gray-500">Gig not found.</div>
+  async function handleDelete() {
+    if (!gig) return
+    if (!confirm('Are you sure you want to delete this gig?')) return
+    setDeleting(true)
+    setMessage('')
+    const supabase = createSupabaseBrowser()
+    const { error } = await supabase
+      .from('gigs')
+      .delete()
+      .eq('id', gig.id)
+    setDeleting(false)
+    if (error) {
+      setMessage('Failed to delete gig. Please try again.')
+      console.error(error)
+    } else {
+      setShowSuccess(true)
+      setMessage('Gig deleted successfully!')
+      setTimeout(() => router.push('/seller/gigs'), 1200)
+    }
+  }
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-[#090a10]">
+      <div className="text-blue-400 text-lg font-semibold animate-pulse">Loading gig...</div>
+    </div>
+  )
+  if (!gig) return (
+    <div className="min-h-screen flex items-center justify-center bg-[#090a10]">
+      <div className="text-red-400 text-lg font-semibold">Gig not found.</div>
+    </div>
+  )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-blue-300 flex items-center justify-center pt-40 pb-12 px-2">
+    <div className="min-h-screen bg-[#090a10] flex items-center justify-center pt-32 pb-12 px-2 font-inter">
       <div className="relative w-full max-w-2xl mx-auto">
-        {/* Animated Accent bar and icon */}
+        {/* Accent bar and icon */}
         <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex flex-col items-center z-10">
-          <div className="animate-pulse bg-gradient-to-r from-blue-500 to-blue-300 w-28 h-2 rounded-full mb-2" />
-          <div className="bg-blue-100 p-3 rounded-full shadow-lg">
+          <div className="animate-pulse bg-gradient-to-r from-blue-700 to-blue-400 w-28 h-2 rounded-full mb-2" />
+          <div className="bg-blue-900 p-3 rounded-full shadow-lg">
             <svg width="40" height="40" fill="none" viewBox="0 0 40 40">
               <rect width="40" height="40" rx="20" fill="#3B82F6" fillOpacity="0.15"/>
               <path d="M14 28v-2a6 6 0 016-6h0a6 6 0 016 6v2" stroke="#2563EB" strokeWidth="2" strokeLinecap="round"/>
@@ -141,16 +183,16 @@ export default function EditGigPage() {
             </svg>
           </div>
         </div>
-        <main className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-blue-100 px-8 py-12 pt-32">
-          <Link href={`/seller/gigs/${gig.slug}`} className="text-blue-600 hover:underline mb-4 inline-block text-sm">&larr; Back to Gig</Link>
-          <h1 className="text-4xl font-extrabold text-blue-900 mb-2 text-center tracking-tight drop-shadow">Edit Gig</h1>
-          <p className="text-center text-blue-500 mb-8 text-lg font-medium">Update your gig details and media</p>
+        <main className="bg-[#181a23]/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-blue-900 px-8 py-12 pt-32">
+          <Link href={`/seller/gigs/${gig.slug}`} className="text-blue-400 hover:underline mb-4 inline-block text-sm">&larr; Back to Gig</Link>
+          <h1 className="text-4xl font-extrabold text-blue-100 mb-2 text-center tracking-tight drop-shadow">Edit Gig</h1>
+          <p className="text-center text-blue-400 mb-8 text-lg font-medium">Update your gig details and media</p>
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             <div>
-              <label className="block text-blue-900 font-semibold mb-1">Title</label>
+              <label className="block text-blue-200 font-semibold mb-1">Title</label>
               <input
                 type="text"
-                className="w-full px-4 py-3 rounded-xl border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/90 text-gray-900 text-lg transition"
+                className="w-full px-4 py-3 rounded-xl border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-[#181a23] text-blue-100 text-lg transition"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 required
@@ -159,9 +201,9 @@ export default function EditGigPage() {
               />
             </div>
             <div>
-              <label className="block text-blue-900 font-semibold mb-1">Description</label>
+              <label className="block text-blue-200 font-semibold mb-1">Description</label>
               <textarea
-                className="w-full px-4 py-3 rounded-xl border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/90 text-gray-900 text-lg transition"
+                className="w-full px-4 py-3 rounded-xl border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-[#181a23] text-blue-100 text-lg transition"
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 required
@@ -171,9 +213,9 @@ export default function EditGigPage() {
               />
             </div>
             <div>
-              <label className="block text-blue-900 font-semibold mb-1">Category</label>
+              <label className="block text-blue-200 font-semibold mb-1">Category</label>
               <select
-                className="w-full px-4 py-3 rounded-xl border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/90 text-gray-900 text-lg transition"
+                className="w-full px-4 py-3 rounded-xl border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-[#181a23] text-blue-100 text-lg transition"
                 value={category}
                 onChange={e => setCategory(e.target.value)}
                 required
@@ -185,11 +227,11 @@ export default function EditGigPage() {
             </div>
             <div className="flex gap-4">
               <div className="flex-1">
-                <label className="block text-blue-900 font-semibold mb-1">Price (USD)</label>
+                <label className="block text-blue-200 font-semibold mb-1">Price (USD)</label>
                 <input
                   type="number"
                   min={1}
-                  className="w-full px-4 py-3 rounded-xl border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/90 text-gray-900 text-lg transition"
+                  className="w-full px-4 py-3 rounded-xl border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-[#181a23] text-blue-100 text-lg transition"
                   value={price}
                   onChange={e => setPrice(e.target.value)}
                   required
@@ -197,12 +239,12 @@ export default function EditGigPage() {
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-blue-900 font-semibold mb-1">Delivery Time (days)</label>
+                <label className="block text-blue-200 font-semibold mb-1">Delivery Time (days)</label>
                 <input
                   type="number"
                   min={1}
                   max={30}
-                  className="w-full px-4 py-3 rounded-xl border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white/90 text-gray-900 text-lg transition"
+                  className="w-full px-4 py-3 rounded-xl border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-[#181a23] text-blue-100 text-lg transition"
                   value={deliveryTime}
                   onChange={e => setDeliveryTime(e.target.value)}
                   required
@@ -211,17 +253,17 @@ export default function EditGigPage() {
               </div>
             </div>
             <div>
-              <label className="block text-blue-900 font-semibold mb-1">Existing Media</label>
+              <label className="block text-blue-200 font-semibold mb-1">Existing Media</label>
               <div className="flex flex-wrap gap-4 mt-2">
-                {existingMedia.length === 0 && <div className="text-gray-400">No media</div>}
+                {existingMedia.length === 0 && <div className="text-blue-400">No media</div>}
                 {existingMedia.map((url, idx) => {
                   const isVideo = url.match(/\.(mp4|webm|ogg)$/i)
                   return (
                     <div key={idx} className="relative group">
                       {isVideo ? (
-                        <video src={url} controls className="w-24 h-24 rounded-xl object-cover border border-blue-200 shadow" />
+                        <video src={url} controls className="w-24 h-24 rounded-xl object-cover border border-blue-700 shadow" />
                       ) : (
-                        <img src={url} alt="Gig Media" className="w-24 h-24 rounded-xl object-cover border border-blue-200 shadow" />
+                        <img src={url} alt="Gig Media" className="w-24 h-24 rounded-xl object-cover border border-blue-700 shadow" />
                       )}
                       <button
                         type="button"
@@ -235,7 +277,7 @@ export default function EditGigPage() {
               </div>
             </div>
             <div>
-              <label className="block text-blue-900 font-semibold mb-1">Add New Media (Images & Videos)</label>
+              <label className="block text-blue-200 font-semibold mb-1">Add New Media (Images & Videos)</label>
               <input
                 type="file"
                 accept="image/*,video/*"
@@ -248,22 +290,32 @@ export default function EditGigPage() {
                 {mediaPreviews.map((url, idx) => {
                   const isVideo = mediaFiles[idx]?.type.startsWith('video')
                   return isVideo ? (
-                    <video key={idx} src={url} controls className="w-24 h-24 rounded-xl object-cover border border-blue-200 shadow" />
+                    <video key={idx} src={url} controls className="w-24 h-24 rounded-xl object-cover border border-blue-700 shadow" />
                   ) : (
-                    <img key={idx} src={url} alt="Preview" className="w-24 h-24 rounded-xl object-cover border border-blue-200 shadow" />
+                    <img key={idx} src={url} alt="Preview" className="w-24 h-24 rounded-xl object-cover border border-blue-700 shadow" />
                   )
                 })}
               </div>
             </div>
-            <button
-              type="submit"
-              className="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-400 text-white font-bold text-lg shadow hover:scale-105 hover:from-blue-700 hover:to-blue-500 transition-all duration-200"
-              disabled={saving}
-            >
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
+            <div className="flex flex-col md:flex-row gap-4 mt-4">
+              <button
+                type="submit"
+                className="flex-1 px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-400 text-white font-bold text-lg shadow hover:scale-105 hover:from-blue-700 hover:to-blue-500 transition-all duration-200"
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 px-8 py-3 rounded-xl bg-gradient-to-r from-red-600 to-red-400 text-white font-bold text-lg shadow hover:scale-105 hover:from-red-700 hover:to-red-500 transition-all duration-200"
+              >
+                {deleting ? 'Deleting...' : 'Delete Gig'}
+              </button>
+            </div>
             {message && (
-              <div className={`text-center font-medium mt-2 transition-all duration-300 ${showSuccess ? 'text-green-600 text-xl animate-bounce' : 'text-blue-600'}`}>
+              <div className={`text-center font-medium mt-2 transition-all duration-300 ${showSuccess ? 'text-green-400 text-lg' : 'text-blue-400'}`}>
                 {message}
               </div>
             )}

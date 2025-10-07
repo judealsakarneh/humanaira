@@ -10,132 +10,207 @@ export default function GigDetailsPage() {
   const [gig, setGig] = useState<any>(null)
   const [pkgs, setPkgs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [deleting, setDeleting] = useState(false)
+  const [seller, setSeller] = useState<any>(null)
   const [errorMsg, setErrorMsg] = useState('')
-  const [userId, setUserId] = useState<string | null>(null)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createSupabaseBrowser()
     async function fetchGig() {
       const { data, error } = await supabase
         .from('gigs')
-        .select('id,title,description,cover_image_url,media_urls,seller_id,category')
+        .select('*')
         .eq('slug', slug)
         .single()
-      if (!error) setGig(data)
-      if (data) {
+      if (!error && data) {
+        setGig(data)
+        setSelectedImage(data.cover_image_url || (data.media_urls && data.media_urls[0]) || null)
         const { data: pkgsData } = await supabase
           .from('gig_packages')
           .select('*')
           .eq('gig_id', data.id)
+          .order('tier', { ascending: true })
         setPkgs(pkgsData || [])
+        // Fetch seller info
+        if (data.seller_id) {
+          const { data: sellerData } = await supabase
+            .from('users')
+            .select('id, full_name, avatar_url, bio, email')
+            .eq('id', data.seller_id)
+            .single()
+          setSeller(sellerData)
+        }
+      } else {
+        setErrorMsg('Gig not found')
       }
       setLoading(false)
     }
-    async function getUser() {
-      const { data } = await supabase.auth.getUser()
-      setUserId(data?.user?.id ?? null)
-    }
     if (slug) fetchGig()
-    getUser()
   }, [slug])
 
-  async function handleDelete() {
-    if (!gig) return
-    if (!confirm('Are you sure you want to delete this gig?')) return
-    setDeleting(true)
-    setErrorMsg('')
-    const supabase = createSupabaseBrowser()
-    const { error } = await supabase
-      .from('gigs')
-      .delete()
-      .eq('id', gig.id)
-    setDeleting(false)
-    if (error) {
-      setErrorMsg('Failed to delete gig. Please try again.')
-      console.error(error)
-    } else {
-      router.push('/seller/gigs')
-    }
+  // Get minimum price from packages or fallback to gig.price_cents
+  const minPrice = pkgs.length > 0
+    ? Math.min(...pkgs.map(pkg => pkg.price_cents))
+    : gig?.price_cents || 0
+
+  if (loading) {
+    return (
+      <main className="bg-[#090a10] min-h-screen flex items-center justify-center font-inter">
+        <div className="text-blue-300 text-xl font-semibold animate-pulse">Loading gig details...</div>
+      </main>
+    )
   }
 
-  if (loading) return <div className="pt-32 text-center text-blue-600">Loading gig...</div>
-  if (!gig) return <div className="p-10">Gig not found</div>
+  if (!gig) {
+    return (
+      <main className="bg-[#090a10] min-h-screen flex items-center justify-center font-inter">
+        <div className="text-red-400 text-xl font-semibold">{errorMsg || 'Gig not found'}</div>
+      </main>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-16 px-2">
-      <main className="max-w-6xl mx-auto bg-white border border-gray-200 rounded-2xl shadow-lg flex flex-col md:flex-row overflow-hidden">
-        {/* Media Section */}
-        <div className="md:w-1/2 w-full bg-gray-100 flex flex-col items-center justify-center p-8">
-          {gig.media_urls && gig.media_urls.length > 0 ? (
-            <div className="flex flex-col gap-4 w-full">
-              {gig.media_urls.map((url: string, idx: number) =>
-                url.match(/\.(mp4|webm|ogg)$/i) ? (
-                  <video key={idx} src={url} controls className="w-full h-72 rounded-xl object-cover border" />
-                ) : (
-                  <img key={idx} src={url} alt="Gig Media" className="w-full h-72 rounded-xl object-cover border" />
-                )
+    <main className="bg-[#090a10] min-h-screen font-inter">
+      <div className="max-w-7xl mx-auto px-4 py-12 pt-24 md:pt-28">
+        {/* Breadcrumbs */}
+        <nav className="text-sm text-blue-200 mb-8 flex items-center gap-2">
+          <Link href="/seller/gigs" className="hover:text-blue-400 transition">My Gigs</Link>
+          <span>/</span>
+          <span className="text-blue-400 font-semibold">{gig.title}</span>
+        </nav>
+
+        <div className="flex flex-col lg:flex-row gap-10">
+          {/* Left: Gig Details */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-3 drop-shadow-lg">{gig.title}</h1>
+            <div className="flex items-center gap-4 mb-6">
+              <span className="text-blue-400 font-semibold">{gig.category}</span>
+              {gig.tags && gig.tags.length > 0 && (
+                <>
+                  <span className="text-blue-700">|</span>
+                  <span className="flex gap-2 flex-wrap">
+                    {gig.tags.map((tag: string, i: number) => (
+                      <span key={i} className="px-2 py-0.5 rounded bg-blue-900 text-blue-200 text-xs font-semibold">#{tag}</span>
+                    ))}
+                  </span>
+                </>
               )}
             </div>
-          ) : gig.cover_image_url ? (
-            <img src={gig.cover_image_url} alt="" className="w-full h-72 object-cover rounded-xl border" />
-          ) : (
-            <div className="w-full h-72 bg-blue-50 rounded-xl flex items-center justify-center text-blue-200 text-lg">
-              No media
-            </div>
-          )}
-        </div>
-        {/* Details Section */}
-        <div className="md:w-1/2 w-full p-8 flex flex-col">
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold text-blue-900 mb-2">{gig.title}</h1>
-            <div className="text-sm text-blue-700 mb-4">{gig.category}</div>
-            <p className="text-gray-700 whitespace-pre-line mb-6">{gig.description}</p>
-            <h2 className="text-xl font-semibold mb-4">Packages</h2>
-            <div className="grid md:grid-cols-1 gap-4">
-              {(pkgs || []).map(p => (
-                <div key={p.id} className="border border-gray-200 rounded-lg p-4 mb-2 bg-gray-50">
-                  <div className="font-semibold mb-1">{p.tier}</div>
-                  <div className="text-2xl font-bold mb-1 text-blue-800">${(p.price_cents / 100).toFixed(2)}</div>
-                  <div className="text-sm text-gray-600">Delivery: {p.delivery_days} days</div>
-                  <div className="text-sm text-gray-600 mb-3">Revisions: {p.revisions}</div>
-                  <form action="/checkout" method="GET">
-                    <input type="hidden" name="gigId" value={gig.id} />
-                    <input type="hidden" name="tier" value={p.tier} />
-                    <button className="mt-2 w-full bg-blue-700 text-white rounded py-2 font-semibold hover:bg-blue-800 transition">
-                      Continue
-                    </button>
-                  </form>
+
+            {/* Image Gallery */}
+            {(gig.cover_image_url || (gig.media_urls && gig.media_urls.length > 0)) && (
+              <div className="mb-8">
+                <div className="w-full flex flex-col items-center">
+                  {selectedImage && (
+                    selectedImage.match(/\.(mp4|webm|ogg)$/i) ? (
+                      <video
+                        src={selectedImage}
+                        controls
+                        className="w-full max-w-2xl h-80 object-cover rounded-2xl shadow-lg border border-blue-900 mb-4"
+                      />
+                    ) : (
+                      <img
+                        src={selectedImage}
+                        alt={gig.title}
+                        className="w-full max-w-2xl h-80 object-cover rounded-2xl shadow-lg border border-blue-900 mb-4"
+                      />
+                    )
+                  )}
+                  {/* Thumbnails */}
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    {gig.media_urls && gig.media_urls.map((url: string, idx: number) => (
+                      url.match(/\.(mp4|webm|ogg)$/i) ? (
+                        <video
+                          key={idx}
+                          src={url}
+                          className={`w-20 h-16 object-cover rounded border cursor-pointer ${selectedImage === url ? 'ring-2 ring-blue-500' : ''}`}
+                          onClick={() => setSelectedImage(url)}
+                        />
+                      ) : (
+                        <img
+                          key={idx}
+                          src={url}
+                          alt={`Thumbnail ${idx + 1}`}
+                          className={`w-20 h-16 object-cover rounded border cursor-pointer ${selectedImage === url ? 'ring-2 ring-blue-500' : ''}`}
+                          onClick={() => setSelectedImage(url)}
+                        />
+                      )
+                    ))}
+                  </div>
                 </div>
-              ))}
+              </div>
+            )}
+
+            {/* Description */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold mb-2 text-blue-300">Service Description</h2>
+              <p className="text-blue-100 text-lg leading-relaxed">{gig.description}</p>
             </div>
-            {errorMsg && <div className="text-red-600 mt-4">{errorMsg}</div>}
-          </div>
-          {/* Edit/Delete Buttons - Only for owner */}
-          {userId === gig.seller_id && (
-            <div className="flex gap-4 mt-8">
-              <Link
-                href={`/seller/gigs/${gig.slug}/edit`}
-                className="px-6 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 transition text-center"
-              >
-                Edit
+
+            {/* Packages */}
+            {pkgs && pkgs.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-2xl font-semibold mb-2 text-blue-300">Packages</h2>
+                <div className="grid md:grid-cols-3 gap-4">
+                  {pkgs.map((pkg, idx) => (
+                    <div key={pkg.tier} className="bg-[#181a23] border border-blue-900 rounded-xl p-5 flex flex-col gap-2 shadow">
+                      <div className="font-semibold mb-1 text-blue-200">{pkg.tier}</div>
+                      <div className="text-blue-400 font-bold text-xl mb-1">${(pkg.price_cents / 100).toFixed(2)}</div>
+                      <div className="text-blue-100 text-sm mb-1">{pkg.description}</div>
+                      <div className="text-xs text-blue-300 mb-1">Delivery: {pkg.delivery_days} day(s)</div>
+                      <div className="text-xs text-blue-300">Revisions: {pkg.revisions}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Back Button */}
+            <div className="mt-8">
+              <Link href="/seller/gigs" className="text-blue-400 hover:text-blue-600 text-lg font-semibold underline">
+                ← Back to My Gigs
               </Link>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="px-6 py-2 rounded-md bg-red-600 text-white font-semibold hover:bg-red-700 transition text-center"
-              >
-                {deleting ? 'Deleting...' : 'Delete'}
-              </button>
             </div>
-          )}
-          <div className="mt-8">
-            <Link href="/browse" className="text-sm text-blue-700 underline hover:text-blue-900">
-              ← Back to Browse
-            </Link>
           </div>
+
+          {/* Right: Seller Info */}
+          <aside className="w-full lg:w-[350px] flex-shrink-0">
+            <div className="sticky top-24">
+              <div className="bg-[#181a23] rounded-2xl shadow-xl border border-blue-900 p-8 mb-8">
+                <div className="flex flex-col items-center">
+                  {seller?.avatar_url ? (
+                    <img
+                      src={seller.avatar_url}
+                      alt={seller.full_name}
+                      className="w-24 h-24 rounded-full object-cover mb-3 border-2 border-blue-900"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-blue-900 flex items-center justify-center text-3xl text-blue-200 mb-3">
+                      <span>👤</span>
+                    </div>
+                  )}
+                  <div className="font-bold text-lg text-blue-300 mb-1">{seller?.full_name || 'Freelancer'}</div>
+                  {seller?.bio && (
+                    <div className="text-blue-100 font-medium mb-2 text-center">{seller.bio}</div>
+                  )}
+                  {seller?.email && (
+                    <div className="text-blue-200 text-sm">{seller.email}</div>
+                  )}
+                </div>
+              </div>
+              {/* Order Summary */}
+              <div className="bg-[#101a2a] rounded-2xl shadow border border-blue-900 p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-blue-200">Starting at</span>
+                  <span className="text-2xl font-bold text-blue-400">
+                    ${minPrice ? (minPrice / 100).toFixed(2) : '0.00'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </aside>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   )
 }

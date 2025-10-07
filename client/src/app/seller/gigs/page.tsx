@@ -3,30 +3,31 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
-const supabase = createSupabaseBrowser()
 
 export default function GigsListPage() {
   const router = useRouter()
   const [gigs, setGigs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
-  const [user, setUser] = useState<any>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Protect page: Only freelancers can access
   useEffect(() => {
-    async function checkFreelancer() {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-      if (sessionError || !session?.user) {
+    async function checkFreelancerAndFetchGigs() {
+      const supabase = createSupabaseBrowser()
+      // Get current session
+      const { data: { user }, error: sessionError } = await supabase.auth.getUser()
+      if (sessionError || !user) {
         setError('You must be logged in to view this page.')
         setLoading(false)
         return
       }
-      setUser(session.user)
+      setUserId(user.id)
+      // Check freelancer status
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('is_freelancer')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single()
       if (profileError || !profileData) {
         setError('Could not load your profile.')
@@ -40,20 +41,22 @@ export default function GigsListPage() {
         return
       }
       setProfile(profileData)
-      fetchGigs(session.user.id)
-    }
-    async function fetchGigs(userId: string) {
-      const { data, error } = await supabase
+      // Fetch gigs for this seller
+      const { data: gigsData, error: gigsError } = await supabase
         .from('gigs')
         .select('*')
-        .eq('user_id', userId)
+        .eq('seller_id', user.id)
         .order('created_at', { ascending: false })
-      if (!error) setGigs(data || [])
+      if (gigsError) {
+        setError('Could not load your gigs.')
+        setLoading(false)
+        return
+      }
+      setGigs(gigsData || [])
       setLoading(false)
     }
-    checkFreelancer()
-    // eslint-disable-next-line
-  }, [])
+    checkFreelancerAndFetchGigs()
+  }, [router])
 
   if (loading) {
     return (
