@@ -1,7 +1,4 @@
 {
-  "/login/page": "app/login/page.js",
-  "/account/page": "app/account/page.js",
-  "/account/edit/page": "app/account/edit/page.js",
-  "/account/settings/page": "app/account/settings/page.js",
-  "/seller/gigs/new/page": "app/seller/gigs/new/page.js"
+  "/blog/page": "app/blog/page.js",
+  "/page": "app/page.js"
 }

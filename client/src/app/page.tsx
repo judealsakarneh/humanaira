@@ -750,7 +750,7 @@ function FAQSection() {
   )
 }
 
-// --- Footer (Unchanged) ---
+// --- Footer (Updated: removed Careers & Investors; added postal address) ---
 function Footer() {
   return (
     <footer className="w-full bg-gray-950 border-t border-gray-800 pt-16 pb-12">
@@ -767,6 +767,14 @@ function Footer() {
           </div>
           <div className="text-gray-400 text-sm max-w-xs mt-2">
             The premium AI-powered freelance marketplace. Built for professionals, by professionals.
+          </div>
+
+          {/* Business postal address for Stripe / verification */}
+          <div className="text-gray-400 text-sm mt-3">
+            Humanaira Ltd<br />
+            167-169 Great Portland Street, 5th Floor<br />
+            London, W1W 5PF<br />
+            United Kingdom
           </div>
         </div>
         {/* Navigation Links */}
@@ -798,18 +806,7 @@ function Footer() {
             >
               About Us
             </Link>
-            <Link
-              href="/careers"
-              className="footer-link"
-            >
-              Careers
-            </Link>
-            <Link
-              href="/investors"
-              className="footer-link"
-            >
-              Investors
-            </Link>
+            {/* Careers and Investors removed as requested */}
           </FooterSection>
           <FooterSection title="Legal">
             <Link
@@ -825,10 +822,10 @@ function Footer() {
               Privacy Policy
             </Link>
             <Link
-              href="/cookies"
+              href="/refund-policy"
               className="footer-link"
             >
-              Cookie Settings
+              Refund Policy
             </Link>
           </FooterSection>
         </div>

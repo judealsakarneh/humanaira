@@ -137,10 +137,10 @@ export default function BrowsePage() {
 
       const { data, error } = await req.limit(100) // Limit to 100 for performance
       
-      if (!error && data) {
+            if (!error && data) {
           setGigs(data)
       } else {
-          console.error("Error fetching gigs:", error)
+          console.error("Error fetching gigs:", JSON.stringify(error))
           setGigs([])
       }
       setLoading(false)

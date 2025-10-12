@@ -20,6 +20,7 @@
     "blueimp-md5": "^2.19.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "firebase": "^12.3.0",
     "framer-motion": "^12.23.22",
     "multer": "^2.0.2",
     "next": "^15.5.2",
@@ -32,6 +33,7 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@types/firebase": "^2.4.32",
     "@types/node": "^20.19.13",
     "@types/react": "^19.1.12",
     "@types/three": "^0.180.0",

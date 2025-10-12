@@ -71,6 +71,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/account/settings">
 }
 
+// Validate ../../src/app/blog/page.tsx
+{
+  const handler = {} as typeof import("../../src/app/blog/page.js")
+  handler satisfies AppPageConfig<"/blog">
+}
+
 // Validate ../../src/app/browse/page.tsx
 {
   const handler = {} as typeof import("../../src/app/browse/page.js")
@@ -137,10 +143,10 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/">
 }
 
-// Validate ../../src/app/press/page.tsx
+// Validate ../../src/app/press-delete/page.tsx
 {
-  const handler = {} as typeof import("../../src/app/press/page.js")
-  handler satisfies AppPageConfig<"/press">
+  const handler = {} as typeof import("../../src/app/press-delete/page.js")
+  handler satisfies AppPageConfig<"/press-delete">
 }
 
 // Validate ../../src/app/privacy/page.tsx
@@ -153,6 +159,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   const handler = {} as typeof import("../../src/app/profile/[username]/page.js")
   handler satisfies AppPageConfig<"/profile/[username]">
+}
+
+// Validate ../../src/app/refund-policy/page.tsx
+{
+  const handler = {} as typeof import("../../src/app/refund-policy/page.js")
+  handler satisfies AppPageConfig<"/refund-policy">
 }
 
 // Validate ../../src/app/reset-password/page.tsx

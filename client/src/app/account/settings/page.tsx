@@ -1,77 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-// NOTE: Replaced Next.js specific imports (next/navigation, next/link, local file imports)
-// with standard browser navigation and an internal Supabase mock to allow compilation in this environment.
-
-// --- Internal Mock for Supabase and Router ---
-
-// Mock useRouter for navigation in the single-file environment
-const useRouter = () => ({
-  // Use standard browser redirection as a fallback for the single-file environment
-  push: (path: string) => {
-    console.log(`Simulating navigation to: ${path}`);
-    window.location.href = path; 
-  }
-});
-
-// Mock Supabase to satisfy the component's calls and allow the UI to function
-// NOTE: Actual data persistence/authentication logic requires a real Supabase setup.
-const createSupabaseBrowser = () => {
-    // Mock user data based on the component's expectations
-    const mockUser = {
-        id: 'user-test-123',
-        email: 'user@example.com',
-        last_sign_in_at: new Date().toISOString()
-    };
-
-    return {
-        auth: {
-            // Mock getSession to always return a logged-in user for demonstration
-            getSession: async () => ({
-                data: { session: { user: mockUser } },
-                error: null
-            }),
-            // Mock sign-in for old password verification
-            signInWithPassword: async ({ password }: { email: string, password: string }) => {
-                // Simplified mock: success if the old password is 'password123'
-                if (password === 'password123') {
-                    return { data: { user: mockUser }, error: null };
-                }
-                return { data: null, error: new Error('Invalid credentials') };
-            },
-            // Mock user update
-            updateUser: async ({ password }: { password: string }) => {
-                if (password) return { error: null };
-                return { error: new Error('Update failed') };
-            },
-            // Mock sign-out
-            signOut: async () => ({ error: null }),
-        },
-        from: (table: string) => ({
-            select: (cols: string) => ({
-                eq: (col: string, val: string) => ({
-                    single: async () => {
-                        // Mock profile data fetch
-                        if (table === 'profiles') {
-                            return { data: { id: mockUser.id, is_freelancer: false }, error: null };
-                        }
-                        return { data: null, error: new Error('Not found') };
-                    },
-                })
-            }),
-            update: (data: any) => ({
-                eq: (col: string, val: string) => ({
-                    select: async () => ({ error: null }) // Success mock for updates
-                })
-            }),
-        })
-    };
-};
-
-const supabase = createSupabaseBrowser();
-
-const HEADER_HEIGHT = 64
+import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
+import { useRouter } from 'next/navigation'
 
 // --- SVG Icons for Modern UI (Lucide style) ---
 const UserIcon = (props: any) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>);
@@ -79,6 +10,8 @@ const LockIcon = (props: any) => (<svg {...props} xmlns="http://www.w3.org/2000/
 const ShieldIcon = (props: any) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>);
 const BookOpenIcon = (props: any) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>);
 const ArrowLeftIcon = (props: any) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>);
+
+const HEADER_HEIGHT = 64
 
 // --- Custom Toggle Switch Component (Sleek, Apple-style) ---
 function ToggleSwitch({ checked, onChange, label, description, disabled = false }: { 
@@ -119,6 +52,7 @@ function ToggleSwitch({ checked, onChange, label, description, disabled = false 
 // --- Main Settings Page Component ---
 export default function SettingsPage() {
   const router = useRouter()
+  const supabase = createSupabaseBrowser()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -164,6 +98,7 @@ export default function SettingsPage() {
       setLoading(false)
     }
     fetchUser()
+    // eslint-disable-next-line
   }, [])
 
   // --- Handler: Toggle Freelancer Status ---
@@ -207,14 +142,14 @@ export default function SettingsPage() {
     
     setPasswordSaving(true)
     
-    // 1. Re-authenticate user with old password (Mocked to require 'password123')
+    // 1. Re-authenticate user with old password (real check)
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: user.email,
       password: oldPassword,
     })
     
     if (signInError) {
-      setPasswordMsg('Old password is incorrect. (Use password123 to simulate success)')
+      setPasswordMsg('Old password is incorrect.')
       setPasswordSaving(false)
       return
     }
@@ -243,7 +178,7 @@ export default function SettingsPage() {
     setMessage('Attempting to delete account...')
     
     try {
-      // Since we don't have the admin delete function available, we mock sign out and redirect.
+      // You may want to call a backend function to delete the user from auth and all tables.
       const { error: signOutError } = await supabase.auth.signOut()
       
       if (signOutError) {
@@ -307,7 +242,6 @@ export default function SettingsPage() {
         
         {/* Header with Back Button */}
         <div className="flex items-center mb-10">
-          {/* Replaced Link with a tag */}
           <a
             href="/account"
             className="flex items-center text-slate-400 hover:text-white transition"
@@ -351,7 +285,7 @@ export default function SettingsPage() {
             
             <input
               type="password"
-              placeholder="Old Password (Use 'password123' to succeed)"
+              placeholder="Old Password"
               className="w-full px-4 py-3 rounded-lg border border-slate-700 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 placeholder:text-slate-500"
               value={oldPassword}
               onChange={e => setOldPassword(e.target.value)}
@@ -459,13 +393,11 @@ export default function SettingsPage() {
           <SettingsHeader icon={BookOpenIcon} title="Legal" />
           <ul className="text-sm text-slate-300 space-y-2">
             <li className='transition duration-200 hover:text-indigo-400'>
-              {/* Replaced Link with a tag */}
               <a href="/terms" target="_blank" rel="noopener noreferrer">
                 Terms of Service <span className='text-xs text-slate-500 ml-1'>(Opens in new tab)</span>
               </a>
             </li>
             <li className='transition duration-200 hover:text-indigo-400'>
-              {/* Replaced Link with a tag */}
               <a href="/privacy" target="_blank" rel="noopener noreferrer">
                 Privacy Policy <span className='text-xs text-slate-500 ml-1'>(Opens in new tab)</span>
               </a>

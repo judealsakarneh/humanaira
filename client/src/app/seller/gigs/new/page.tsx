@@ -1,415 +1,445 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '../../../api/lib/supabaseBrowser'
 
+// --- UI Styles ---
+const inputClasses = "w-full px-4 py-3 border rounded-xl shadow-inner bg-[#2d333f] border-[#4b5563] text-[#e5e7eb] placeholder-[#9ca3af] focus:outline-none focus:ring-2 focus:ring-[#6d72fe] focus:border-[#6d72fe] transition duration-150";
+const tagBaseClasses = "inline-flex items-center px-3 py-1 mr-2 mb-2 rounded-full text-sm font-medium bg-[#4f46e5] text-[#eef2ff]";
+const tagRemoveClasses = "ml-2 cursor-pointer font-bold text-[#c7d2fe] hover:text-white";
+const buttonPrimaryClasses = "w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-lg font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-[#090a10] transition duration-150 ease-in-out transform hover:scale-[1.01]";
+
+// --- Categories ---
 const categories = [
-  'AI Art & Design',
-  'Copywriting',
-  'Chatbot Development',
-  'Automation',
-  'Data Analysis',
-  'Voice & Audio',
-  'Video & Animation',
-  'Web & App',
-  'Other',
+    { value: 'web_dev', label: 'Web Development' },
+    { value: 'graphic_design', label: 'Graphic Design' },
+    { value: 'writing_translation', label: 'Writing & Translation' },
+    { value: 'video_animation', label: 'Video & Animation' },
+    { value: 'music_audio', label: 'Music & Audio' },
+    { value: 'ai_services', label: 'AI Services' },
 ]
 
+// --- Tips ---
 const tips = [
-  "Write a clear, compelling gig title (e.g. 'I will build a custom AI chatbot for your business').",
-  "Describe exactly what you offer and what the client will get.",
-  "Add relevant tags so your gig is easy to find.",
-  "Use a high-quality cover image (no watermarks, no text overlays).",
-  "Set realistic delivery times and revision limits.",
-  "Offer multiple packages for more flexibility.",
-  "Be honest about your skills and experience.",
-  "Respond quickly to client messages for better ratings.",
+    "Write a clear, compelling gig title (e.g. 'I will build a custom AI chatbot for your business').",
+    "Describe exactly what you offer and what the client will get.",
+    "Add relevant tags so your gig is easy to find.",
+    "Use a high-quality cover image (no watermarks, no text overlays).",
+    "Set realistic delivery times and revision limits.",
+    "Offer multiple packages for more flexibility.",
+    "Be honest about your skills and experience.",
+    "Respond quickly to client messages for better ratings.",
 ]
 
-export default function PostGigPage() {
-  const router = useRouter()
-  const [title, setTitle] = useState('')
-  const [category, setCategory] = useState(categories[0])
-  const [description, setDescription] = useState('')
-  const [tags, setTags] = useState('')
-  const [coverImage, setCoverImage] = useState<File | null>(null)
-  const [coverImageUrl, setCoverImageUrl] = useState('')
-  const [mediaFiles, setMediaFiles] = useState<File[]>([])
-  const [mediaUrls, setMediaUrls] = useState<string[]>([])
-  const [packages, setPackages] = useState([
-    { tier: 'Basic', price: '', delivery_days: '', revisions: '', desc: '' },
-    { tier: 'Standard', price: '', delivery_days: '', revisions: '', desc: '' },
-    { tier: 'Premium', price: '', delivery_days: '', revisions: '', desc: '' },
-  ])
-  const [loading, setLoading] = useState(false)
-  const [errorMsg, setErrorMsg] = useState('')
-  const [successMsg, setSuccessMsg] = useState('')
-  const [checking, setChecking] = useState(true)
-  const [accessError, setAccessError] = useState('')
-  const coverInputRef = useRef<HTMLInputElement>(null)
-  const mediaInputRef = useRef<HTMLInputElement>(null)
+// --- Image Upload Helpers ---
+const getPlaceholderUrl = (index: number) => {
+    const colors = [
+        { bg: '2d333f', text: 'e5e7eb', label: 'Design' },
+        { bg: '4b5563', text: 'e5e7eb', label: 'Code' },
+        { bg: '6d72fe', text: 'ffffff', label: 'Brand' },
+        { bg: '818cf8', text: 'ffffff', label: 'Concept' },
+        { bg: '4f46e5', text: 'ffffff', label: 'Mockup' },
+    ];
+    const { bg, text, label } = colors[index % colors.length];
+    const width = 300;
+    const height = 200;
+    return `https://placehold.co/${width}x${height}/${bg}/${text}?text=${label}+${index + 1}`;
+};
 
-  // Only allow freelancers to access this page
-  useEffect(() => {
-    async function checkFreelancer() {
-      setChecking(true)
-      setAccessError('')
-      const supabase = createSupabaseBrowser()
-      const { data: { user }, error } = await supabase.auth.getUser()
-      if (error || !user) {
-        setAccessError('You must be logged in to post a gig.')
-        setChecking(false)
-        setTimeout(() => router.replace('/account'), 2000)
-        return
-      }
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('is_freelancer')
-        .eq('id', user.id)
-        .single()
-      if (profileError || !profile) {
-        setAccessError('Could not load your profile.')
-        setChecking(false)
-        setTimeout(() => router.replace('/account'), 2000)
-        return
-      }
-      if (!profile.is_freelancer) {
-        setAccessError('Only freelancers can post gigs. Enable freelancer mode in your account settings.')
-        setChecking(false)
-        setTimeout(() => router.replace('/account/settings'), 2500)
-        return
-      }
-      setChecking(false)
-    }
-    checkFreelancer()
-    // eslint-disable-next-line
-  }, [])
-
-  async function handleImageUpload(file: File) {
-    const supabase = createSupabaseBrowser()
-    const fileName = `cover_${Date.now()}_${file.name}`
-    const { error } = await supabase.storage
-      .from('gig-media')
-      .upload(fileName, file, { upsert: true })
-    if (error) throw error
-    const { data: urlData } = supabase.storage.from('gig-media').getPublicUrl(fileName)
-    return urlData.publicUrl
-  }
-
-  async function handleMediaUpload(files: File[]) {
-    const supabase = createSupabaseBrowser()
-    const urls: string[] = []
-    for (const file of files) {
-      const fileName = `media_${Date.now()}_${file.name}`
-      const { error } = await supabase.storage
-        .from('gig-media')
-        .upload(fileName, file, { upsert: true })
-      if (error) throw error
-      const { data: urlData } = supabase.storage.from('gig-media').getPublicUrl(fileName)
-      urls.push(urlData.publicUrl)
-    }
-    return urls
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setErrorMsg('')
-    setSuccessMsg('')
-    setLoading(true)
-    try {
-      if (!title || !description || !coverImage) {
-        setErrorMsg('Please fill in all required fields and upload a cover image.')
-        setLoading(false)
-        return
-      }
-      // Upload cover image
-      let uploadedCoverUrl = coverImageUrl
-      if (coverImage && !coverImageUrl) {
-        uploadedCoverUrl = await handleImageUpload(coverImage)
-        setCoverImageUrl(uploadedCoverUrl)
-      }
-      // Upload media files
-      let uploadedMediaUrls = mediaUrls
-      if (mediaFiles.length > 0 && mediaUrls.length !== mediaFiles.length) {
-        uploadedMediaUrls = await handleMediaUpload(mediaFiles)
-        setMediaUrls(uploadedMediaUrls)
-      }
-      // Get current user ID from Supabase Auth
-      const supabase = createSupabaseBrowser()
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      if (userError || !user) {
-        setErrorMsg('Could not get your user info. Please log in again.')
-        setLoading(false)
-        return
-      }
-      // Insert gig with seller_id
-      const { data: gigData, error: gigError } = await supabase
-        .from('gigs')
-        .insert([{
-          title,
-          slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-          category,
-          description,
-          tags: tags.split(',').map(t => t.trim()).filter(Boolean),
-          cover_image_url: uploadedCoverUrl,
-          media_urls: uploadedMediaUrls,
-          seller_id: user.id // <-- THIS IS THE KEY LINE
-        }])
-        .select()
-        .single()
-      if (gigError) throw gigError
-      // Insert packages
-      for (const pkg of packages) {
-        if (pkg.price && pkg.delivery_days) {
-          await supabase.from('gig_packages').insert([{
-            gig_id: gigData.id,
-            tier: pkg.tier,
-            price_cents: Math.round(Number(pkg.price) * 100),
-            delivery_days: Number(pkg.delivery_days),
-            revisions: Number(pkg.revisions) || 0,
-            description: pkg.desc,
-          }])
+// --- Image Manager Component ---
+const ImageManager = ({ images, setImages, validationError, setValidationError }) => {
+    const handleFileUpload = useCallback(async (e) => {
+        if (images.length >= 5) {
+            setValidationError("Maximum 5 images allowed.");
+            return;
         }
-      }
-      setSuccessMsg('Gig posted successfully!')
-      setTimeout(() => router.push(`/seller/gigs/${gigData.slug}`), 1200)
-    } catch (err: any) {
-      console.error('Full error:', err)
-      setErrorMsg(err.message || 'Failed to post gig. Please try again.')
-    }
-    setLoading(false)
-  }
+        if (e.target.files.length > 0) {
+            setValidationError(null);
+            // For now, just preview. Real upload is handled on submit.
+            const file = e.target.files[0];
+            const url = URL.createObjectURL(file);
+            const newImage = {
+                id: Date.now(),
+                url,
+                file,
+                isCover: images.length === 0,
+            };
+            const updatedImages = images.map(img => ({ ...img, isCover: images.length === 0 ? true : img.isCover }));
+            setImages([...updatedImages, newImage]);
+            e.target.value = '';
+        }
+    }, [images, setImages, setValidationError]);
 
-  if (checking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#090a10]">
-        <div className="text-blue-400 text-lg font-semibold animate-pulse">Checking access...</div>
-      </div>
-    )
-  }
-
-  if (accessError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#090a10]">
-        <div className="text-red-400 text-lg font-semibold">{accessError}</div>
-      </div>
-    )
-  }
-
-  return (
-    <main className="min-h-screen bg-gradient-to-br from-[#090a10] via-[#07102a] to-[#123055] text-gray-100 font-inter flex flex-col items-center pt-24 px-4">
-      <section className="max-w-3xl w-full bg-[#181a23] border border-blue-900 rounded-2xl shadow-2xl p-10 mb-12">
-        <h1 className="text-3xl md:text-4xl font-extrabold text-blue-200 mb-6 text-center tracking-tight font-sans">
-          Post a New Gig
-        </h1>
-        <p className="text-blue-200 mb-8 text-center">
-          Create your gig and reach clients looking for AI-powered services.
-        </p>
-        <ul className="mb-8 bg-blue-950/40 border border-blue-900 rounded-xl p-4 text-sm text-blue-200 grid grid-cols-1 md:grid-cols-2 gap-2">
-          {tips.map((tip, i) => (
-            <li key={i} className="flex items-start gap-2">
-              <span className="text-blue-400 mt-1">•</span>
-              <span>{tip}</span>
-            </li>
-          ))}
-        </ul>
-        <form onSubmit={handleSubmit} className="bg-[#10131e] rounded-2xl shadow p-6 flex flex-col gap-6 border border-blue-900">
-          {/* Title */}
-          <div>
-            <label className="block font-semibold mb-1 text-blue-100" htmlFor="title">
-              Gig Title <span className="text-blue-400">*</span>
-            </label>
-            <input
-              id="title"
-              type="text"
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              maxLength={80}
-              required
-              className="w-full px-4 py-3 rounded-lg border border-blue-800 bg-[#07102a] text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-lg transition"
-              placeholder="e.g. I will build a custom AI chatbot for your business"
-            />
-            <div className="text-xs text-blue-300 mt-1">{title.length}/80 characters</div>
-          </div>
-          {/* Category */}
-          <div>
-            <label className="block font-semibold mb-1 text-blue-100" htmlFor="category">
-              Category <span className="text-blue-400">*</span>
-            </label>
-            <select
-              id="category"
-              value={category}
-              onChange={e => setCategory(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-blue-800 bg-[#07102a] text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-lg transition"
-              required
-            >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-          {/* Tags */}
-          <div>
-            <label className="block font-semibold mb-1 text-blue-100" htmlFor="tags">Tags</label>
-            <input
-              id="tags"
-              type="text"
-              value={tags}
-              onChange={e => setTags(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-blue-800 bg-[#07102a] text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-lg transition"
-              placeholder="e.g. ai, chatbot, automation, design"
-            />
-            <div className="text-xs text-blue-300 mt-1">Comma separated (max 5 recommended)</div>
-          </div>
-          {/* Description */}
-          <div>
-            <label className="block font-semibold mb-1 text-blue-100" htmlFor="description">
-              Description <span className="text-blue-400">*</span>
-            </label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              rows={6}
-              required
-              className="w-full px-4 py-3 rounded-lg border border-blue-800 bg-[#07102a] text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-lg transition"
-              placeholder="Describe your service, what you offer, and what the client will get."
-            />
-            <div className="text-xs text-blue-300 mt-1">{description.length}/1200 characters</div>
-          </div>
-          {/* Cover Image */}
-          <div>
-            <label className="block font-semibold mb-1 text-blue-100">
-              Cover Image <span className="text-blue-400">*</span>
-            </label>
-            <input
-              ref={coverInputRef}
-              type="file"
-              accept="image/*"
-              className="block mb-2"
-              onChange={e => {
-                if (e.target.files && e.target.files[0]) {
-                  setCoverImage(e.target.files[0])
-                  setCoverImageUrl('')
+    const handleAction = useCallback((id, action) => {
+        const index = images.findIndex(img => img.id === id);
+        if (index === -1) return;
+        let updatedImages = [...images];
+        setValidationError(null);
+        switch (action) {
+            case 'set-cover':
+                updatedImages = images.map(img => ({ ...img, isCover: img.id === id }));
+                break;
+            case 'move-up':
+                if (index > 0) [updatedImages[index - 1], updatedImages[index]] = [updatedImages[index], updatedImages[index - 1]];
+                break;
+            case 'move-down':
+                if (index < images.length - 1) [updatedImages[index + 1], updatedImages[index]] = [updatedImages[index], updatedImages[index + 1]];
+                break;
+            case 'delete':
+                const wasCover = images[index].isCover;
+                updatedImages.splice(index, 1);
+                if (wasCover && updatedImages.length > 0) {
+                    updatedImages[0].isCover = true;
                 }
-              }}
-              required
-            />
-            {coverImage && (
-              <img
-                src={URL.createObjectURL(coverImage)}
-                alt="Cover Preview"
-                className="w-full max-w-xs h-40 object-cover rounded-lg border mt-2"
-              />
-            )}
-          </div>
-          {/* Media Gallery */}
-          <div>
-            <label className="block font-semibold mb-1 text-blue-100">Gallery (images/videos, optional)</label>
-            <input
-              ref={mediaInputRef}
-              type="file"
-              accept="image/*,video/*"
-              multiple
-              className="block mb-2"
-              onChange={e => {
-                if (e.target.files) {
-                  setMediaFiles(Array.from(e.target.files))
-                  setMediaUrls([])
-                }
-              }}
-            />
-            {mediaFiles.length > 0 && (
-              <div className="flex gap-2 flex-wrap mt-2">
-                {mediaFiles.map((file, idx) =>
-                  file.type.startsWith('video') ? (
-                    <video key={idx} src={URL.createObjectURL(file)} className="w-28 h-20 rounded object-cover border" controls />
-                  ) : (
-                    <img key={idx} src={URL.createObjectURL(file)} className="w-28 h-20 rounded object-cover border" alt="Media preview" />
-                  )
-                )}
-              </div>
-            )}
-          </div>
-          {/* Packages */}
-          <div>
-            <label className="block font-semibold mb-2 text-blue-100">
-              Packages <span className="text-blue-300">(at least one required)</span>
-            </label>
-            <div className="grid md:grid-cols-3 gap-4">
-              {packages.map((pkg, idx) => (
-                <div key={pkg.tier} className="bg-[#181a23] border border-blue-800 rounded-lg p-4 flex flex-col gap-2">
-                  <div className="font-semibold mb-1 text-blue-200">{pkg.tier}</div>
-                  <input
-                    type="number"
-                    min={1}
-                    step={1}
-                    placeholder="Price ($)"
-                    value={pkg.price}
-                    onChange={e => {
-                      const val = e.target.value
-                      setPackages(pkgs => pkgs.map((p, i) => i === idx ? { ...p, price: val } : p))
-                    }}
-                    className="w-full px-2 py-1 rounded border border-blue-800 bg-[#07102a] text-white"
-                  />
-                  <input
-                    type="number"
-                    min={1}
-                    step={1}
-                    placeholder="Delivery days"
-                    value={pkg.delivery_days}
-                    onChange={e => {
-                      const val = e.target.value
-                      setPackages(pkgs => pkgs.map((p, i) => i === idx ? { ...p, delivery_days: val } : p))
-                    }}
-                    className="w-full px-2 py-1 rounded border border-blue-800 bg-[#07102a] text-white"
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    placeholder="Revisions"
-                    value={pkg.revisions}
-                    onChange={e => {
-                      const val = e.target.value
-                      setPackages(pkgs => pkgs.map((p, i) => i === idx ? { ...p, revisions: val } : p))
-                    }}
-                    className="w-full px-2 py-1 rounded border border-blue-800 bg-[#07102a] text-white"
-                  />
-                  <textarea
-                    placeholder="Package description"
-                    value={pkg.desc}
-                    onChange={e => {
-                      const val = e.target.value
-                      setPackages(pkgs => pkgs.map((p, i) => i === idx ? { ...p, desc: val } : p))
-                    }}
-                    className="w-full px-2 py-1 rounded border border-blue-800 bg-[#07102a] text-white"
-                    rows={2}
-                  />
+                break;
+            default:
+                return;
+        }
+        setImages(updatedImages);
+    }, [images, setImages, setValidationError]);
+
+    return (
+        <div className="border-t border-gray-600 pt-8">
+            <h2 className="text-xl font-semibold text-gray-100 mb-4">Gig Image Gallery Management</h2>
+            <p className="text-sm text-gray-400 mb-4">Upload up to 5 images. The one marked as <b>Cover</b> will be the main image on the browse page.</p>
+            {validationError && (
+                <div className="p-4 mb-4 bg-red-700 text-white rounded-lg">
+                    {validationError}
                 </div>
-              ))}
+            )}
+            <div className="mb-4">
+                <label htmlFor="image-upload" className="block text-sm font-medium text-gray-300 mb-1">Upload New Image</label>
+                <input type="file" id="image-upload" accept="image/*" onChange={handleFileUpload} className="w-full text-sm text-gray-300"/>
             </div>
-            <div className="text-xs text-blue-300 mt-1">
-              Set price, delivery, and revisions for each package. You can leave unused packages blank.
+            <div id="image-list-container" className="space-y-4">
+                {images.length === 0 ? (
+                    <p className="text-gray-500 text-center py-4">No images uploaded yet.</p>
+                ) : (
+                    images.map((img, index) => {
+                        const isCover = img.isCover;
+                        const isFirst = index === 0;
+                        const isLast = index === images.length - 1;
+                        return (
+                            <div key={img.id} className="flex flex-col sm:flex-row items-center p-4 bg-[#2d333f] rounded-xl border border-gray-600 shadow-md">
+                                <div className="flex-shrink-0 relative mb-4 sm:mb-0 sm:mr-6">
+                                    <img src={img.url} alt={`Gig Image ${index + 1}`} className="w-28 h-16 object-cover rounded-lg border border-gray-500" />
+                                    {isCover && <span className="absolute top-0 right-0 -mt-2 -mr-2 px-2 py-0.5 text-xs font-bold bg-indigo-600 text-white rounded-full shadow-lg">COVER</span>}
+                                </div>
+                                <div className="flex-grow text-sm text-gray-300 w-full sm:w-auto">
+                                    <p className="font-medium">Image {index + 1}</p>
+                                </div>
+                                <div className="flex space-x-2 mt-4 sm:mt-0 sm:ml-auto flex-wrap justify-center">
+                                    <button type="button" onClick={() => handleAction(img.id, 'set-cover')}
+                                        className={`py-2 px-3 text-xs font-medium rounded-lg transition duration-150 ${isCover ? 'bg-indigo-700 text-white cursor-default' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}>
+                                        {isCover ? 'Is Cover' : 'Set as Cover'}
+                                    </button>
+                                    <button type="button" onClick={() => handleAction(img.id, 'move-up')} disabled={isFirst}
+                                        className={`py-2 px-3 text-xs font-medium rounded-lg transition duration-150 ${isFirst ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-500 hover:bg-gray-400 text-white'}`}>
+                                        Move Up
+                                    </button>
+                                    <button type="button" onClick={() => handleAction(img.id, 'move-down')} disabled={isLast}
+                                        className={`py-2 px-3 text-xs font-medium rounded-lg transition duration-150 ${isLast ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-500 hover:bg-gray-400 text-white'}`}>
+                                        Move Down
+                                    </button>
+                                    <button type="button" onClick={() => handleAction(img.id, 'delete')}
+                                        className="py-2 px-3 text-xs font-medium rounded-lg bg-red-600 hover:bg-red-700 text-white transition duration-150">
+                                        Remove
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
             </div>
-          </div>
-          {/* Submit */}
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-700 to-blue-500 text-white rounded-lg py-3 font-semibold hover:from-blue-800 hover:to-blue-600 transition"
-            >
-              {loading ? 'Posting...' : 'Post Gig'}
-            </button>
-            {errorMsg && <div className="text-red-400 mt-2">{errorMsg}</div>}
-            {successMsg && <div className="text-green-400 mt-2">{successMsg}</div>}
-          </div>
-        </form>
-      </section>
-      <div className="max-w-3xl w-full text-center text-blue-200 text-sm opacity-80 mb-10">
-        <span className="font-semibold">Tips:</span> Write a clear, compelling title and description. Use relevant tags and choose a fair price. AI gigs get featured!
-      </div>
-    </main>
-  )
+        </div>
+    );
+};
+
+// --- Main Page ---
+export default function PostGigPage() {
+    const router = useRouter();
+    const [formData, setFormData] = useState({
+        'gig-title': '',
+        description: '',
+        category: categories[0].value,
+        price: '',
+        'delivery-days': '',
+        revisions: '3',
+    });
+    const [tags, setTags] = useState<string[]>([]);
+    const [tagInput, setTagInput] = useState('');
+    const [images, setImages] = useState<any[]>([]);
+    const [successMessage, setSuccessMessage] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
+    const [imageValidationError, setImageValidationError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [checking, setChecking] = useState(true);
+    const [accessError, setAccessError] = useState('');
+
+    // --- Freelancer Access Check ---
+    useEffect(() => {
+        async function checkFreelancer() {
+            setChecking(true);
+            setAccessError('');
+            const supabase = createSupabaseBrowser();
+            const { data: { user }, error } = await supabase.auth.getUser();
+            if (error || !user) {
+                setAccessError('You must be logged in to post a gig.');
+                setChecking(false);
+                setTimeout(() => router.replace('/account'), 2000);
+                return;
+            }
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('is_freelancer')
+                .eq('id', user.id)
+                .single();
+            if (profileError || !profile) {
+                setAccessError('Could not load your profile.');
+                setChecking(false);
+                setTimeout(() => router.replace('/account'), 2000);
+                return;
+            }
+            if (!profile.is_freelancer) {
+                setAccessError('Only freelancers can post gigs. Enable freelancer mode in your account settings.');
+                setChecking(false);
+                setTimeout(() => router.replace('/account/settings'), 2500);
+                return;
+            }
+            setChecking(false);
+        }
+        checkFreelancer();
+        // eslint-disable-next-line
+    }, []);
+
+    // --- Tag Handlers ---
+    const handleTagInputChange = useCallback((e) => setTagInput(e.target.value), []);
+    const handleTagAdd = useCallback((e) => {
+        if (e.key === 'Enter' || e.type === 'click') {
+            e.preventDefault();
+            const newTag = tagInput.trim();
+            if (newTag && !tags.includes(newTag) && tags.length < 10) {
+                setTags(prev => [...prev, newTag]);
+                setTagInput('');
+            }
+        }
+    }, [tagInput, tags]);
+    const handleTagRemove = useCallback((tagToRemove) => {
+        setTags(prev => prev.filter(tag => tag !== tagToRemove));
+    }, []);
+
+    // --- Form Change Handler ---
+    const handleChange = useCallback((e) => {
+        const { id, value } = e.target;
+        setFormData(prev => ({ ...prev, [id]: value }));
+    }, []);
+
+    // --- Submit Handler ---
+    const handleSubmit = useCallback(async (e) => {
+        e.preventDefault();
+        setErrorMsg('');
+        setSuccessMessage(false);
+        setLoading(true);
+
+        // Validation
+        if (!formData['gig-title'] || !formData.description || !formData.price || !formData['delivery-days']) {
+            setErrorMsg('Please fill in all required fields.');
+            setLoading(false);
+            return;
+        }
+        if (images.length === 0) {
+            setImageValidationError("Please upload at least one image for your gig.");
+            setLoading(false);
+            return;
+        }
+
+        try {
+            // Get user
+            const supabase = createSupabaseBrowser();
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (userError || !user) {
+                setErrorMsg('Could not get your user info. Please log in again.');
+                setLoading(false);
+                return;
+            }
+
+            // --- Upload Images to Supabase Storage ---
+            // Find cover image
+            const coverImg = images.find(img => img.isCover) || images[0];
+            let cover_image_url = '';
+            let media_urls: string[] = [];
+            // Upload cover
+            if (coverImg.file) {
+                const fileName = `cover_${Date.now()}_${coverImg.file.name}`;
+                const { error } = await supabase.storage.from('gig-media').upload(fileName, coverImg.file, { upsert: true });
+                if (error) throw error;
+                const { data: urlData } = supabase.storage.from('gig-media').getPublicUrl(fileName);
+                cover_image_url = urlData.publicUrl;
+            } else {
+                cover_image_url = coverImg.url;
+            }
+            // Upload gallery images
+            for (const img of images) {
+                if (img === coverImg) continue;
+                if (img.file) {
+                    const fileName = `media_${Date.now()}_${img.file.name}`;
+                    const { error } = await supabase.storage.from('gig-media').upload(fileName, img.file, { upsert: true });
+                    if (error) throw error;
+                    const { data: urlData } = supabase.storage.from('gig-media').getPublicUrl(fileName);
+                    media_urls.push(urlData.publicUrl);
+                } else {
+                    media_urls.push(img.url);
+                }
+            }
+
+            // --- Insert Gig ---
+            const slug = formData['gig-title'].toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+            const { data: gigData, error: gigError } = await supabase
+                .from('gigs')
+                .insert([{
+                    title: formData['gig-title'],
+                    slug,
+                    category: formData.category,
+                    description: formData.description,
+                    tags,
+                    cover_image_url,
+                    media_urls,
+                    price_cents: Number(formData.price) * 100,
+                    delivery_time_days: Number(formData['delivery-days']),
+                    revisions: formData.revisions,
+                    seller_id: user.id,
+                }])
+                .select()
+                .single();
+            if (gigError) throw gigError;
+
+            setSuccessMessage(true);
+            setTimeout(() => router.push(`/seller/gigs/${slug}`), 1200);
+        } catch (err: any) {
+            setErrorMsg(err.message || 'Failed to post gig. Please try again.');
+        }
+        setLoading(false);
+    }, [formData, tags, images, router]);
+
+    // --- Loading/Access States ---
+    if (checking) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#090a10]">
+                <div className="text-blue-400 text-lg font-semibold animate-pulse">Checking access...</div>
+            </div>
+        )
+    }
+    if (accessError) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#090a10]">
+                <div className="text-red-400 text-lg font-semibold">{accessError}</div>
+            </div>
+        )
+    }
+
+    // --- Render ---
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-[#090a10] p-4 sm:p-8">
+            <div className="w-full max-w-4xl bg-[#1a1e27] p-6 sm:p-10 rounded-2xl shadow-2xl transition duration-300 ease-in-out border border-[#374151]">
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-100 mb-6 text-center">Post Your New Gig</h1>
+                <p className="text-gray-400 mb-8 text-center">Fill out the details below to create a compelling service offering.</p>
+                <ul className="mb-8 bg-blue-950/40 border border-blue-900 rounded-xl p-4 text-sm text-blue-200 grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {tips.map((tip, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                            <span className="text-blue-400 mt-1">•</span>
+                            <span>{tip}</span>
+                        </li>
+                    ))}
+                </ul>
+                <form onSubmit={handleSubmit} className="space-y-8">
+                    {/* Gig Title */}
+                    <div>
+                        <label htmlFor="gig-title" className="block text-sm font-medium text-gray-300 mb-1">Gig Title <span className="text-red-400">*</span></label>
+                        <input type="text" id="gig-title" required value={formData['gig-title']} onChange={handleChange}
+                            className={inputClasses}
+                            placeholder="I will design a modern, responsive website using React and Tailwind" />
+                        <div className="text-xs text-blue-300 mt-1">{formData['gig-title'].length}/80 characters</div>
+                    </div>
+                    {/* Description */}
+                    <div>
+                        <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-1">Description <span className="text-red-400">*</span></label>
+                        <textarea id="description" rows={5} required value={formData.description} onChange={handleChange}
+                            className={inputClasses}
+                            placeholder="Provide a detailed description of what your gig offers, what makes it unique, and what the buyer will receive."></textarea>
+                        <div className="text-xs text-blue-300 mt-1">{formData.description.length}/1200 characters</div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Category */}
+                        <div>
+                            <label htmlFor="category" className="block text-sm font-medium text-gray-300 mb-1">Category <span className="text-red-400">*</span></label>
+                            <select id="category" required value={formData.category} onChange={handleChange}
+                                className={`${inputClasses} appearance-none`}>
+                                <option value="" disabled>Select a category</option>
+                                {categories.map(cat => (
+                                    <option key={cat.value} value={cat.value}>{cat.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                        {/* Starting Price */}
+                        <div>
+                            <label htmlFor="price" className="block text-sm font-medium text-gray-300 mb-1">Starting Price ($) <span className="text-red-400">*</span></label>
+                            <input type="number" id="price" min="5" required value={formData.price} onChange={handleChange}
+                                className={inputClasses}
+                                placeholder="e.g., 50" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Delivery Time */}
+                        <div>
+                            <label htmlFor="delivery-days" className="block text-sm font-medium text-gray-300 mb-1">Delivery Time (Days) <span className="text-red-400">*</span></label>
+                            <input type="number" id="delivery-days" min="1" required value={formData['delivery-days']} onChange={handleChange}
+                                className={inputClasses}
+                                placeholder="e.g., 3" />
+                        </div>
+                        {/* Revisions */}
+                        <div>
+                            <label htmlFor="revisions" className="block text-sm font-medium text-gray-300 mb-1">Revisions Offered</label>
+                            <select id="revisions" value={formData.revisions} onChange={handleChange}
+                                className={`${inputClasses} appearance-none`}>
+                                <option value="1">1 Revision</option>
+                                <option value="3">3 Revisions</option>
+                                <option value="5">5 Revisions</option>
+                                <option value="unlimited">Unlimited Revisions</option>
+                            </select>
+                        </div>
+                    </div>
+                    {/* Skills/Tags Input */}
+                    <div>
+                        <label htmlFor="skills-input" className="block text-sm font-medium text-gray-300 mb-1">Skills & Tools (Press Enter to add tags)</label>
+                        <div id="tags-container" className="flex flex-wrap items-center min-h-12 p-3 border rounded-xl shadow-inner bg-[#2d333f] border-[#4b5563] mb-2">
+                            {tags.map(tag => (
+                                <div key={tag} className={tagBaseClasses}>
+                                    <span>{tag}</span>
+                                    <span onClick={() => handleTagRemove(tag)} className={tagRemoveClasses}>&times;</span>
+                                </div>
+                            ))}
+                        </div>
+                        <input type="text" id="skills-input" value={tagInput} onChange={handleTagInputChange} onKeyDown={handleTagAdd}
+                            className={inputClasses}
+                            placeholder="e.g., React, Figma, Python, SEO" />
+                    </div>
+                    {/* Image Gallery Management Component */}
+                    <ImageManager
+                        images={images}
+                        setImages={setImages}
+                        validationError={imageValidationError}
+                        setValidationError={setImageValidationError}
+                    />
+                    {/* Submit Button */}
+                    <div>
+                        <button type="submit" className={buttonPrimaryClasses} disabled={loading}>
+                            {loading ? 'Publishing...' : 'Publish Gig'}
+                        </button>
+                        {errorMsg && <div className="text-red-400 bg-red-900/40 p-2 rounded mt-2">{errorMsg}</div>}
+                        {successMessage && <div className="text-green-400 bg-green-900/40 p-2 rounded mt-2">Gig posted successfully! Redirecting...</div>}
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
 }

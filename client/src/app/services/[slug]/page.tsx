@@ -1,20 +1,37 @@
 'use client'
 import { useParams } from 'next/navigation'
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import Link from 'next/link'
 // NOTE: Ensure these imports are correct in your project structure
-import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser' 
-import { useSession } from '@supabase/auth-helpers-react' 
+import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
+import { useSession } from '@supabase/auth-helpers-react'
 
-// --- Component to render an Avatar based on email hash ---
-// NOTE: You would need to install 'blueimp-md5' or similar for MD5 hashing
-function Avatar({ email, name }: { email: string | undefined, name: string | undefined }) {
-  // Placeholder for gravatar hashing logic (assuming 'md5' is available or use a simple placeholder)
-  const hash = email ? (email.length % 100) : '' // Simple placeholder hash
-  const url = email
-    ? `https://www.gravatar.com/avatar/${hash}?d=identicon&s=96`
-    : null
-    
+// --- Avatar Component (uses uploaded avatar_url when available) ---
+function Avatar({
+  email,
+  name,
+  avatarUrl,
+}: {
+  email?: string | null
+  name?: string | null
+  avatarUrl?: string | null
+}) {
+  // Prefer uploaded avatar_url
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name || 'Seller'}
+        className="w-24 h-24 rounded-full object-cover border-4 border-sky-600 ring-4 ring-sky-900/50 bg-[#1e293b]"
+        style={{ minWidth: 96, minHeight: 96 }}
+      />
+    )
+  }
+
+  // Fallback: simple Gravatar placeholder (replace with md5 if installed)
+  const hash = email ? String(email.length % 100) : ''
+  const url = email ? `https://www.gravatar.com/avatar/${hash}?d=identicon&s=96` : null
+
   if (url) {
     return (
       <img
@@ -25,10 +42,136 @@ function Avatar({ email, name }: { email: string | undefined, name: string | und
       />
     )
   }
-  
+
   return (
     <div className="w-24 h-24 rounded-full bg-sky-900 flex items-center justify-center text-4xl text-sky-300 font-bold border-4 border-sky-600 ring-4 ring-sky-900/50">
       {name ? name[0].toUpperCase() : 'U'}
+    </div>
+  )
+}
+
+// --- Simple Image Carousel (touch, mouse drag, arrows, thumbnails) ---
+function MediaCarousel({ images }: { images: string[] }) {
+  const [index, setIndex] = useState(0)
+  const startX = useRef<number | null>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+
+  const prev = useCallback(() => setIndex((i) => (i <= 0 ? images.length - 1 : i - 1)), [images.length])
+  const next = useCallback(() => setIndex((i) => (i >= images.length - 1 ? 0 : i + 1)), [images.length])
+
+  // Touch handlers
+  const onTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX
+  }
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (startX.current == null) return
+    const endX = e.changedTouches[0].clientX
+    const delta = endX - startX.current
+    if (Math.abs(delta) > 40) {
+      if (delta < 0) next()
+      else prev()
+    }
+    startX.current = null
+  }
+
+  // Mouse drag support
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    let mouseStart: number | null = null
+    let dragging = false
+
+    const onMouseDown = (ev: MouseEvent) => {
+      mouseStart = ev.clientX
+      dragging = true
+    }
+    const onMouseUp = (ev: MouseEvent) => {
+      if (!dragging || mouseStart == null) {
+        dragging = false
+        mouseStart = null
+        return
+      }
+      const delta = ev.clientX - mouseStart
+      if (Math.abs(delta) > 40) {
+        if (delta < 0) next()
+        else prev()
+      }
+      dragging = false
+      mouseStart = null
+    }
+
+    el.addEventListener('mousedown', onMouseDown)
+    window.addEventListener('mouseup', onMouseUp)
+
+    return () => {
+      el.removeEventListener('mousedown', onMouseDown)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [next, prev])
+
+  if (!images || images.length === 0) return null
+
+  return (
+    <div className="w-full">
+      <div
+        ref={containerRef}
+        className="relative overflow-hidden rounded-2xl"
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
+        <div
+          className="flex transition-transform duration-300"
+          style={{ transform: `translateX(-${index * 100}%)`, width: `${images.length * 100}%` }}
+        >
+          {images.map((src, i) => (
+            <div key={i} className="w-full flex-shrink-0">
+              <img src={src} alt={`Media ${i + 1}`} className="w-full h-96 object-cover" />
+            </div>
+          ))}
+        </div>
+
+        {/* Arrows */}
+        <button
+          onClick={prev}
+          aria-label="Previous"
+          className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/50 text-white rounded-full p-2"
+        >
+          ‹
+        </button>
+        <button
+          onClick={next}
+          aria-label="Next"
+          className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/50 text-white rounded-full p-2"
+        >
+          ›
+        </button>
+
+        {/* Indicators */}
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+          {images.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setIndex(i)}
+              className={`w-2 h-2 rounded-full ${i === index ? 'bg-white' : 'bg-white/40'}`}
+              aria-label={`Go to slide ${i + 1}`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Thumbnails */}
+      <div className="mt-3 flex gap-2 overflow-x-auto">
+        {images.map((src, i) => (
+          <button
+            key={i}
+            onClick={() => setIndex(i)}
+            className={`flex-shrink-0 rounded-md overflow-hidden border ${i === index ? 'ring-2 ring-sky-400' : 'border-transparent'}`}
+            style={{ width: 72, height: 48 }}
+          >
+            <img src={src} className="w-full h-full object-cover" alt={`Thumb ${i + 1}`} />
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
@@ -55,12 +198,8 @@ export default function ServiceDetailsPage() {
       const supabase = createSupabaseBrowser()
 
       // Fetch Gig
-      const { data: gigData, error: gigError } = await supabase
-        .from('gigs')
-        .select('*')
-        .eq('slug', slug)
-        .single()
-      
+      const { data: gigData, error: gigError } = await supabase.from('gigs').select('*').eq('slug', slug).single()
+
       if (gigError || !gigData) {
         setError('Service not found or an error occurred.')
         setGig(null)
@@ -70,15 +209,11 @@ export default function ServiceDetailsPage() {
       setGig(gigData)
 
       // Fetch Packages
-      const { data: pkgs } = await supabase
-        .from('gig_packages')
-        .select('*')
-        .eq('gig_id', gigData.id)
-        .order('tier', { ascending: true })
-      
+      const { data: pkgs } = await supabase.from('gig_packages').select('*').eq('gig_id', gigData.id).order('tier', { ascending: true })
+
       const sortedPkgs = pkgs || []
       setPackages(sortedPkgs)
-      
+
       // Set the first package as active by default
       if (sortedPkgs.length > 0) {
         setActivePackage(sortedPkgs[0])
@@ -97,11 +232,7 @@ export default function ServiceDetailsPage() {
         return
       }
       const supabase = createSupabaseBrowser()
-      const { data } = await supabase
-        .from('users')
-        .select('id, full_name, avatar_url, bio, email')
-        .eq('id', gig.seller_id)
-        .single()
+      const { data } = await supabase.from('users').select('id, full_name, avatar_url, bio, email').eq('id', gig.seller_id).single()
       setSeller(data)
     }
     if (gig?.seller_id) fetchSeller()
@@ -122,9 +253,9 @@ export default function ServiceDetailsPage() {
         .eq('user_id', session.user.id)
         .eq('gig_id', gig.id)
         .single()
-      if (data && data.id) {
+      if (data && (data as any).id) {
         setIsSaved(true)
-        setSavedId(data.id)
+        setSavedId((data as any).id)
       } else {
         setIsSaved(false)
         setSavedId(null)
@@ -134,58 +265,72 @@ export default function ServiceDetailsPage() {
   }, [session, gig])
 
   // 4. Handle Save Toggle Action
-  const handleSaveToggle = useCallback(async () => {
-    setSaveMsg(null)
-    if (!session?.user) {
-      setSaveMsg('Please sign in to save services.')
-      return
-    }
-    const supabase = createSupabaseBrowser()
-    
-    if (!isSaved) {
-      // Save
-      const { data, error } = await supabase
-        .from('saved_gigs')
-        .insert([{ user_id: session.user.id, gig_id: gig.id }])
-        .select('id')
-        .single()
-      
-      if (error) {
-        setSaveMsg('Error saving service.')
-      } else {
-        setIsSaved(true)
-        setSavedId(data.id)
-        setSaveMsg('Service saved successfully!')
+  const handleSaveToggle = useCallback(
+    async (e?: React.MouseEvent) => {
+      e?.preventDefault()
+      setSaveMsg(null)
+      if (!session?.user) {
+        setSaveMsg('Please sign in to save services.')
+        return
       }
-    } else {
-      // Unsave
-      if (!savedId) return
-      const { error } = await supabase
-        .from('saved_gigs')
-        .delete()
-        .eq('id', savedId)
-        
-      if (error) {
-        setSaveMsg('Could not unsave. Try again.')
+      const supabase = createSupabaseBrowser()
+
+      if (!isSaved) {
+        // Save
+        const { data, error } = await supabase.from('saved_gigs').insert([{ user_id: session.user.id, gig_id: gig.id }]).select('id').single()
+
+        if (error) {
+          setSaveMsg('Error saving service.')
+        } else {
+          setIsSaved(true)
+          setSavedId((data as any).id)
+          setSaveMsg('Service saved successfully!')
+        }
       } else {
-        setIsSaved(false)
-        setSavedId(null)
-        setSaveMsg('Service removed from saved list.')
+        // Unsave
+        if (!savedId) return
+        const { error } = await supabase.from('saved_gigs').delete().eq('id', savedId)
+
+        if (error) {
+          setSaveMsg('Could not unsave. Try again.')
+        } else {
+          setIsSaved(false)
+          setSavedId(null)
+          setSaveMsg('Service removed from saved list.')
+        }
       }
-    }
-  }, [session, isSaved, gig, savedId])
-  
+    },
+    [session, isSaved, gig, savedId]
+  )
+
   // Memoize currency conversion
   const formatPrice = useCallback((cents: number) => {
-      return `$${(cents / 100).toFixed(2)}`;
-  }, []);
-  
+    return `$${(cents / 100).toFixed(2)}`
+  }, [])
+
   // Determine starting price for sidebar
   const startingPrice = useMemo(() => {
-      return packages.length > 0
-        ? formatPrice(packages[0].price_cents)
-        : 'N/A';
-  }, [packages, formatPrice]);
+    return packages.length > 0 ? formatPrice(packages[0].price_cents) : 'N/A'
+  }, [packages, formatPrice])
+
+  // Compose images: ensure cover_image_url is first and remove duplicates
+  const videoRegex = useMemo(() => /\.(mp4|webm|ogg)$/i, [])
+  const combinedImageUrls = useMemo(() => {
+    if (!gig) return []
+    const images: string[] = []
+    if (gig.cover_image_url) images.push(gig.cover_image_url)
+    const media = Array.isArray(gig.media_urls) ? gig.media_urls : []
+    media.forEach((u: string) => {
+      if (!videoRegex.test(u) && !images.includes(u)) images.push(u)
+    })
+    return images
+  }, [gig, videoRegex])
+
+  const videoUrls = useMemo(() => {
+    if (!gig) return []
+    const media = Array.isArray(gig.media_urls) ? gig.media_urls : []
+    return media.filter((u: string) => videoRegex.test(u))
+  }, [gig, videoRegex])
 
   // --- Render States ---
   if (loading) {
@@ -206,47 +351,49 @@ export default function ServiceDetailsPage() {
       </main>
     )
   }
-  
+
   // --- Main Service Page UI ---
   return (
     <main className="bg-[#030712] min-h-screen font-sans">
       <div className="max-w-7xl mx-auto px-4 py-12 pt-28">
-        
         {/* Breadcrumbs */}
         <nav className="text-sm text-slate-400 mb-8 flex items-center gap-2">
-          <Link href="/" className="hover:text-sky-400 transition">Home</Link>
+          <Link href="/" className="hover:text-sky-400 transition">
+            Home
+          </Link>
           <span>/</span>
-          <Link href="/browse" className="hover:text-sky-400 transition">Browse Services</Link>
+          <Link href="/browse" className="hover:text-sky-400 transition">
+            Browse Services
+          </Link>
           <span>/</span>
           <span className="text-sky-400 font-semibold truncate max-w-[200px] sm:max-w-none">{gig.title}</span>
         </nav>
 
         <div className="flex flex-col lg:flex-row gap-10">
-          
           {/* Left: Gig Details & Description */}
           <div className="flex-1 min-w-0">
             <h1 className="text-5xl font-extrabold text-white mb-4 tracking-tight drop-shadow-md">{gig.title}</h1>
-            
+
             {/* Metadata & Tags */}
             <div className="flex items-center gap-4 mb-6 text-sm">
               <span className="text-sky-400 font-semibold px-3 py-1 rounded-full bg-sky-900/40 border border-sky-700/50">{gig.category}</span>
               {gig.tags && gig.tags.length > 0 && (
                 <div className="flex gap-2 flex-wrap">
                   {gig.tags.map((tag: string, i: number) => (
-                    <span key={i} className="text-slate-400">| #{tag}</span>
+                    <span key={i} className="text-slate-400">
+                      | #{tag}
+                    </span>
                   ))}
                 </div>
               )}
             </div>
-            
-            {/* Cover Image */}
+
+            {/* Carousel (cover_image_url + other images) */}
             <div className="w-full mb-10 overflow-hidden rounded-2xl shadow-2xl border border-[#1e293b]">
-              {gig.cover_image_url && (
-                <img
-                  src={gig.cover_image_url}
-                  alt={gig.title}
-                  className="w-full h-96 object-cover transition-transform duration-500 hover:scale-105"
-                />
+              {combinedImageUrls.length > 0 ? (
+                <MediaCarousel images={combinedImageUrls} />
+              ) : (
+                gig.cover_image_url && <img src={gig.cover_image_url} alt={gig.title} className="w-full h-96 object-cover transition-transform duration-500 hover:scale-105" />
               )}
             </div>
 
@@ -254,7 +401,7 @@ export default function ServiceDetailsPage() {
             {packages && packages.length > 0 && (
               <div className="mb-10 p-6 bg-[#0f172a] rounded-2xl shadow-xl border border-[#1e293b]">
                 <h2 className="text-3xl font-bold mb-5 text-sky-300">Select a Package</h2>
-                
+
                 {/* Package Tabs */}
                 <div className="flex border-b border-[#1e293b] mb-6 overflow-x-auto">
                   {packages.map((pkg, idx) => (
@@ -262,39 +409,42 @@ export default function ServiceDetailsPage() {
                       key={pkg.tier}
                       onClick={() => setActivePackage(pkg)}
                       className={`px-6 py-3 text-lg font-semibold transition border-b-4 ${
-                        activePackage?.tier === pkg.tier
-                          ? 'text-sky-400 border-sky-500 bg-sky-900/20'
-                          : 'text-slate-400 border-transparent hover:border-slate-700 hover:text-slate-300'
+                        activePackage?.tier === pkg.tier ? 'text-sky-400 border-sky-500 bg-sky-900/20' : 'text-slate-400 border-transparent hover:border-slate-700 hover:text-slate-300'
                       }`}
                     >
                       {pkg.tier}
                     </button>
                   ))}
                 </div>
-                
+
                 {/* Active Package Details */}
                 {activePackage && (
                   <div className="flex flex-col md:flex-row md:items-start gap-6 bg-[#1e293b] rounded-xl p-6 border border-sky-900/50">
                     <div className="flex-1">
-                      <h3 className="text-2xl font-bold text-white mb-2">{activePackage.tier} - {formatPrice(activePackage.price_cents)}</h3>
+                      <h3 className="text-2xl font-bold text-white mb-2">
+                        {activePackage.tier} - {formatPrice(activePackage.price_cents)}
+                      </h3>
                       <p className="text-slate-300 text-base leading-relaxed mb-4">{activePackage.description}</p>
-                      
+
                       {/* Key Features (Assumes features array on package object) */}
                       {activePackage.features && activePackage.features.length > 0 && (
-                          <ul className='space-y-2 text-slate-300 text-sm'>
-                              {activePackage.features.map((feature: string, idx: number) => (
-                                  <li key={idx} className='flex items-start gap-3'>
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-sky-500 flex-shrink-0 mt-0.5" viewBox="0 0 24 24"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                                      {feature}
-                                  </li>
-                              ))}
-                          </ul>
+                        <ul className="space-y-2 text-slate-300 text-sm">
+                          {activePackage.features.map((feature: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-3">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-sky-500 flex-shrink-0 mt-0.5" viewBox="0 0 24 24">
+                                <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                              </svg>
+                              {feature}
+                            </li>
+                          ))}
+                        </ul>
                       )}
-                      
                     </div>
                     <div className="w-full md:w-auto md:min-w-[200px] md:border-l md:border-[#334155] md:pl-6 pt-4 md:pt-0">
                       <div className="text-sm font-medium text-slate-400 mb-2">Delivery Time</div>
-                      <div className="text-xl font-bold text-sky-400 mb-4">{activePackage.delivery_days} day{activePackage.delivery_days > 1 ? 's' : ''}</div>
+                      <div className="text-xl font-bold text-sky-400 mb-4">
+                        {activePackage.delivery_days} day{activePackage.delivery_days > 1 ? 's' : ''}
+                      </div>
                       <div className="text-sm font-medium text-slate-400 mb-2">Revisions</div>
                       <div className="text-xl font-bold text-sky-400">{activePackage.revisions}</div>
                     </div>
@@ -306,102 +456,101 @@ export default function ServiceDetailsPage() {
             {/* Main Service Description */}
             <div className="mb-10 p-6 bg-[#0f172a] rounded-2xl shadow-xl border border-[#1e293b]">
               <h2 className="text-3xl font-bold mb-4 text-sky-300">Service Overview</h2>
-              <p className="text-slate-300 text-lg leading-relaxed">{gig.description}</p>
+              {/* preserve new lines from description */}
+              <div className="text-slate-300 text-lg leading-relaxed" style={{ whiteSpace: 'pre-wrap' }}>
+                {gig.description}
+              </div>
             </div>
-            
-            {/* Media Gallery */}
-            {gig.media_urls && gig.media_urls.length > 0 && (
+
+            {/* Media Gallery (videos + additional image thumbnails) */}
+            {(videoUrls.length > 0 || combinedImageUrls.length > 0) && (
               <div className="mb-10 p-6 bg-[#0f172a] rounded-2xl shadow-xl border border-[#1e293b]">
                 <h2 className="text-3xl font-bold mb-4 text-sky-300">Portfolio & Examples</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {gig.media_urls.slice(0, 6).map((url: string, idx: number) =>
-                    url.match(/\.(mp4|webm|ogg)$/i) ? (
-                      <video key={idx} src={url} className="w-full h-36 rounded-lg object-cover border-2 border-sky-900/50 shadow-md" controls muted autoPlay={idx === 0} />
-                    ) : (
-                      <img key={idx} src={url} className="w-full h-36 rounded-lg object-cover border-2 border-sky-900/50 shadow-md" alt={`Media ${idx + 1}`} />
-                    )
-                  )}
-                </div>
+
+                {/* Videos */}
+                {videoUrls.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    {videoUrls.map((url: string, idx: number) => (
+                      <video key={idx} src={url} className="w-full h-56 rounded-lg object-cover border-2 border-sky-900/50 shadow-md" controls />
+                    ))}
+                  </div>
+                )}
+
+                {/* Thumbnails grid (first 6 images) */}
+                {combinedImageUrls.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {combinedImageUrls.slice(0, 6).map((url: string, idx: number) =>
+                      url.match(/\.(mp4|webm|ogg)$/i) ? null : (
+                        <img key={idx} src={url} alt={`Example ${idx + 1}`} className="w-full h-36 rounded-lg object-cover border-2 border-sky-900/50 shadow-md" />
+                      )
+                    )}
+                  </div>
+                )}
               </div>
             )}
-            
+
             {/* Action Buttons (Full Width) */}
             <div className="flex flex-wrap gap-4 mb-12 p-6 bg-[#0f172a] rounded-2xl shadow-xl border border-[#1e293b]">
-                <h2 className="text-2xl font-bold text-white w-full mb-3">Ready to start?</h2>
-                <button 
-                    className="flex-1 min-w-[150px] px-8 py-4 rounded-xl bg-sky-600 text-white font-bold text-lg shadow-xl shadow-sky-900/50 hover:bg-sky-700 transition transform hover:scale-[1.01]"
-                >
-                    Order Now ({activePackage?.tier || 'Base'})
-                </button>
-                <button 
-                    className="flex-1 min-w-[150px] px-8 py-4 rounded-xl bg-[#1e293b] text-sky-300 font-bold text-lg shadow border border-sky-700 hover:bg-[#334155] transition"
-                >
-                    Contact Seller
-                </button>
-                <button
-                    className={`px-8 py-4 rounded-xl font-semibold text-lg shadow border transition ${
-                        isSaved
-                            ? 'bg-emerald-900 text-emerald-300 border-emerald-700/50'
-                            : 'bg-[#1e293b] text-slate-300 border-slate-700 hover:bg-[#334155]'
-                    }`}
-                    onClick={handleSaveToggle}
-                >
-                    {isSaved ? '★ SAVED' : '★ Save for Later'}
-                </button>
-                {saveMsg && <div className="text-sm font-medium text-sky-400 mt-3">{saveMsg}</div>}
+              <h2 className="text-2xl font-bold text-white w-full mb-3">Ready to start?</h2>
+              <button className="flex-1 min-w-[150px] px-8 py-4 rounded-xl bg-sky-600 text-white font-bold text-lg shadow-xl shadow-sky-900/50 hover:bg-sky-700 transition transform hover:scale-[1.01]">
+                Order Now ({activePackage?.tier || 'Base'})
+              </button>
+              <button className="flex-1 min-w-[150px] px-8 py-4 rounded-xl bg-[#1e293b] text-sky-300 font-bold text-lg shadow border border-sky-700 hover:bg-[#334155] transition">
+                Contact Seller
+              </button>
+              <button
+                className={`px-8 py-4 rounded-xl font-semibold text-lg shadow border transition ${
+                  isSaved ? 'bg-emerald-900 text-emerald-300 border-emerald-700/50' : 'bg-[#1e293b] text-slate-300 border-slate-700 hover:bg-[#334155]'
+                }`}
+                onClick={handleSaveToggle}
+              >
+                {isSaved ? '★ SAVED' : '★ Save for Later'}
+              </button>
+              {saveMsg && <div className="text-sm font-medium text-sky-400 mt-3">{saveMsg}</div>}
             </div>
           </div>
 
           {/* Right: Freelancer Summary & Sticky Order Box */}
           <aside className="w-full lg:w-[320px] flex-shrink-0">
             <div className="sticky top-24">
-              
               {/* Freelancer Profile Card */}
               <div className="bg-[#0f172a] rounded-2xl shadow-2xl border border-sky-900/50 p-6 mb-8 text-center">
-                <Avatar email={seller?.email} name={seller?.full_name} />
-                <Link 
-                    href={`/profile/${seller?.id || '#'}`} 
-                    className="font-bold text-xl text-sky-300 hover:text-sky-400 transition mt-3 block"
-                >
-                    {seller?.full_name || 'Freelancer'}
+                <Avatar email={seller?.email} name={seller?.full_name} avatarUrl={seller?.avatar_url} />
+                <Link href={`/profile/${seller?.id || '#'}`} className="font-bold text-xl text-sky-300 hover:text-sky-400 transition mt-3 block">
+                  {seller?.full_name || 'Freelancer'}
                 </Link>
-                {seller?.bio && (
-                  <p className="text-slate-400 text-sm mt-1">{seller.bio}</p>
-                )}
-                <div className='mt-4 pt-4 border-t border-[#1e293b] text-xs text-slate-500'>
-                    {/* Placeholder for real stats */}
-                    <div className='flex justify-between font-medium'>
-                        <span>Avg. Response:</span>
-                        <span className='text-sky-300'>1 hour</span>
-                    </div>
-                    <div className='flex justify-between font-medium mt-1'>
-                        <span>Completed Gigs:</span>
-                        <span className='text-sky-300'>{gig.sales || 0}</span>
-                    </div>
+                {seller?.bio && <p className="text-slate-400 text-sm mt-1">{seller.bio}</p>}
+                <div className="mt-4 pt-4 border-t border-[#1e293b] text-xs text-slate-500">
+                  {/* Placeholder for real stats */}
+                  <div className="flex justify-between font-medium">
+                    <span>Avg. Response:</span>
+                    <span className="text-sky-300">1 hour</span>
+                  </div>
+                  <div className="flex justify-between font-medium mt-1">
+                    <span>Completed Gigs:</span>
+                    <span className="text-sky-300">{gig.sales || 0}</span>
+                  </div>
                 </div>
               </div>
-              
+
               {/* Sticky Order Box */}
               <div className="bg-[#1e293b] rounded-2xl shadow-2xl border border-sky-600/50 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <span className="font-semibold text-slate-200 text-lg">Starting Price</span>
                   <span className="text-3xl font-extrabold text-sky-400">{startingPrice}</span>
                 </div>
-                
-                <p className='text-slate-400 text-sm mb-5'>Based on the **{packages[0]?.tier || 'Base'}** package.</p>
 
-                <button 
-                    className="w-full mt-2 px-6 py-3 rounded-xl bg-sky-600 text-white font-bold text-lg shadow-xl shadow-sky-900/50 hover:bg-sky-700 transition transform hover:scale-[1.01]"
-                >
+                <p className="text-slate-400 text-sm mb-5">Based on the **{packages[0]?.tier || 'Base'}** package.</p>
+
+                <button className="w-full mt-2 px-6 py-3 rounded-xl bg-sky-600 text-white font-bold text-lg shadow-xl shadow-sky-900/50 hover:bg-sky-700 transition transform hover:scale-[1.01]">
                   Start Order with {activePackage?.tier || 'Base'}
                 </button>
               </div>
-              
             </div>
           </aside>
         </div>
       </div>
-      
+
       {/* Global styles for dark theme look */}
       <style jsx global>{`
         body {
@@ -409,13 +558,18 @@ export default function ServiceDetailsPage() {
           color: #f1f5f9;
         }
         /* Refined Scrollbar Styles */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-thumb { 
-          background: #0ea5e9; 
-          border-radius: 4px;
-          border: 2px solid #030712; 
+        ::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
         }
-        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb {
+          background: #0ea5e9;
+          border-radius: 4px;
+          border: 2px solid #030712;
+        }
+        ::-webkit-scrollbar-track {
+          background: #1f2937;
+        }
       `}</style>
     </main>
   )
