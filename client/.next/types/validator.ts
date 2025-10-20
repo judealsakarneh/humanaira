@@ -155,10 +155,10 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/privacy">
 }
 
-// Validate ../../src/app/profile/[username]/page.tsx
+// Validate ../../src/app/profile/[id]/page.tsx
 {
-  const handler = {} as typeof import("../../src/app/profile/[username]/page.js")
-  handler satisfies AppPageConfig<"/profile/[username]">
+  const handler = {} as typeof import("../../src/app/profile/[id]/page.js")
+  handler satisfies AppPageConfig<"/profile/[id]">
 }
 
 // Validate ../../src/app/refund-policy/page.tsx

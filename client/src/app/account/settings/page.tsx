@@ -15,36 +15,36 @@ const HEADER_HEIGHT = 64
 
 // --- Custom Toggle Switch Component (Sleek, Apple-style) ---
 function ToggleSwitch({ checked, onChange, label, description, disabled = false }: { 
-    checked: boolean, 
-    onChange: () => void, 
-    label: string, 
-    description: string,
-    disabled?: boolean 
+  checked: boolean, 
+  onChange: () => void, 
+  label: string, 
+  description: string,
+  disabled?: boolean 
 }) {
   return (
     <div className={`flex items-start justify-between p-4 rounded-xl transition duration-200 ${disabled ? 'opacity-60 cursor-not-allowed' : 'hover:bg-slate-800/50'}`}>
-        <div className='flex flex-col'>
-            <span className="text-white font-medium text-base">{label}</span>
-            <span className="text-slate-400 text-sm mt-1">{description}</span>
-        </div>
-        
-        <button
-          type="button"
-          onClick={onChange}
-          disabled={disabled}
-          className={`flex items-center group focus:outline-none`}
-          aria-pressed={checked}
+      <div className='flex flex-col'>
+        <span className="text-white font-medium text-base">{label}</span>
+        <span className="text-slate-400 text-sm mt-1">{description}</span>
+      </div>
+      
+      <button
+        type="button"
+        onClick={onChange}
+        disabled={disabled}
+        className={`flex items-center group focus:outline-none`}
+        aria-pressed={checked}
+      >
+        <span
+          className={`w-11 h-6 flex items-center rounded-full p-1 transition duration-200 ease-in-out
+            ${checked ? 'bg-indigo-500' : 'bg-slate-700'}`}
         >
           <span
-            className={`w-11 h-6 flex items-center rounded-full p-1 transition duration-200 ease-in-out
-              ${checked ? 'bg-indigo-500' : 'bg-slate-700'}`}
-          >
-            <span
-              className={`bg-white w-4 h-4 rounded-full shadow-sm transform transition duration-200 ease-in-out
-                ${checked ? 'translate-x-5' : 'translate-x-0'}`}
-            />
-          </span>
-        </button>
+            className={`bg-white w-4 h-4 rounded-full shadow-sm transform transition duration-200 ease-in-out
+              ${checked ? 'translate-x-5' : 'translate-x-0'}`}
+          />
+        </span>
+      </button>
     </div>
   )
 }
@@ -178,13 +178,12 @@ export default function SettingsPage() {
     setMessage('Attempting to delete account...')
     
     try {
-      // You may want to call a backend function to delete the user from auth and all tables.
       const { error: signOutError } = await supabase.auth.signOut()
       
       if (signOutError) {
-          setMessage('Account deletion failed to log out.')
+        setMessage('Account deletion failed to log out.')
       } else {
-          setMessage('Account successfully deleted. Goodbye!')
+        setMessage('Account successfully deleted. Goodbye!')
       }
       
       setTimeout(() => {
@@ -240,8 +239,8 @@ export default function SettingsPage() {
 
       <section className="relative z-10 w-full max-w-3xl bg-slate-900/90 backdrop-blur-sm rounded-2xl shadow-2xl shadow-black/50 border border-slate-800 p-6 sm:p-10">
         
-        {/* Header with Back Button */}
-        <div className="flex items-center mb-10">
+        {/* Header with Back Button - centered title fix via grid + mirrored ghost element */}
+        <div className="grid grid-cols-[auto_1fr_auto] items-center mb-10">
           <a
             href="/account"
             className="flex items-center text-slate-400 hover:text-white transition"
@@ -249,8 +248,14 @@ export default function SettingsPage() {
             <ArrowLeftIcon className="w-5 h-5 mr-2" />
             <span className="text-sm font-semibold">Account</span>
           </a>
-          <h1 className="flex-1 text-3xl font-extrabold text-white text-center">Settings</h1>
-          <div className="w-[140px] hidden sm:block"></div> {/* Spacer */}
+
+          <h1 className="justify-self-center text-3xl font-extrabold text-white">Settings</h1>
+
+          {/* Ghost mirror of the back link to keep title perfectly centered */}
+          <div className="flex items-center opacity-0 select-none" aria-hidden="true">
+            <ArrowLeftIcon className="w-5 h-5 mr-2" />
+            <span className="text-sm font-semibold">Account</span>
+          </div>
         </div>
 
         {/* --- 1. Preferences Section --- */}
@@ -262,16 +267,16 @@ export default function SettingsPage() {
             onChange={handleFreelancerToggle}
             label="Enable Freelancer Mode"
             description={isFreelancer ? 
-                'You are currently visible as a service provider.' : 
-                'Turn on to start offering gigs and access your dashboard.'}
+              'You are currently visible as a service provider.' : 
+              'Turn on to start offering gigs and access your dashboard.'}
             disabled={saving}
           />
 
           <div className='mt-4 pt-4 border-t border-slate-700/50 text-xs text-slate-400'>
-              <ul className="list-disc list-inside space-y-1 ml-4">
-                  <li><span className="font-semibold text-indigo-300">A 5% commission</span> is applied to all completed freelancer orders.</li>
-                  <li>Your profile will be discoverable on the Gigs marketplace.</li>
-              </ul>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li><span className="font-semibold text-indigo-300">A 5% commission</span> is applied to all completed freelancer orders.</li>
+              <li>Your profile will be discoverable on the Gigs marketplace.</li>
+            </ul>
           </div>
         </div>
         
@@ -280,7 +285,6 @@ export default function SettingsPage() {
           <SettingsHeader icon={LockIcon} title="Security & Sign-in" />
           
           <form onSubmit={handlePasswordChange} className="flex flex-col gap-4 mb-2">
-            
             <h3 className="text-slate-300 font-medium text-base mt-2">Change Password</h3>
             
             <input
@@ -294,45 +298,45 @@ export default function SettingsPage() {
               disabled={passwordSaving}
             />
             <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-                <input
-                  type="password"
-                  placeholder="New Password (min 6 chars)"
-                  className="w-full px-4 py-3 rounded-lg border border-slate-700 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 placeholder:text-slate-500"
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  minLength={6}
-                  required
-                  disabled={passwordSaving}
-                />
-                <input
-                  type="password"
-                  placeholder="Confirm New Password"
-                  className="w-full px-4 py-3 rounded-lg border border-slate-700 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 placeholder:text-slate-500"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  minLength={6}
-                  required
-                  disabled={passwordSaving}
-                />
+              <input
+                type="password"
+                placeholder="New Password (min 6 chars)"
+                className="w-full px-4 py-3 rounded-lg border border-slate-700 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 placeholder:text-slate-500"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                minLength={6}
+                required
+                disabled={passwordSaving}
+              />
+              <input
+                type="password"
+                placeholder="Confirm New Password"
+                className="w-full px-4 py-3 rounded-lg border border-slate-700 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 placeholder:text-slate-500"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                minLength={6}
+                required
+                disabled={passwordSaving}
+              />
             </div>
             
             <div className='flex justify-between items-center pt-2'>
-                {passwordMsg && (
-                    <div 
-                        className={`text-sm font-medium ${
-                            passwordMsg.includes('success') ? 'text-green-400' : 'text-red-400'
-                        }`}
-                    >
-                      {passwordMsg}
-                    </div>
-                )}
-                <button
-                    type="submit"
-                    className="px-6 py-2 ml-auto rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition text-sm disabled:opacity-50"
-                    disabled={passwordSaving}
+              {passwordMsg && (
+                <div 
+                  className={`text-sm font-medium ${
+                    passwordMsg.includes('success') ? 'text-green-400' : 'text-red-400'
+                  }`}
                 >
-                    {passwordSaving ? 'Verifying...' : 'Update Password'}
-                </button>
+                  {passwordMsg}
+                </div>
+              )}
+              <button
+                type="submit"
+                className="px-6 py-2 ml-auto rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition text-sm disabled:opacity-50"
+                disabled={passwordSaving}
+              >
+                {passwordSaving ? 'Verifying...' : 'Update Password'}
+              </button>
             </div>
           </form>
           
@@ -347,18 +351,18 @@ export default function SettingsPage() {
           
           <div className="flex flex-col gap-4">
             <div className='flex justify-between items-center'>
-                <div className='flex flex-col'>
-                    <span className="text-red-400 font-medium">Delete Account Permanently</span>
-                    <span className="text-sm text-red-500/70">This action is irreversible and will erase all data.</span>
-                </div>
-                <button
-                    className="px-6 py-2 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 transition text-sm disabled:opacity-50"
-                    onClick={() => setShowDelete(s => !s)}
-                    type="button"
-                    disabled={saving}
-                >
-                    {showDelete ? 'Cancel' : 'Delete Account'}
-                </button>
+              <div className='flex flex-col'>
+                <span className="text-red-400 font-medium">Delete Account Permanently</span>
+                <span className="text-sm text-red-500/70">This action is irreversible and will erase all data.</span>
+              </div>
+              <button
+                className="px-6 py-2 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 transition text-sm disabled:opacity-50"
+                onClick={() => setShowDelete(s => !s)}
+                type="button"
+                disabled={saving}
+              >
+                {showDelete ? 'Cancel' : 'Delete Account'}
+              </button>
             </div>
             
             {/* Inline Confirmation UI */}
@@ -407,15 +411,15 @@ export default function SettingsPage() {
 
         {/* General message (for freelancer toggle/general saving) */}
         {message && (
-            <div 
-                className={`mt-6 text-center text-sm font-medium w-full p-3 rounded-xl ${
-                    message.includes('Failed') ? 'bg-red-900/40 text-red-300 border border-red-700' 
-                    : message.includes('enabled') || message.includes('disabled') || message.includes('deleted') ? 'bg-green-900/40 text-green-300 border border-green-700'
-                    : 'bg-indigo-900/40 text-indigo-300 border border-indigo-700'
-                }`}
-            >
-              {message}
-            </div>
+          <div 
+            className={`mt-6 text-center text-sm font-medium w-full p-3 rounded-xl ${
+              message.includes('Failed') ? 'bg-red-900/40 text-red-300 border border-red-700' 
+              : message.includes('enabled') || message.includes('disabled') || message.includes('deleted') ? 'bg-green-900/40 text-green-300 border border-green-700'
+              : 'bg-indigo-900/40 text-indigo-300 border border-indigo-700'
+            }`}
+          >
+            {message}
+          </div>
         )}
       </section>
     </main>

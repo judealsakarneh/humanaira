@@ -1,8 +1,16 @@
 'use client'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createSupabaseBrowser } from '../../../api/lib/supabaseBrowser'
+
+type Seller = {
+  id: string
+  full_name?: string | null
+  avatar_url?: string | null
+  bio?: string | null
+  email?: string | null
+}
 
 export default function GigDetailsPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -10,43 +18,102 @@ export default function GigDetailsPage() {
   const [gig, setGig] = useState<any>(null)
   const [pkgs, setPkgs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [seller, setSeller] = useState<any>(null)
+  const [seller, setSeller] = useState<Seller | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createSupabaseBrowser()
     async function fetchGig() {
-      const { data, error } = await supabase
-        .from('gigs')
-        .select('*')
-        .eq('slug', slug)
-        .single()
-      if (!error && data) {
+      setLoading(true)
+      setErrorMsg('')
+      try {
+        const { data, error } = await supabase
+          .from('gigs')
+          .select('*')
+          .eq('slug', slug)
+          .single()
+
+        if (error || !data) {
+          setErrorMsg('Gig not found')
+          setGig(null)
+          setSeller(null)
+          setPkgs([])
+          setSelectedImage(null)
+          setLoading(false)
+          return
+        }
+
         setGig(data)
-        setSelectedImage(data.cover_image_url || (data.media_urls && data.media_urls[0]) || null)
-        const { data: pkgsData } = await supabase
+
+        // Build media list with cover first (cover is excluded from media_urls in edit flow)
+        const rawList: string[] = [
+          ...(data.cover_image_url ? [data.cover_image_url] : []),
+          ...(Array.isArray(data.media_urls) ? data.media_urls : []),
+        ]
+        const seen = new Set<string>()
+        const mediaList = rawList.filter(u => {
+          if (!u || seen.has(u)) return false
+          seen.add(u)
+          return true
+        })
+
+        setSelectedImage(mediaList[0] || null)
+
+        // Fetch packages in parallel
+        const pkgsPromise = supabase
           .from('gig_packages')
           .select('*')
           .eq('gig_id', data.id)
           .order('tier', { ascending: true })
-        setPkgs(pkgsData || [])
-        // Fetch seller info
+
+        // Fetch seller (try users table, then profiles as fallback)
+        let sellerData: Seller | null = null
         if (data.seller_id) {
-          const { data: sellerData } = await supabase
+          const { data: s1 } = await supabase
             .from('users')
             .select('id, full_name, avatar_url, bio, email')
             .eq('id', data.seller_id)
             .single()
-          setSeller(sellerData)
+
+          if (s1) {
+            sellerData = s1 as Seller
+          } else {
+            const { data: s2 } = await supabase
+              .from('profiles')
+              .select('id, full_name, avatar_url, bio, email')
+              .eq('id', data.seller_id)
+              .single()
+            if (s2) sellerData = s2 as Seller
+          }
         }
-      } else {
-        setErrorMsg('Gig not found')
+
+        const [{ data: pkgsData }] = await Promise.all([pkgsPromise])
+        setPkgs(pkgsData || [])
+        setSeller(sellerData)
+      } catch (e) {
+        setErrorMsg('Failed to load gig')
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     if (slug) fetchGig()
   }, [slug])
+
+  // Build media list for gallery (cover + gallery)
+  const mediaList = useMemo(() => {
+    if (!gig) return []
+    const rawList: string[] = [
+      ...(gig.cover_image_url ? [gig.cover_image_url] : []),
+      ...(Array.isArray(gig.media_urls) ? gig.media_urls : []),
+    ]
+    const seen = new Set<string>()
+    return rawList.filter(u => {
+      if (!u || seen.has(u)) return false
+      seen.add(u)
+      return true
+    })
+  }, [gig])
 
   // Get minimum price from packages or fallback to gig.price_cents
   const minPrice = pkgs.length > 0
@@ -98,7 +165,7 @@ export default function GigDetailsPage() {
             </div>
 
             {/* Image Gallery */}
-            {(gig.cover_image_url || (gig.media_urls && gig.media_urls.length > 0)) && (
+            {mediaList.length > 0 && (
               <div className="mb-8">
                 <div className="w-full flex flex-col items-center">
                   {selectedImage && (
@@ -118,7 +185,7 @@ export default function GigDetailsPage() {
                   )}
                   {/* Thumbnails */}
                   <div className="flex gap-2 flex-wrap justify-center">
-                    {gig.media_urls && gig.media_urls.map((url: string, idx: number) => (
+                    {mediaList.map((url: string, idx: number) =>
                       url.match(/\.(mp4|webm|ogg)$/i) ? (
                         <video
                           key={idx}
@@ -135,7 +202,7 @@ export default function GigDetailsPage() {
                           onClick={() => setSelectedImage(url)}
                         />
                       )
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>
@@ -152,7 +219,7 @@ export default function GigDetailsPage() {
               <div className="mb-8">
                 <h2 className="text-2xl font-semibold mb-2 text-blue-300">Packages</h2>
                 <div className="grid md:grid-cols-3 gap-4">
-                  {pkgs.map((pkg, idx) => (
+                  {pkgs.map((pkg) => (
                     <div key={pkg.tier} className="bg-[#181a23] border border-blue-900 rounded-xl p-5 flex flex-col gap-2 shadow">
                       <div className="font-semibold mb-1 text-blue-200">{pkg.tier}</div>
                       <div className="text-blue-400 font-bold text-xl mb-1">${(pkg.price_cents / 100).toFixed(2)}</div>
@@ -181,12 +248,12 @@ export default function GigDetailsPage() {
                   {seller?.avatar_url ? (
                     <img
                       src={seller.avatar_url}
-                      alt={seller.full_name}
+                      alt={seller.full_name || 'Freelancer'}
                       className="w-24 h-24 rounded-full object-cover mb-3 border-2 border-blue-900"
                     />
                   ) : (
                     <div className="w-24 h-24 rounded-full bg-blue-900 flex items-center justify-center text-3xl text-blue-200 mb-3">
-                      <span>👤</span>
+                      <span>{(seller?.full_name || 'F').charAt(0).toUpperCase()}</span>
                     </div>
                   )}
                   <div className="font-bold text-lg text-blue-300 mb-1">{seller?.full_name || 'Freelancer'}</div>
@@ -195,6 +262,9 @@ export default function GigDetailsPage() {
                   )}
                   {seller?.email && (
                     <div className="text-blue-200 text-sm">{seller.email}</div>
+                  )}
+                  {!seller && (
+                    <div className="text-blue-300 text-sm">Seller information unavailable</div>
                   )}
                 </div>
               </div>
