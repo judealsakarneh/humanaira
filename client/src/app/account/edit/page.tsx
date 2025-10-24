@@ -5,22 +5,39 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
 
-// Initialize Supabase instance
+// Initialize Supabase instance (browser)
 const supabase = createSupabaseBrowser()
 
 const HEADER_HEIGHT = 64
 
 // --- Inline SVG Icons (Lucide-style) ---
-const BoldIcon = (props: any) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 12H6"/><path d="M15.4 4c-3.1 0-5.4 1.4-5.4 4.5s2.3 4.5 5.4 4.5c.8 0 1.5-.2 2-.5"/><path d="M15.4 12c-3.1 0-5.4 1.4-5.4 4.5s2.3 4.5 5.4 4.5c.8 0 1.5-.2 2-.5"/></svg>);
-const ItalicIcon = (props: any) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></svg>);
-const UnderlineIcon = (props: any) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"/><line x1="4" x2="20" y1="21" y2="21"/></svg>);
-const ListIcon = (props: any) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>);
-const ListOrderedIcon = (props: any) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="10" x2="21" y1="6" y2="6"/><line x1="10" x2="21" y1="12" y2="12"/><line x1="10" x2="21" y1="18" y2="18"/><path d="M4 6h1a2 2 0 0 0 0-4H4v4zm1 6h1a2 2 0 0 0 0-4H4v4zm-1 6h1a2 2 0 0 0 0-4H4v4z"/></svg>);
-const LinkIcon = (props: any) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>);
-const CameraIcon = (props: any) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 10L4 8L16 8L18 10Z"/><circle cx="12" cy="13" r="3"/><path d="M22 17c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V7c0-1.1.9-2 2-2h3l2-2h6l2 2h3c1.1 0 2 .9 2 2v10z"/></svg>);
-const SaveIcon = (props: any) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>);
-const ArrowLeftIcon = (props: any) => (<svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>);
-
+const BoldIcon = (props: any) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 12H6"/><path d="M15.4 4c-3.1 0-5.4 1.4-5.4 4.5s2.3 4.5 5.4 4.5c.8 0 1.5-.2 2-.5"/><path d="M15.4 12c-3.1 0-5.4 1.4-5.4 4.5s2.3 4.5 5.4 4.5c.8 0 1.5-.2 2-.5"/></svg>
+)
+const ItalicIcon = (props: any) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></svg>
+)
+const UnderlineIcon = (props: any) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"/><line x1="4" x2="20" y1="21" y2="21"/></svg>
+)
+const ListIcon = (props: any) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+)
+const ListOrderedIcon = (props: any) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="10" x2="21" y1="6" y2="6"/><line x1="10" x2="21" y1="12" y2="12"/><line x1="10" x2="21" y1="18" y2="18"/><path d="M4 6h1a2 2 0 0 0 0-4H4v4zm1 6h1a2 2 0 0 0 0-4H4v4zm-1 6h1a2 2 0 0 0 0-4H4v4z"/></svg>
+)
+const LinkIcon = (props: any) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+)
+const CameraIcon = (props: any) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 10L4 8L16 8L18 10Z"/><circle cx="12" cy="13" r="3"/><path d="M22 17c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V7c0-1.1.9-2 2-2h3l2-2h6l2 2h3c1.1 0 2 .9 2 2v10z"/></svg>
+)
+const SaveIcon = (props: any) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+)
+const ArrowLeftIcon = (props: any) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+)
 
 const toolbarActions = [
   { label: 'Bold', command: 'bold', icon: <BoldIcon /> },
@@ -31,7 +48,7 @@ const toolbarActions = [
   { label: 'Link', command: 'createLink', icon: <LinkIcon /> },
 ]
 
-export default function EditProfilePage() {
+export default function Page() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
@@ -50,21 +67,21 @@ export default function EditProfilePage() {
     async function fetchUser() {
       setLoading(true)
       const { data: { user }, error: userError } = await supabase.auth.getUser()
-      
+
       if (userError || !user) {
         setLoading(false)
         setMessage('You must be logged in to edit your profile.')
         return
       }
-      
+
       setUser(user)
-      
+
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single()
-        
+
       if (profileError || !profileData) {
         setMessage('Could not load your profile.')
       } else {
@@ -82,14 +99,12 @@ export default function EditProfilePage() {
   // --- Rich Text Editor Logic ---
   function handleToolbarAction(command: string) {
     if (command === 'createLink') {
-      // Use a custom modal replacement instead of browser prompt (best practice, but using prompt for simplicity here)
       const url = prompt('Enter the link URL:')
       if (url) document.execCommand(command, false, url)
     } else {
       document.execCommand(command, false, undefined)
     }
-    // Restore focus to the editor after action
-    bioRef.current?.focus();
+    bioRef.current?.focus()
   }
 
   function handleBioInput() {
@@ -108,32 +123,29 @@ export default function EditProfilePage() {
     const file = e.target.files?.[0]
     if (!file || !user) return
 
-    // Simple file size check (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
       setMessage('File size must be less than 5MB.')
-      return;
+      return
     }
-    
+
     setSaving(true)
     setMessage('Uploading avatar...')
-    
+
     const fileExt = file.name.split('.').pop()
     const filePath = `${user.id}/avatar.${fileExt}`
-    
-    // Upload/Upsert file
+
     const { error: uploadError } = await supabase.storage
       .from('avatars')
       .upload(filePath, file, { upsert: true, cacheControl: '3600' })
-      
+
     if (uploadError) {
       setMessage('Failed to upload avatar: ' + uploadError.message)
       setSaving(false)
       return
     }
-    
-    // Get public URL
+
     const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
-    
+
     setAvatarUrl(urlData.publicUrl)
     setMessage('Avatar uploaded. Click "Save Changes" to update your profile.')
     setSaving(false)
@@ -143,26 +155,25 @@ export default function EditProfilePage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     if (!user || saving) return
-    
+
     setSaving(true)
     setMessage('Saving profile...')
-    
+
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
         username,
         avatar_url: avatarUrl,
-        bio, // bio contains the HTML content from the rich text editor
+        bio,
       })
       .eq('id', user.id)
-      
+
     setSaving(false)
-    
+
     if (updateError) {
       setMessage('Failed to update profile: ' + updateError.message)
     } else {
       setMessage('Profile successfully updated!')
-      // Redirect back to account page after a short delay
       setTimeout(() => {
         setMessage('')
         router.push('/account')
@@ -174,7 +185,7 @@ export default function EditProfilePage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white p-4">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent border-solid rounded-full animate-spin mb-4"></div>
+        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent border-solid rounded-full animate-spin mb-4" />
         <div className="text-xl font-medium text-indigo-400">Fetching profile data...</div>
       </div>
     )
@@ -204,22 +215,17 @@ export default function EditProfilePage() {
       </div>
 
       <section className="relative z-10 w-full max-w-3xl bg-slate-900/90 backdrop-blur-sm rounded-2xl shadow-2xl shadow-black/50 border border-slate-800 p-6 sm:p-10">
-        
         {/* Header with Back Button */}
         <div className="flex items-center mb-10">
-          <Link
-            href="/account"
-            className="flex items-center text-indigo-400 hover:text-indigo-300 transition"
-          >
+          <Link href="/account" className="flex items-center text-indigo-400 hover:text-indigo-300 transition">
             <ArrowLeftIcon className="w-5 h-5 mr-2" />
             <span className="text-sm font-semibold">Back to Account</span>
           </Link>
           <h1 className="flex-1 text-3xl font-extrabold text-white text-center">Edit Profile</h1>
-          <div className="w-[140px] hidden sm:block"></div> {/* Spacer */}
+          <div className="w-[140px] hidden sm:block" />
         </div>
-        
+
         <form onSubmit={handleSave} className="flex flex-col gap-8">
-          
           {/* --- Avatar Section --- */}
           <div className="flex flex-col items-center gap-4 border border-slate-800 p-6 rounded-xl bg-slate-800/30">
             <h2 className="text-xl font-semibold text-white">Profile Photo</h2>
@@ -251,7 +257,6 @@ export default function EditProfilePage() {
 
           {/* --- Details Section (Username & Email) --- */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
             {/* Username */}
             <div>
               <label className="block text-slate-300 font-medium mb-1" htmlFor="username">
@@ -268,7 +273,7 @@ export default function EditProfilePage() {
                 disabled={saving}
               />
             </div>
-            
+
             {/* Email (read-only) */}
             <div>
               <label className="block text-slate-300 font-medium mb-1" htmlFor="email">
@@ -284,7 +289,7 @@ export default function EditProfilePage() {
               />
             </div>
           </div>
-          
+
           {/* --- Bio (Rich Text Editor) --- */}
           <div>
             <label className="block text-slate-300 font-medium mb-2" htmlFor="bio-editor">
@@ -299,7 +304,7 @@ export default function EditProfilePage() {
                   title={action.label}
                   tabIndex={-1}
                   onMouseDown={e => {
-                    e.preventDefault() // Prevents focus loss from contentEditable
+                    e.preventDefault()
                     handleToolbarAction(action.command)
                   }}
                   disabled={saving}
@@ -308,7 +313,7 @@ export default function EditProfilePage() {
                 </button>
               ))}
             </div>
-            
+
             <div
               id="bio-editor"
               ref={bioRef}
@@ -324,7 +329,7 @@ export default function EditProfilePage() {
             <style jsx global>{`
               [contenteditable]:empty:before {
                 content: attr(data-placeholder);
-                color: #64748b; /* slate-500 */
+                color: #64748b;
                 pointer-events: none;
                 display: block;
               }
@@ -333,13 +338,13 @@ export default function EditProfilePage() {
               }
             `}</style>
           </div>
-          
+
           {/* --- Message and Save Button --- */}
           <div className="flex flex-col items-end gap-4 mt-4">
             {message && (
-              <div 
+              <div
                 className={`text-sm font-medium w-full text-center p-3 rounded-xl ${
-                  message.includes('Failed') ? 'bg-red-900/40 text-red-300 border border-red-700' 
+                  message.includes('Failed') ? 'bg-red-900/40 text-red-300 border border-red-700'
                   : message.includes('updated') ? 'bg-green-900/40 text-green-300 border border-green-700'
                   : 'bg-indigo-900/40 text-indigo-300 border border-indigo-700'
                 }`}
@@ -347,7 +352,7 @@ export default function EditProfilePage() {
                 {message}
               </div>
             )}
-            
+
             <button
               type="submit"
               className="flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-indigo-600 text-white font-bold text-lg shadow-lg shadow-indigo-900/50 hover:bg-indigo-500 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
