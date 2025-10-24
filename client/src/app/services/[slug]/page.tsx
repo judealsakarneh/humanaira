@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
 
-// --- Avatar Component (Modern theme) ---
+/* ---------------- Avatar ---------------- */
 function Avatar({
   email,
   name,
@@ -18,22 +18,20 @@ function Avatar({
     'w-24 h-24 rounded-full object-cover border-4 border-[#3B82F6] ring-4 ring-[#151C30] bg-[#151C30]'
   const placeholderClasses =
     'w-24 h-24 rounded-full bg-[#3B82F6]/20 flex items-center justify-center text-4xl text-[#3B82F6] font-extrabold border-4 border-[#3B82F6]/50 ring-4 ring-[#151C30] hover:ring-[#3B82F6]'
-
   const hash = email ? String(email.length % 100) : ''
-  const fallbackGravatar = email
-    ? `https://www.gravatar.com/avatar/${hash}?d=identicon&s=96`
-    : null
+  const fallbackGravatar = email ? `https://www.gravatar.com/avatar/${hash}?d=identicon&s=96` : null
   const src = avatarUrl || fallbackGravatar
 
   if (src) {
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
         alt={name || 'Seller'}
         className={baseClasses}
         style={{ minWidth: 96, minHeight: 96 }}
         onError={(e) => {
-          (e.currentTarget as HTMLImageElement).src =
+          ;(e.currentTarget as HTMLImageElement).src =
             'https://placehold.co/96x96/151C30/94a3b8?text=?'
         }}
       />
@@ -47,20 +45,14 @@ function Avatar({
   )
 }
 
-// --- Media Carousel (Modern theme) ---
+/* ---------------- MediaCarousel ---------------- */
 function MediaCarousel({ images }: { images: string[] }) {
   const [index, setIndex] = useState(0)
   const startX = useRef<number | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
 
-  const prev = useCallback(
-    () => setIndex((i) => (i <= 0 ? images.length - 1 : i - 1)),
-    [images.length]
-  )
-  const next = useCallback(
-    () => setIndex((i) => (i >= images.length - 1 ? 0 : i + 1)),
-    [images.length]
-  )
+  const prev = useCallback(() => setIndex((i) => (i <= 0 ? images.length - 1 : i - 1)), [images.length])
+  const next = useCallback(() => setIndex((i) => (i >= images.length - 1 ? 0 : i + 1)), [images.length])
 
   // Touch handlers
   const onTouchStart = (e: React.TouchEvent) => {
@@ -93,7 +85,6 @@ function MediaCarousel({ images }: { images: string[] }) {
     if (!el) return
     let mouseStart: number | null = null
     let dragging = false
-
     const onMouseDown = (ev: MouseEvent) => {
       mouseStart = ev.clientX
       dragging = true
@@ -112,10 +103,8 @@ function MediaCarousel({ images }: { images: string[] }) {
       dragging = false
       mouseStart = null
     }
-
     el.addEventListener('mousedown', onMouseDown)
     window.addEventListener('mouseup', onMouseUp)
-
     return () => {
       el.removeEventListener('mousedown', onMouseDown)
       window.removeEventListener('mouseup', onMouseUp)
@@ -141,14 +130,7 @@ function MediaCarousel({ images }: { images: string[] }) {
               className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white rounded-full p-2.5 z-10 text-xl transition-all shadow-lg"
               style={{ minWidth: 40, minHeight: 40 }}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
@@ -158,14 +140,7 @@ function MediaCarousel({ images }: { images: string[] }) {
               className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white rounded-full p-2.5 z-10 text-xl transition-all shadow-lg"
               style={{ minWidth: 40, minHeight: 40 }}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>
@@ -173,6 +148,7 @@ function MediaCarousel({ images }: { images: string[] }) {
         )}
 
         <div className="flex transition-transform duration-300 w-full items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={images[index]}
             alt={`Media ${index + 1}`}
@@ -190,9 +166,7 @@ function MediaCarousel({ images }: { images: string[] }) {
             <button
               key={i}
               onClick={() => setIndex(i)}
-              className={`w-2.5 h-2.5 rounded-full transition ${
-                i === index ? 'bg-white shadow-md' : 'bg-white/40'
-              }`}
+              className={`w-2.5 h-2.5 rounded-full transition ${i === index ? 'bg-white shadow-md' : 'bg-white/40'}`}
               aria-label={`Go to slide ${i + 1}`}
             />
           ))}
@@ -204,20 +178,16 @@ function MediaCarousel({ images }: { images: string[] }) {
           <button
             key={i}
             onClick={() => setIndex(i)}
-            className={`flex-shrink-0 rounded-lg overflow-hidden transition-all duration-300 ${
-              i === index
-                ? 'ring-2 ring-[#3B82F6] ring-offset-2 ring-offset-[#080E1B]'
-                : 'opacity-70 hover:opacity-100'
-            }`}
+            className={`flex-shrink-0 rounded-lg overflow-hidden transition-all duration-300 ${i === index ? 'ring-2 ring-[#3B82F6] ring-offset-2 ring-offset-[#080E1B]' : 'opacity-70 hover:opacity-100'}`}
             style={{ width: 96, height: 64 }}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={src}
               className="w-full h-full object-cover"
               alt={`Thumb ${i + 1}`}
               onError={(e) => {
-                ;(e.currentTarget as HTMLImageElement).src =
-                  'https://placehold.co/96x64/151C30/94a3b8?text=X'
+                ;(e.currentTarget as HTMLImageElement).src = 'https://placehold.co/96x64/151C30/94a3b8?text=X'
               }}
             />
           </button>
@@ -227,7 +197,23 @@ function MediaCarousel({ images }: { images: string[] }) {
   )
 }
 
-// --- Main Service Details Page Component (Modern theme + Supabase backend) ---
+/* ---------------- View tracking helper ---------------- */
+const getOrCreateSessionId = () => {
+  try {
+    const key = 'humanaira_sid'
+    const exist = typeof window !== 'undefined' ? window.localStorage.getItem(key) : null
+    if (exist) return exist
+    const sid =
+      (globalThis.crypto?.randomUUID?.() as string | undefined) ||
+      `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    if (typeof window !== 'undefined') window.localStorage.setItem(key, sid)
+    return sid
+  } catch {
+    return 'anon'
+  }
+}
+
+/* ---------------- ServiceDetailsPage ---------------- */
 export default function ServiceDetailsPage() {
   const params = useParams<{ slug: string }>()
   const slug = (Array.isArray(params?.slug) ? params.slug[0] : params?.slug) as string | undefined
@@ -246,12 +232,12 @@ export default function ServiceDetailsPage() {
       setError(null)
       try {
         const supabase = createSupabaseBrowser()
-
         const { data: gigData, error: gigError } = await supabase
           .from('gigs')
           .select('*')
           .eq('slug', slug)
-          .single()
+          .limit(1)
+          .maybeSingle()
 
         if (gigError || !gigData) {
           setError('Service not found or an error occurred.')
@@ -281,42 +267,105 @@ export default function ServiceDetailsPage() {
     if (slug) fetchGig()
   }, [slug])
 
-  // Fetch Seller (profiles first for username/display_name, then users fallback)
+  // Record a unique view after the gig is loaded
+  useEffect(() => {
+    if (!gig?.id) return
+    ;(async () => {
+      const supabase = createSupabaseBrowser()
+      const { data: authRes } = await supabase.auth.getUser()
+      const viewerId = authRes?.user?.id ?? null
+      const sessionId = getOrCreateSessionId()
+      const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : null
+
+      // Fire-and-forget; safe on duplicates (function dedupes)
+      await supabase.rpc('record_gig_view', {
+        p_gig_id: gig.id,
+        p_viewer_id: viewerId,
+        p_session_id: sessionId,
+        p_user_agent: userAgent,
+      })
+    })()
+  }, [gig?.id])
+
+  // Fetch Seller (replicate your ProfilePage logic)
   useEffect(() => {
     async function fetchSeller() {
       if (!gig?.seller_id) {
         setSeller(null)
         return
       }
+
       try {
         const supabase = createSupabaseBrowser()
+        const sellerKey = String(gig.seller_id).trim()
 
-        // Prefer profiles to get username/display_name
-        const { data: profileRow } = await supabase
+        // Same columns as your ProfilePage
+        const selectCols =
+          'id, username, display_name, full_name, avatar_url, bio, email, created_at, user_id, auth_user_id'
+
+        // 1) Try profiles by id/username/(user_id/auth_user_id)
+        const { data: profile } = await supabase
           .from('profiles')
-          .select('id, username, display_name, full_name, avatar_url, bio, email, user_id, auth_user_id')
-          .eq('id', gig.seller_id)
+          .select(selectCols)
+          .or(
+            [
+              `id.eq.${sellerKey}`,
+              `username.eq.${sellerKey}`,
+              `user_id.eq.${sellerKey}`,
+              `auth_user_id.eq.${sellerKey}`,
+            ].join(',')
+          )
+          .limit(1)
           .maybeSingle()
 
-        if (profileRow) {
-          setSeller(profileRow)
+        if (profile) {
+          const normalized = {
+            id: String(profile.id ?? profile.user_id ?? profile.auth_user_id ?? sellerKey),
+            display_name: profile.display_name ?? null,
+            username: profile.username ?? null,
+            full_name: profile.full_name ?? null,
+            avatar_url: profile.avatar_url ?? null,
+            bio: profile.bio ?? null,
+            email: profile.email ?? null,
+            created_at: profile.created_at ?? null,
+            user_id: (profile as any).user_id ?? null,
+            auth_user_id: (profile as any).auth_user_id ?? null,
+          }
+          setSeller(normalized)
           return
         }
 
-        // Fallback to users
-        const { data: userRow } = await supabase
-          .from('users')
-          .select('id, full_name, avatar_url, bio, email')
-          .eq('id', gig.seller_id)
-          .maybeSingle()
+        // 2) Optional fallback like your ProfilePage (profiles_view) if you have it
+        const { data: viewRows } = await supabase
+          .from('profiles_view')
+          .select('id, display_name, username, full_name, avatar_url, email, created_at')
+          .in('id', [sellerKey])
+          .limit(1)
 
-        setSeller(userRow || null)
+        if (viewRows && viewRows.length) {
+          const a = viewRows[0] as any
+          setSeller({
+            id: String(a.id),
+            display_name: a.display_name ?? null,
+            username: a.username ?? null,
+            full_name: a.full_name ?? null,
+            avatar_url: a.avatar_url ?? null,
+            bio: null,
+            email: a.email ?? null,
+            created_at: a.created_at ?? null,
+          })
+          return
+        }
+
+        // If nothing resolves, keep null to avoid showing raw id
+        setSeller(null)
       } catch {
         setSeller(null)
       }
     }
+
     if (gig?.seller_id) fetchSeller()
-  }, [gig])
+  }, [gig?.seller_id])
 
   // Helpers and derived values
   const formatPrice = useCallback((cents: number) => `$${(cents / 100).toFixed(2)}`, [])
@@ -324,15 +373,13 @@ export default function ServiceDetailsPage() {
     if (!packages || packages.length === 0) return null
     return packages.reduce((min, p) => (p.price_cents < min.price_cents ? p : min), packages[0])
   }, [packages])
-
   const startingCents = useMemo(() => {
     if (cheapestPackage) return cheapestPackage.price_cents
     return gig?.price_cents ?? 0
   }, [cheapestPackage, gig])
-
   const startingPrice = useMemo(() => formatPrice(startingCents), [startingCents, formatPrice])
 
-  // Display name prefers display_name -> username -> full_name -> email prefix -> fallback
+  // Display name order mirrors your ProfilePage approach
   const displayName = useMemo(() => {
     if (!seller) return 'Freelancer'
     return (
@@ -345,10 +392,9 @@ export default function ServiceDetailsPage() {
   }, [seller])
 
   const profileHref = useMemo(() => {
-    if (seller?.username) return `/profile/${encodeURIComponent(seller.username)}`
-    if (gig?.seller_id) return `/profile/${encodeURIComponent(gig.seller_id)}`
-    return '#'
-  }, [seller, gig])
+    const id = seller?.id ?? gig?.seller_id
+    return id ? `/profile/${encodeURIComponent(String(id))}` : '#'
+  }, [seller?.id, gig?.seller_id])
 
   const handle = useMemo(() => (seller?.username ? `@${seller.username}` : null), [seller])
 
@@ -365,7 +411,7 @@ export default function ServiceDetailsPage() {
     return images
   }, [gig, videoRegex])
 
-  // --- Render States ---
+  /* ---------------- Render States ---------------- */
   if (loading) {
     return (
       <main className="bg-[#080E1B] min-h-screen font-sans flex items-center justify-center p-8">
@@ -385,7 +431,7 @@ export default function ServiceDetailsPage() {
     )
   }
 
-  // --- Main UI (Modern theme) ---
+  /* ---------------- Main UI ---------------- */
   return (
     <main className="bg-[#080E1B] min-h-screen font-sans text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
@@ -399,17 +445,13 @@ export default function ServiceDetailsPage() {
             Browse Services
           </Link>
           <span>/</span>
-          <span className="text-[#3B82F6] font-semibold truncate max-w-[200px] sm:max-w-none">
-            {gig.title}
-          </span>
+          <span className="text-[#3B82F6] font-semibold truncate max-w-[200px] sm:max-w-none">{gig.title}</span>
         </nav>
 
         <div className="flex flex-col lg:flex-row gap-10">
           {/* Left: Gig Details & Description */}
           <div className="flex-1 min-w-0">
-            <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-2 tracking-tight leading-tight">
-              {gig.title}
-            </h1>
+            <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-2 tracking-tight leading-tight">{gig.title}</h1>
 
             {/* Seller line with clickable username */}
             <div className="mb-6 text-sm text-slate-400">
@@ -428,8 +470,7 @@ export default function ServiceDetailsPage() {
                 <div className="flex gap-2 flex-wrap">
                   {gig.tags.map((tag: string, i: number) => (
                     <span key={i} className="text-slate-400 font-light">
-                      <span className="text-slate-600">#</span>
-                      {tag}
+                      <span className="text-slate-600">#</span> {tag}
                     </span>
                   ))}
                 </div>
@@ -459,9 +500,7 @@ export default function ServiceDetailsPage() {
                       key={pkg.tier}
                       onClick={() => setActivePackage(pkg)}
                       className={`flex-1 min-w-[100px] text-center px-4 py-2.5 text-sm md:text-base font-semibold transition rounded-lg ${
-                        activePackage?.tier === pkg.tier
-                          ? 'bg-[#3B82F6] text-white shadow-lg shadow-[#3B82F6]/40'
-                          : 'text-slate-400 hover:text-white'
+                        activePackage?.tier === pkg.tier ? 'bg-[#3B82F6] text-white shadow-lg shadow-[#3B82F6]/40' : 'text-slate-400 hover:text-white'
                       }`}
                     >
                       {pkg.tier}
@@ -487,8 +526,7 @@ export default function ServiceDetailsPage() {
                       <div>
                         <div className="text-sm font-medium text-slate-500 mb-1">Delivery</div>
                         <div className="text-xl font-bold text-white">
-                          {activePackage.delivery_days} day
-                          {activePackage.delivery_days > 1 ? 's' : ''}
+                          {activePackage.delivery_days} day{activePackage.delivery_days > 1 ? 's' : ''}
                         </div>
                       </div>
                       <div>
@@ -501,15 +539,8 @@ export default function ServiceDetailsPage() {
                       <ul className="space-y-3 text-slate-200 text-sm">
                         {activePackage.features.map((feature: string, idx: number) => (
                           <li key={idx} className="flex items-start gap-3">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5 text-[#3B82F6] flex-shrink-0 mt-0.5"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                fill="currentColor"
-                                d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
-                              />
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#3B82F6] flex-shrink-0 mt-0.5" viewBox="0 0 24 24">
+                              <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                             </svg>
                             {feature}
                           </li>
@@ -557,9 +588,11 @@ export default function ServiceDetailsPage() {
                     <div className="font-bold text-xl text-white mt-3 group-hover:text-[#3B82F6] transition">
                       {displayName}
                     </div>
+
                     {seller?.username && seller.username !== displayName && (
                       <div className="text-[#3B82F6] text-sm font-medium mt-0.5">@{seller.username}</div>
                     )}
+
                     {seller?.bio && <p className="text-slate-400 text-sm mt-2 line-clamp-3">{seller.bio}</p>}
                   </div>
 
@@ -584,8 +617,7 @@ export default function ServiceDetailsPage() {
                 </div>
 
                 <p className="text-slate-400 text-sm mb-6">
-                  Based on the <b>{cheapestPackage?.tier || packages[0]?.tier || 'Base'}</b> package. Select a
-                  higher tier for more features.
+                  Based on the <b>{cheapestPackage?.tier || packages[0]?.tier || 'Base'}</b> package. Select a higher tier for more features.
                 </p>
 
                 <button

@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
@@ -67,6 +67,7 @@ type GigRow = {
   category?: string | null
   sales?: number | null
   seller_id?: string | null
+  price_cents?: number | null // fallback if no packages
 }
 
 type PackageRow = {
@@ -105,7 +106,7 @@ export default function ProfilePage() {
         const supabase = createSupabaseBrowser()
 
         // 1) Try profiles by id/username/(user_id/auth_user_id if present)
-        const { data: profile, error: pErr } = await supabase
+        const { data: profile } = await supabase
           .from('profiles')
           .select(
             'id, username, display_name, full_name, avatar_url, bio, email, created_at, user_id, auth_user_id'
@@ -120,10 +121,6 @@ export default function ProfilePage() {
           )
           .limit(1)
           .maybeSingle()
-
-        if (pErr) {
-          // continue; we will use fallbacks
-        }
 
         let resolvedSellerId = sellerKey
         if (profile) {
@@ -155,18 +152,17 @@ export default function ProfilePage() {
             })
         }
 
-        // 2) Load gigs by resolved id (services posted by this seller)
+        // 2) Load gigs by resolved id (include price_cents as fallback when no packages)
         const { data: gigsData } = await supabase
           .from('gigs')
-          .select('id, slug, title, cover_image_url, category, sales, seller_id')
+          .select('id, slug, title, cover_image_url, category, sales, seller_id, price_cents')
           .eq('seller_id', resolvedSellerId)
           .order('created_at', { ascending: false })
 
         const gigsList = (gigsData as GigRow[]) || []
         if (isMounted) setGigs(gigsList)
 
-        // 3a) If we still don't have a name, and gigs exist,
-        // re-fetch the profile by the actual seller_id from the gig
+        // 3a) If we still don't have a name, and gigs exist, re-fetch the profile by the actual seller_id from the gig
         if (isMounted && !hasName(user) && gigsList.length > 0) {
           const ownerId = gigsList[0]?.seller_id
           if (ownerId && ownerId !== resolvedSellerId) {
@@ -181,7 +177,12 @@ export default function ProfilePage() {
 
             if (ownerProfile) {
               const normalized: UserRow = {
-                id: String(ownerProfile.id ?? (ownerProfile as any).user_id ?? (ownerProfile as any).auth_user_id ?? ownerId),
+                id: String(
+                  ownerProfile.id ??
+                    (ownerProfile as any).user_id ??
+                    (ownerProfile as any).auth_user_id ??
+                    ownerId
+                ),
                 display_name: ownerProfile.display_name ?? null,
                 username: ownerProfile.username ?? null,
                 full_name: ownerProfile.full_name ?? null,
@@ -208,13 +209,13 @@ export default function ProfilePage() {
           ].filter(Boolean) as string[]
 
           if (candidateIds.length) {
-            const { data: authRows, error: viewErr } = await supabase
+            const { data: authRows } = await supabase
               .from('profiles_view')
               .select('id, display_name, username, full_name, avatar_url, email, created_at')
               .in('id', candidateIds)
               .limit(1)
 
-            if (!viewErr && authRows && authRows.length) {
+            if (authRows && authRows.length) {
               const a = authRows[0] as any
               const merged: UserRow = {
                 id: String(a.id),
@@ -231,7 +232,8 @@ export default function ProfilePage() {
           }
         }
 
-        // 4) Prices for gigs
+        // 4) Prices for gigs: get min package price per gig. If no packages or RLS blocks them,
+        // we'll fall back to gig.price_cents during render.
         const gigIds = gigsList.map((g) => g.id)
         if (gigIds.length) {
           const { data: pkgs } = await supabase
@@ -241,7 +243,8 @@ export default function ProfilePage() {
 
           if (pkgs && isMounted) {
             const minByGig = (pkgs as PackageRow[]).reduce((acc: Record<string, number>, p) => {
-              acc[p.gig_id] = acc[p.gig_id] == null ? p.price_cents : Math.min(acc[p.gig_id], p.price_cents)
+              acc[p.gig_id] =
+                acc[p.gig_id] == null ? p.price_cents : Math.min(acc[p.gig_id], p.price_cents)
               return acc
             }, {})
             setPrices(minByGig)
@@ -263,10 +266,24 @@ export default function ProfilePage() {
     }
   }, [sellerKey])
 
-  const formatPrice = useMemo(() => (cents?: number) => {
-    if (cents == null) return 'N/A'
-    return `$${(cents / 100).toFixed(2)}`
-  }, [])
+  const formatPrice = useMemo(
+    () => (cents?: number | null) => {
+      if (cents == null) return 'N/A'
+      return `$${(cents / 100).toFixed(2)}`
+    },
+    []
+  )
+
+  // Compute display price per gig: prefer min package price, else fallback to gig.price_cents.
+  const getStartingPriceCents = useCallback(
+    (g: GigRow) => {
+      const p = prices[g.id]
+      if (typeof p === 'number') return p
+      if (typeof g.price_cents === 'number') return g.price_cents
+      return null
+    },
+    [prices]
+  )
 
   const displayName = useMemo(() => {
     if (!user) return 'Freelancer'
@@ -313,19 +330,21 @@ export default function ProfilePage() {
           )}
 
           <div className="relative z-10 flex items-center gap-5">
-            <Avatar
-              email={user.email ?? undefined}
-              name={displayName}
-              avatarUrl={user.avatar_url ?? undefined}
-            />
+            <Avatar email={user.email ?? undefined} name={displayName} avatarUrl={user.avatar_url ?? undefined} />
             <div className="min-w-0">
               <h1 className="text-3xl font-bold text-white">{displayName}</h1>
-              <div className="text-slate-400 text-sm truncate">
+
+              {/* Username bigger and above the email */}
+              {user.username && (
+                <div className="text-sky-400 text-xl font-semibold mt-1">@{user.username}</div>
+              )}
+
+              {/* Email below username */}
+              <div className="text-slate-400 text-sm truncate mt-1">
                 {user.email || `ID: ${user.id}`}
               </div>
-              {user.username && user.username !== displayName && (
-                <div className="text-sky-400 text-base font-medium mt-1">@{user.username}</div>
-              )}
+
+              {/* Bio */}
               {user.bio && <p className="text-slate-300 mt-2">{user.bio}</p>}
             </div>
           </div>
@@ -340,45 +359,48 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {gigs.map((g) => (
-                <Link
-                  key={g.id}
-                  href={`/services/${g.slug}`}
-                  className="group block bg-[#0f172a] rounded-xl border border-[#1e293b] hover:border-sky-700 transition overflow-hidden"
-                >
-                  <div className="aspect-video bg-black flex items-center justify-center">
-                    {g.cover_image_url ? (
-                      <img
-                        src={g.cover_image_url}
-                        alt={g.title}
-                        className="w-full h-full object-cover"
-                        style={{ backgroundColor: '#000' }}
-                        onError={(e) => {
-                          e.currentTarget.onerror = null
-                          e.currentTarget.src =
-                            'https://placehold.co/400x225/3b82f6/ffffff?text=Service'
-                        }}
-                      />
-                    ) : (
-                      <div className="text-slate-500">No image</div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <div className="text-white font-semibold line-clamp-2 group-hover:text-sky-300 transition">
-                      {g.title}
+              {gigs.map((g) => {
+                const cents = getStartingPriceCents(g)
+                return (
+                  <Link
+                    key={g.id}
+                    href={`/services/${g.slug}`}
+                    className="group block bg-[#0f172a] rounded-xl border border-[#1e293b] hover:border-sky-700 transition overflow-hidden"
+                  >
+                    <div className="aspect-video bg-black flex items-center justify-center">
+                      {g.cover_image_url ? (
+                        <img
+                          src={g.cover_image_url}
+                          alt={g.title}
+                          className="w-full h-full object-cover"
+                          style={{ backgroundColor: '#000' }}
+                          onError={(e) => {
+                            e.currentTarget.onerror = null
+                            e.currentTarget.src =
+                              'https://placehold.co/400x225/3b82f6/ffffff?text=Service'
+                          }}
+                        />
+                      ) : (
+                        <div className="text-slate-500">No image</div>
+                      )}
                     </div>
-                    <div className="mt-2 text-sm text-slate-400 flex items-center justify-between">
-                      <span>{g.category || 'General'}</span>
-                      <span className="text-sky-400 font-semibold">
-                        {formatPrice(prices[g.id])}
-                      </span>
+                    <div className="p-4">
+                      <div className="text-white font-semibold line-clamp-2 group-hover:text-sky-300 transition">
+                        {g.title}
+                      </div>
+                      <div className="mt-2 text-sm text-slate-400 flex items-center justify-between">
+                        <span>{g.category || 'General'}</span>
+                        <span className="text-sky-400 font-semibold">
+                          {formatPrice(cents)}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        Completed: <span className="text-sky-300">{g.sales || 0}</span>
+                      </div>
                     </div>
-                    <div className="mt-1 text-xs text-slate-500">
-                      Completed: <span className="text-sky-300">{g.sales || 0}</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                )
+              })}
             </div>
           )}
         </div>

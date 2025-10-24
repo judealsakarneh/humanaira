@@ -11,15 +11,50 @@
       "static/chunks/main-app.js",
       "static/chunks/app/not-found.js"
     ],
-    "/profile/[id]/page": [
+    "/browse/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/profile/[id]/page.js"
+      "static/chunks/app/browse/page.js"
     ],
     "/services/[slug]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/services/[slug]/page.js"
+    ],
+    "/profile/[id]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/profile/[id]/page.js"
+    ],
+    "/account/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/account/page.js"
+    ],
+    "/seller/gigs/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/seller/gigs/page.js"
+    ],
+    "/seller/gigs/[slug]/edit/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/seller/gigs/[slug]/edit/page.js"
+    ],
+    "/seller/gigs/[slug]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/seller/gigs/[slug]/page.js"
+    ],
+    "/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/page.js"
+    ],
+    "/seller/dashboard/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/seller/dashboard/page.js"
     ]
   }
 }

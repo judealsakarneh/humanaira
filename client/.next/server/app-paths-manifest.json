@@ -1,4 +1,8 @@
 {
-  "/profile/[id]/page": "app/profile/[id]/page.js",
-  "/services/[slug]/page": "app/services/[slug]/page.js"
+  "/seller/gigs/[slug]/edit/page": "app/seller/gigs/[slug]/edit/page.js",
+  "/seller/gigs/[slug]/page": "app/seller/gigs/[slug]/page.js",
+  "/services/[slug]/page": "app/services/[slug]/page.js",
+  "/page": "app/page.js",
+  "/seller/dashboard/page": "app/seller/dashboard/page.js",
+  "/browse/page": "app/browse/page.js"
 }

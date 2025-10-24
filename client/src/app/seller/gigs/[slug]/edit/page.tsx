@@ -65,7 +65,7 @@ function ImageManager({
       }
 
       // Ensure there is exactly one cover
-      const hasCover = images.some(i => i.isCover) || newImage.isCover
+      const hasCover = images.some((i) => i.isCover) || newImage.isCover
       const updated = hasCover
         ? [...images, newImage]
         : images.map((img, idx) => ({ ...img, isCover: idx === 0 })).concat(newImage)
@@ -77,13 +77,13 @@ function ImageManager({
 
   const handleAction = useCallback(
     (id: number, action: 'set-cover' | 'move-up' | 'move-down' | 'delete') => {
-      const index = images.findIndex(img => img.id === id)
+      const index = images.findIndex((img) => img.id === id)
       if (index === -1) return
       let updated = [...images]
 
       switch (action) {
         case 'set-cover':
-          updated = updated.map(img => ({ ...img, isCover: img.id === id }))
+          updated = updated.map((img) => ({ ...img, isCover: img.id === id }))
           break
         case 'move-up':
           if (index > 0) {
@@ -112,7 +112,7 @@ function ImageManager({
 
   return (
     <div className="border-t border-slate-700 pt-6 mt-2">
-      <h2 className="text-xl font-semibold text-slate-100 mb-3">Gig Image Gallery</h2>
+      <h2 className="text-xl font-semibold text-slate-100 mb-3">Gig Media</h2>
       <p className="text-sm text-slate-400 mb-4">
         Upload up to 5 images. The one marked as Cover will be the main image on your gig.
       </p>
@@ -123,18 +123,26 @@ function ImageManager({
         </div>
       )}
 
+      {/* Themed upload button + hidden input */}
       <div className="mb-4">
-        <label htmlFor="image-upload" className="block text-sm font-medium text-slate-300 mb-1">
-          Upload New Image
-        </label>
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 text-white font-semibold shadow hover:bg-sky-500 transition"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-white">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          Upload Media
+        </button>
         <input
-          id="image-upload"
           ref={fileInputRef}
           type="file"
           accept="image/*"
           onChange={handleFileUpload}
-          className="w-full text-sm text-slate-300"
+          className="hidden"
         />
+        <div className="text-xs text-slate-500 mt-2">Images only (PNG, JPG, GIF, WEBP, SVG)</div>
       </div>
 
       <div className="space-y-3">
@@ -151,6 +159,7 @@ function ImageManager({
                 className="flex flex-col sm:flex-row items-center p-4 bg-[#181a23] rounded-xl border border-slate-700 shadow"
               >
                 <div className="flex-shrink-0 relative mb-4 sm:mb-0 sm:mr-6">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={img.url}
                     alt={`Gig Image ${index + 1}`}
@@ -253,7 +262,7 @@ export default function EditGigPage() {
         setDescription(data.description || '')
 
         // Category: if stored value isn't in our list, default to first
-        const catValues = new Set(categories.map(c => c.value))
+        const catValues = new Set(categories.map((c) => c.value))
         setCategory(catValues.has(data.category) ? data.category : categories[0].value)
 
         setPrice(((data.price_cents || 0) / 100).toString())
@@ -266,7 +275,7 @@ export default function EditGigPage() {
         const coverUrl: string | undefined = data.cover_image_url || undefined
 
         const imageUrls = mediaUrls.filter(isImageUrl)
-        const nonImageUrls = mediaUrls.filter(u => !isImageUrl(u))
+        const nonImageUrls = mediaUrls.filter((u) => !isImageUrl(u))
         setOtherMediaUrls(nonImageUrls)
 
         // Build unique list of image URLs, ensuring cover is present and first
@@ -275,7 +284,7 @@ export default function EditGigPage() {
 
         let ordered = Array.from(allImageSet)
         if (coverUrl && isImageUrl(coverUrl)) {
-          ordered = [coverUrl, ...ordered.filter(u => u !== coverUrl)]
+          ordered = [coverUrl, ...ordered.filter((u) => u !== coverUrl)]
         }
 
         const initialImages: ManagedImage[] = ordered.map((url, idx) => ({
@@ -306,7 +315,7 @@ export default function EditGigPage() {
       e.preventDefault()
       const newTag = tagInput.trim()
       if (newTag && !tags.includes(newTag) && tags.length < 10) {
-        setTags(prev => [...prev, newTag])
+        setTags((prev) => [...prev, newTag])
         setTagInput('')
       }
     },
@@ -314,7 +323,7 @@ export default function EditGigPage() {
   )
 
   const handleTagRemove = useCallback((tagToRemove: string) => {
-    setTags(prev => prev.filter(t => t !== tagToRemove))
+    setTags((prev) => prev.filter((t) => t !== tagToRemove))
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -355,7 +364,7 @@ export default function EditGigPage() {
       }
 
       // Determine cover and gallery (exclude cover from media_urls to match Post flow)
-      let coverIndex = images.findIndex(i => i.isCover)
+      let coverIndex = images.findIndex((i) => i.isCover)
       if (coverIndex < 0) coverIndex = 0
       const cover_image_url = resolvedUrls[coverIndex]
       const galleryUrls = resolvedUrls.filter((_, idx) => idx !== coverIndex)
@@ -383,7 +392,7 @@ export default function EditGigPage() {
 
       setShowSuccess(true)
       setMessage('Gig updated successfully!')
-      setTimeout(() => router.push(`/seller/gigs/${gig.slug}`), 1400)
+      setTimeout(() => router.push('/seller/gigs'), 1400)
     } catch (err: any) {
       setMessage('Failed to update gig: ' + (err?.message || 'Unknown error'))
     }
@@ -441,9 +450,19 @@ export default function EditGigPage() {
         </div>
 
         <main className="bg-[#171822] rounded-3xl shadow-2xl border border-slate-700 px-8 py-12 pt-32">
-          <Link href={`/seller/gigs/${gig.slug}`} className="text-slate-300 hover:text-slate-200 mb-4 inline-block text-sm">
-            &larr; Back to Gig
-          </Link>
+          {/* Back to Gigs button (themed) */}
+          <div className="mb-5">
+            <Link
+              href="/seller/gigs"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-950 text-blue-200 border border-blue-900 hover:bg-blue-900 hover:text-white transition"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-current">
+                <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Back to Gigs
+            </Link>
+          </div>
+
           <h1 className="text-4xl font-extrabold text-slate-100 mb-2 text-center tracking-tight drop-shadow">
             Edit Gig
           </h1>
@@ -457,7 +476,7 @@ export default function EditGigPage() {
                 type="text"
                 className={inputClasses}
                 value={title}
-                onChange={e => setTitle(e.target.value)}
+                onChange={(e) => setTitle(e.target.value)}
                 required
                 maxLength={80}
                 placeholder="e.g. I will design a modern logo"
@@ -471,7 +490,7 @@ export default function EditGigPage() {
               <textarea
                 className={inputClasses}
                 value={description}
-                onChange={e => setDescription(e.target.value)}
+                onChange={(e) => setDescription(e.target.value)}
                 required
                 rows={5}
                 maxLength={1200}
@@ -487,10 +506,10 @@ export default function EditGigPage() {
                 <select
                   className={`${inputClasses} appearance-none`}
                   value={category}
-                  onChange={e => setCategory(e.target.value)}
+                  onChange={(e) => setCategory(e.target.value)}
                   required
                 >
-                  {categories.map(cat => (
+                  {categories.map((cat) => (
                     <option key={cat.value} value={cat.value}>
                       {cat.label}
                     </option>
@@ -504,7 +523,7 @@ export default function EditGigPage() {
                   min={1}
                   className={inputClasses}
                   value={price}
-                  onChange={e => setPrice(e.target.value)}
+                  onChange={(e) => setPrice(e.target.value)}
                   required
                   placeholder="e.g. 50"
                 />
@@ -521,7 +540,7 @@ export default function EditGigPage() {
                   max={30}
                   className={inputClasses}
                   value={deliveryTime}
-                  onChange={e => setDeliveryTime(e.target.value)}
+                  onChange={(e) => setDeliveryTime(e.target.value)}
                   required
                   placeholder="e.g. 3"
                 />
@@ -531,7 +550,7 @@ export default function EditGigPage() {
                 <select
                   className={`${inputClasses} appearance-none`}
                   value={revisions}
-                  onChange={e => setRevisions(e.target.value)}
+                  onChange={(e) => setRevisions(e.target.value)}
                 >
                   <option value="1">1 Revision</option>
                   <option value="3">3 Revisions</option>
@@ -547,7 +566,7 @@ export default function EditGigPage() {
                 Skills & Tools (Press Enter to add tags)
               </label>
               <div className="flex flex-wrap items-center min-h-12 p-3 rounded-xl bg-[#181a23] border border-slate-700 mb-2">
-                {tags.map(tag => (
+                {tags.map((tag) => (
                   <div key={tag} className={tagBaseClasses}>
                     <span>{tag}</span>
                     <span onClick={() => handleTagRemove(tag)} className={tagRemoveClasses}>
