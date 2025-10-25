@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createClient } from '@supabase/supabase-js'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -23,12 +24,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: 'Server is not configured' }, { status: 500 })
     }
 
-    const ip =
-      (req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '').split(',')[0]?.trim() ||
-      undefined
-
-    // Use service role on the server to bypass RLS safely
+    // Server-side Supabase client using service role
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+    // Capture best-effort IP
+    const ip =
+      (req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '')
+        .split(',')[0]
+        ?.trim() || undefined
 
     // Upsert subscriber (dedupe by email)
     const { error: upsertError } = await supabase
@@ -39,18 +42,22 @@ export async function POST(req: Request) {
       )
 
     if (upsertError) {
-      // If unique constraint violation or similar, we still respond OK
-      // so users don’t get an error when already subscribed.
-      if (!String(upsertError.message).toLowerCase().includes('duplicate')) {
+      const msg = String(upsertError.message || '').toLowerCase()
+      if (!msg.includes('duplicate') && !msg.includes('unique')) {
         return NextResponse.json({ ok: false, error: upsertError.message }, { status: 500 })
       }
+      // duplicates are fine; continue
     }
 
-    // Send a real email via Resend (welcome/confirm)
-    if (!resend || !process.env.RESEND_API_KEY) {
-      // If email provider not configured, still succeed but mention it
-      return NextResponse.json({ ok: true, message: 'Subscribed (email not sent: provider not configured)' })
+    // Only construct Resend if a key is configured
+    const key = process.env.RESEND_API_KEY
+    if (!key) {
+      return NextResponse.json({
+        ok: true,
+        message: 'Subscribed (email not sent: provider not configured)',
+      })
     }
+    const resend = new Resend(key)
 
     const html = `
       <div style="font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #0b1220;">
@@ -66,6 +73,7 @@ export async function POST(req: Request) {
       to: email,
       subject: 'Welcome to Humanaira — AI Services Journal',
       html,
+      bcc: process.env.NEWSLETTER_BCC_EMAIL ? [process.env.NEWSLETTER_BCC_EMAIL] : undefined,
     })
 
     return NextResponse.json({ ok: true })

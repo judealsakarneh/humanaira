@@ -508,7 +508,7 @@ function handleSubscribe(e: React.FormEvent) {
           </form>
 
           {subscribed === 'ok' && (
-            <p className="mt-4 text-cyan-300">Thanks! Check your inbox for a confirmation (simulation).</p>
+            <p className="mt-4 text-cyan-300">Thanks! We will keep you posted.</p>
           )}
           {subscribed === 'err' && (
             <p className="mt-4 text-rose-300">Please enter a valid email.</p>
