@@ -45,11 +45,16 @@ function Avatar({
   )
 }
 
-/* ---------------- MediaCarousel ---------------- */
+/* ---------------- MediaCarousel (mobile-safe) ---------------- */
 function MediaCarousel({ images }: { images: string[] }) {
   const [index, setIndex] = useState(0)
   const startX = useRef<number | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
+
+  // Guard against index > images.length when data changes
+  useEffect(() => {
+    if (index > images.length - 1) setIndex(0)
+  }, [images.length, index])
 
   const prev = useCallback(() => setIndex((i) => (i <= 0 ? images.length - 1 : i - 1)), [images.length])
   const next = useCallback(() => setIndex((i) => (i >= images.length - 1 ? 0 : i + 1)), [images.length])
@@ -117,10 +122,9 @@ function MediaCarousel({ images }: { images: string[] }) {
     <div className="w-full">
       <div
         ref={containerRef}
-        className="relative overflow-hidden rounded-xl bg-black flex items-center justify-center border border-[#151C30]"
+        className="relative overflow-hidden rounded-xl bg-black flex items-center justify-center border border-[#151C30] aspect-[16/9] md:min-h-[360px] min-h-[220px] w-full touch-pan-y"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
-        style={{ minHeight: 360, aspectRatio: '16/9' }}
       >
         {images.length > 1 && (
           <>
@@ -147,17 +151,18 @@ function MediaCarousel({ images }: { images: string[] }) {
           </>
         )}
 
-        <div className="flex transition-transform duration-300 w-full items-center justify-center">
+        {/* Ensure the image never overflows: fill container and contain */}
+        <div className="flex w-full h-full items-center justify-center px-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={images[index]}
             alt={`Media ${index + 1}`}
-            className="max-h-[520px] max-w-full object-contain mx-auto"
-            style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: 520, background: '#000' }}
+            className="block w-full h-full object-contain select-none"
             onError={(e) => {
               ;(e.currentTarget as HTMLImageElement).src =
                 'https://placehold.co/1200x800/151C30/94a3b8?text=Image+Load+Error'
             }}
+            draggable={false}
           />
         </div>
 
@@ -189,6 +194,7 @@ function MediaCarousel({ images }: { images: string[] }) {
               onError={(e) => {
                 ;(e.currentTarget as HTMLImageElement).src = 'https://placehold.co/96x64/151C30/94a3b8?text=X'
               }}
+              draggable={false}
             />
           </button>
         ))}
@@ -277,7 +283,6 @@ export default function ServiceDetailsPage() {
       const sessionId = getOrCreateSessionId()
       const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : null
 
-      // Fire-and-forget; safe on duplicates (function dedupes)
       await supabase.rpc('record_gig_view', {
         p_gig_id: gig.id,
         p_viewer_id: viewerId,
@@ -287,7 +292,7 @@ export default function ServiceDetailsPage() {
     })()
   }, [gig?.id])
 
-  // Fetch Seller (replicate your ProfilePage logic)
+  // Fetch Seller
   useEffect(() => {
     async function fetchSeller() {
       if (!gig?.seller_id) {
@@ -299,11 +304,9 @@ export default function ServiceDetailsPage() {
         const supabase = createSupabaseBrowser()
         const sellerKey = String(gig.seller_id).trim()
 
-        // Same columns as your ProfilePage
         const selectCols =
           'id, username, display_name, full_name, avatar_url, bio, email, created_at, user_id, auth_user_id'
 
-        // 1) Try profiles by id/username/(user_id/auth_user_id)
         const { data: profile } = await supabase
           .from('profiles')
           .select(selectCols)
@@ -335,7 +338,6 @@ export default function ServiceDetailsPage() {
           return
         }
 
-        // 2) Optional fallback like your ProfilePage (profiles_view) if you have it
         const { data: viewRows } = await supabase
           .from('profiles_view')
           .select('id, display_name, username, full_name, avatar_url, email, created_at')
@@ -357,7 +359,6 @@ export default function ServiceDetailsPage() {
           return
         }
 
-        // If nothing resolves, keep null to avoid showing raw id
         setSeller(null)
       } catch {
         setSeller(null)
@@ -379,7 +380,6 @@ export default function ServiceDetailsPage() {
   }, [cheapestPackage, gig])
   const startingPrice = useMemo(() => formatPrice(startingCents), [startingCents, formatPrice])
 
-  // Display name order mirrors your ProfilePage approach
   const displayName = useMemo(() => {
     if (!seller) return 'Freelancer'
     return (
@@ -398,7 +398,6 @@ export default function ServiceDetailsPage() {
 
   const handle = useMemo(() => (seller?.username ? `@${seller.username}` : null), [seller])
 
-  // Images (cover first, unique, images only)
   const videoRegex = useMemo(() => /\.(mp4|webm|ogg)$/i, [])
   const combinedImageUrls = useMemo(() => {
     if (!gig) return []
@@ -410,6 +409,27 @@ export default function ServiceDetailsPage() {
     })
     return images
   }, [gig, videoRegex])
+
+  // Selected package (fallback to base gig price if no packages)
+  const selectedPkg = useMemo(
+    () => activePackage ?? cheapestPackage ?? (packages.length ? packages[0] : null),
+    [activePackage, cheapestPackage, packages]
+  )
+
+  // Build checkout href (enable when gig exists; price falls back to gig.price_cents)
+  const checkoutHref = useMemo(() => {
+    if (!gig) return '#'
+    const tier = selectedPkg?.tier ?? 'Base'
+    const priceCents = selectedPkg?.price_cents ?? gig.price_cents ?? 0
+    const search = new URLSearchParams({
+      gig: String(gig.id),
+      slug: String(gig.slug || ''),
+      title: String(gig.title || ''),
+      tier: String(tier),
+      price_cents: String(priceCents),
+    })
+    return `/checkout?${search.toString()}`
+  }, [gig, selectedPkg])
 
   /* ---------------- Render States ---------------- */
   if (loading) {
@@ -424,7 +444,7 @@ export default function ServiceDetailsPage() {
   if (error || !gig) {
     return (
       <main className="bg-[#080E1B] min-h-screen font-sans flex items-center justify-center p-8">
-        <div className="text-red-400 text-xl font-semibold p-10 bg-[#141A30] rounded-xl border border-red-800/50 shadow-lg">
+        <div className="text-red-400 text-xl font-semibold p-10 bg-[#141A30] rounded-2xl border border-red-800/50 shadow-lg">
           {error || 'Service not found'}
         </div>
       </main>
@@ -562,12 +582,17 @@ export default function ServiceDetailsPage() {
 
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-4 mb-12 p-6 bg-[#141A30] rounded-2xl shadow-2xl border border-[#334155]">
-              <button
-                onClick={() => console.log('Order clicked')}
-                className="flex-1 min-w-[200px] px-8 py-4 rounded-xl bg-[#3B82F6] text-white font-bold text-lg shadow-xl shadow-[#3B82F6]/50 hover:bg-sky-500 transition transform hover:scale-[1.01] active:scale-[0.99]"
+              <Link
+                href={checkoutHref}
+                prefetch
+                className={`flex-1 min-w-[200px] px-8 py-4 rounded-xl text-center font-bold text-lg shadow-xl transition transform hover:scale-[1.01] active:scale-[0.99] ${
+                  gig ? 'bg-[#3B82F6] text-white shadow-[#3B82F6]/50 hover:bg-sky-500' : 'bg-gray-600 cursor-not-allowed'
+                }`}
+                role="button"
+                aria-disabled={!gig}
               >
-                Order Now ({activePackage?.tier || 'Base'})
-              </button>
+                Order Now ({selectedPkg?.tier ?? 'Base'})
+              </Link>
               <button
                 onClick={() => console.log('Contact clicked')}
                 className="flex-1 min-w-[200px] px-8 py-4 rounded-xl bg-[#080E1B] text-[#3B82F6] font-bold text-lg shadow border border-[#334155] hover:bg-[#151C30] transition"
@@ -617,42 +642,25 @@ export default function ServiceDetailsPage() {
                 </div>
 
                 <p className="text-slate-400 text-sm mb-6">
-                  Based on the <b>{cheapestPackage?.tier || packages[0]?.tier || 'Base'}</b> package. Select a higher tier for more features.
+                  Based on the <b>{(packages[0]?.tier) ?? 'Base'}</b> package. Select a higher tier for more features.
                 </p>
 
-                <button
-                  onClick={() => console.log('Start Order clicked')}
-                  className="w-full px-6 py-3.5 rounded-xl bg-[#3B82F6] text-white font-bold text-lg shadow-xl shadow-[#3B82F6]/50 hover:bg-sky-500 transition transform hover:scale-[1.01] active:scale-[0.99]"
+                <Link
+                  href={checkoutHref}
+                  prefetch
+                  className={`w-full block text-center px-6 py-3.5 rounded-xl font-bold text-lg transition transform hover:scale-[1.01] active:scale-[0.99] ${
+                    gig ? 'bg-[#3B82F6] text-white shadow-xl shadow-[#3B82F6]/50 hover:bg-sky-500' : 'bg-gray-600 cursor-not-allowed text-white'
+                  }`}
+                  role="button"
+                  aria-disabled={!gig}
                 >
-                  Confirm Order ({activePackage?.tier || cheapestPackage?.tier || 'Base'})
-                </button>
+                  Confirm Order ({selectedPkg?.tier ?? 'Base'})
+                </Link>
               </div>
             </div>
           </aside>
         </div>
       </div>
-
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-        body {
-          font-family: 'Inter', sans-serif;
-          background-color: #080e1b;
-          color: #f1f5f9;
-          scroll-behavior: smooth;
-        }
-        ::-webkit-scrollbar {
-          width: 8px;
-          height: 8px;
-        }
-        ::-webkit-scrollbar-thumb {
-          background: #3b82f6;
-          border-radius: 4px;
-          border: 2px solid #080e1b;
-        }
-        ::-webkit-scrollbar-track {
-          background: #151c30;
-        }
-      `}</style>
     </main>
   )
 }

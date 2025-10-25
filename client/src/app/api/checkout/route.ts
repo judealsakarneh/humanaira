@@ -1,54 +1,127 @@
-"use server"
+import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServer } from '../lib/supabaseServer'
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY
-if (!stripeSecretKey) {
-  throw new Error('STRIPE_SECRET_KEY environment variable is not set')
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+const PLATFORM_FEE_PERCENT = Number(process.env.PLATFORM_FEE_PERCENT || 20)
+
+if (!STRIPE_SECRET_KEY) {
+  console.warn('Missing STRIPE_SECRET_KEY environment variable')
 }
-const stripe = new Stripe(stripeSecretKey)
 
-export async function POST(req: NextRequest) {
-  const supabase = createSupabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Login required' }, { status: 401 })
+// NOTE: omit apiVersion to satisfy TS (the SDK types reflect the latest API version)
+const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null
 
-  const { gigId, tier } = await req.json()
-  // Fetch gig + package + seller
-  const { data: gig } = await supabase.from('gigs').select('id,title,seller_id').eq('id', gigId).single()
-  if (!gig) return NextResponse.json({ error: 'Gig not found' }, { status: 404 })
+export async function POST(req: Request) {
+  try {
+    if (!stripe) {
+      return NextResponse.json({ ok: false, error: 'Payments not configured' }, { status: 500 })
+    }
 
-  const { data: seller } = await supabase.from('profiles').select('stripe_account_id').eq('id', gig.seller_id).single()
-  if (!seller?.stripe_account_id) return NextResponse.json({ error: 'Seller not connected to Stripe' }, { status: 400 })
+    const supabase = createSupabaseServer()
+    const { data: userRes, error: userErr } = await supabase.auth.getUser()
+    if (userErr || !userRes?.user) {
+      return NextResponse.json({ ok: false, error: 'Login required' }, { status: 401 })
+    }
+    const buyer = userRes.user
 
-  const { data: pkg } = await supabase
-    .from('gig_packages')
-    .select('price_cents')
-    .eq('gig_id', gigId).eq('tier', tier).single()
-  if (!pkg) return NextResponse.json({ error: 'Package not found' }, { status: 404 })
+    const body = await req.json()
+    const gigId = String(body.gig || body.gigId || '')
+    const tier = String(body.tier || 'Base')
+    if (!gigId) {
+      return NextResponse.json({ ok: false, error: 'Missing gig' }, { status: 400 })
+    }
 
-  const amount = pkg.price_cents
-  const fee = Math.round(amount * (Number(process.env.PLATFORM_FEE_PERCENT || 20) / 100))
+    const { data: gig, error: gigErr } = await supabase
+      .from('gigs')
+      .select('id, title, slug, seller_id')
+      .eq('id', gigId)
+      .single()
+    if (gigErr || !gig) {
+      return NextResponse.json({ ok: false, error: 'Gig not found' }, { status: 404 })
+    }
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount,
-    currency: 'usd',
-    application_fee_amount: fee,
-    transfer_data: { destination: seller.stripe_account_id },
-    metadata: { gigId, buyerId: user.id, sellerId: gig.seller_id, tier }
-  })
+    const { data: seller, error: sellerErr } = await supabase
+      .from('profiles')
+      .select('stripe_account_id')
+      .eq('id', gig.seller_id)
+      .single()
+    if (sellerErr || !seller?.stripe_account_id) {
+      return NextResponse.json({ ok: false, error: 'Seller not connected to Stripe' }, { status: 400 })
+    }
 
-  // create order in PLACED
-  await supabase.from('orders').insert({
-    buyer_id: user.id,
-    seller_id: gig.seller_id,
-    gig_id: gig.id,
-    package: tier,
-    price_cents: amount,
-    status: 'PLACED',
-    stripe_payment_intent_id: paymentIntent.id
-  })
+    const { data: pkg, error: pkgErr } = await supabase
+      .from('gig_packages')
+      .select('price_cents, tier, description')
+      .eq('gig_id', gigId)
+      .eq('tier', tier)
+      .single()
+    if (pkgErr || !pkg) {
+      return NextResponse.json({ ok: false, error: 'Package not found' }, { status: 404 })
+    }
 
-  return NextResponse.json({ clientSecret: paymentIntent.client_secret })
+    const amount = Math.max(0, Math.floor(Number(pkg.price_cents) || 0))
+    if (amount <= 0) {
+      return NextResponse.json({ ok: false, error: 'Invalid package amount' }, { status: 400 })
+    }
+    const fee = Math.round(amount * (PLATFORM_FEE_PERCENT / 100))
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      customer_email: buyer.email || undefined,
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: 'usd',
+            unit_amount: amount,
+            product_data: {
+              name: `${gig.title} — ${pkg.tier}`,
+              description: pkg.description || undefined,
+              metadata: {
+                gigId: String(gig.id),
+                tier: String(pkg.tier),
+                sellerId: String(gig.seller_id),
+              },
+            },
+          },
+        },
+      ],
+      payment_intent_data: {
+        application_fee_amount: fee,
+        transfer_data: {
+          destination: seller.stripe_account_id,
+        },
+        metadata: {
+          gigId: String(gig.id),
+          buyerId: String(buyer.id),
+          sellerId: String(gig.seller_id),
+          tier: String(pkg.tier),
+        },
+      },
+      metadata: {
+        gigId: String(gig.id),
+        buyerId: String(buyer.id),
+        sellerId: String(gig.seller_id),
+        tier: String(pkg.tier),
+      },
+      success_url: `${APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}&gig=${encodeURIComponent(
+        String(gig.id)
+      )}&slug=${encodeURIComponent(String(gig.slug || ''))}`,
+      cancel_url: `${APP_URL}/checkout?gig=${encodeURIComponent(
+        String(gig.id)
+      )}&slug=${encodeURIComponent(String(gig.slug || ''))}&title=${encodeURIComponent(
+        gig.title
+      )}&tier=${encodeURIComponent(pkg.tier)}&price_cents=${amount}`,
+    })
+
+    return NextResponse.json({ ok: true, url: session.url }, { status: 200 })
+  } catch (err: any) {
+    console.error('Create checkout session error:', err?.message || err)
+    return NextResponse.json({ ok: false, error: err?.message || 'Unknown error' }, { status: 500 })
+  }
 }
