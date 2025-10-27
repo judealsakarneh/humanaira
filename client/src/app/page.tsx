@@ -374,7 +374,7 @@ function Hero() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     if (search.trim()) {
-      const query = `/services?q=${encodeURIComponent(search.trim())}`
+      const query = `/browse?q=${encodeURIComponent(search.trim())}`
       router.push(query)
     }
   }
