@@ -5,11 +5,8 @@ import { createSupabaseServer } from '../../lib/supabaseServer'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY!
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!
-
-// Do NOT pin apiVersion to avoid TS error; the SDK types reflect the latest API version
-const stripe = new Stripe(STRIPE_SECRET_KEY)
 
 export async function POST(req: Request) {
   try {
@@ -31,28 +28,22 @@ export async function POST(req: Request) {
     const supabase = createSupabaseServer()
 
     switch (event.type) {
-      // For the Checkout Session flow (recommended)
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
 
-        // Extract the PaymentIntent id created by Checkout
         const paymentIntentId =
           typeof session.payment_intent === 'string'
             ? session.payment_intent
             : session.payment_intent?.id
 
-        // Metadata we set when creating the session (gigId, buyerId, sellerId, tier)
         const md = session.metadata || {}
         const gigId = md.gigId || null
         const buyerId = md.buyerId || null
         const sellerId = md.sellerId || null
         const tier = md.tier || null
-
-        // Amount paid (in cents). Prefer amount_total from the session.
         const amount = Number(session.amount_total ?? 0)
 
         if (paymentIntentId) {
-          // If an order already exists for this PI, update status
           const { data: existing } = await supabase
             .from('orders')
             .select('id')
@@ -65,7 +56,6 @@ export async function POST(req: Request) {
               .update({ status: 'IN_PROGRESS' })
               .eq('id', existing.id)
           } else if (gigId && buyerId && sellerId && tier) {
-            // Otherwise, create the order now
             await supabase.from('orders').insert({
               buyer_id: buyerId,
               seller_id: sellerId,
@@ -80,7 +70,6 @@ export async function POST(req: Request) {
         break
       }
 
-      // For your original Payment Intent + Elements flow (still supported)
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent
         await supabase
@@ -91,7 +80,7 @@ export async function POST(req: Request) {
       }
 
       default:
-        // no-op for other events
+        // ignore other events
         break
     }
 

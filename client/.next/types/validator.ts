@@ -251,6 +251,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/terms">
 }
 
+// Validate ../../src/app/api/checkout/addon/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/checkout/addon/route.js")
+  handler satisfies RouteHandlerConfig<"/api/checkout/addon">
+}
+
 // Validate ../../src/app/api/checkout/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/checkout/route.js")
@@ -275,6 +281,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies RouteHandlerConfig<"/api/messages">
 }
 
+// Validate ../../src/app/api/payouts/request/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/payouts/request/route.js")
+  handler satisfies RouteHandlerConfig<"/api/payouts/request">
+}
+
 // Validate ../../src/app/api/profile/init/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/profile/init/route.js")
@@ -287,6 +299,18 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies RouteHandlerConfig<"/api/profile/me">
 }
 
+// Validate ../../src/app/api/profile/payout-settings/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/profile/payout-settings/route.js")
+  handler satisfies RouteHandlerConfig<"/api/profile/payout-settings">
+}
+
+// Validate ../../src/app/api/report-service/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/report-service/route.js")
+  handler satisfies RouteHandlerConfig<"/api/report-service">
+}
+
 // Validate ../../src/app/api/reviews/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/reviews/route.js")
@@ -297,6 +321,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   const handler = {} as typeof import("../../src/app/api/stripe/connect/route.js")
   handler satisfies RouteHandlerConfig<"/api/stripe/connect">
+}
+
+// Validate ../../src/app/api/stripe/connect/start/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/stripe/connect/start/route.js")
+  handler satisfies RouteHandlerConfig<"/api/stripe/connect/start">
 }
 
 // Validate ../../src/app/api/stripe/webhook/route.ts

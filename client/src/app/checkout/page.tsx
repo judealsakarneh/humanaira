@@ -1,5 +1,4 @@
 'use client'
-
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
@@ -25,18 +24,10 @@ export default function CheckoutPage() {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gig: gigId,
-          slug,
-          title,
-          tier,
-          price_cents: priceCents,
-        }),
+        body: JSON.stringify({ gig: gigId, tier }),
       })
       const data = await res.json()
-      if (!res.ok || !data?.url) {
-        throw new Error(data?.error || 'Failed to start checkout')
-      }
+      if (!res.ok || !data?.url) throw new Error(data?.error || 'Failed to start checkout')
       window.location.href = data.url as string
     } catch (e: any) {
       setError(e?.message || 'Something went wrong')
@@ -75,9 +66,9 @@ export default function CheckoutPage() {
 
             <button
               onClick={handlePay}
-              disabled={loading || !gigId || priceCents <= 0}
+              disabled={loading || !gigId}
               className={`w-full px-6 py-3.5 rounded-xl font-bold text-lg transition transform hover:scale-[1.01] active:scale-[0.99] ${
-                loading || !gigId || priceCents <= 0
+                loading || !gigId
                   ? 'bg-gray-600 cursor-not-allowed text-white'
                   : 'bg-[#3B82F6] text-white shadow-xl shadow-[#3B82F6]/50 hover:bg-sky-500'
               }`}
