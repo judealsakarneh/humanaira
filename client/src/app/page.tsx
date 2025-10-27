@@ -454,7 +454,7 @@ function Hero() {
           </div>
           <div className="flex flex-wrap gap-4 justify-center items-center font-medium">
             <Link
-              href="/services"
+              href="/browse"
               className="inline-block px-5 py-2.5 rounded-lg bg-gray-800/80 border border-gray-700 text-sky-300 hover:text-sky-200 hover:border-sky-600 transition"
             >
               Browse Services →
@@ -672,7 +672,7 @@ function ReadyToMakeTheChangeCTA() {
         </p>
         <div className="flex flex-col sm:flex-row justify-center gap-6">
           <Link
-            href="/services"
+            href="/browse"
             className="px-10 py-4 text-lg font-bold rounded-xl bg-sky-600 text-white hover:bg-sky-500 transition shadow-lg shadow-sky-500/30 transform hover:scale-[1.03]"
           >
             Explore AI Services
@@ -774,7 +774,7 @@ function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-x-12 gap-y-6">
           <FooterSection title="Explore">
             <Link href="/blog" className="footer-link">Blog</Link>
-            <Link href="/services" className="footer-link">Browse Gigs</Link>
+            <Link href="/browse" className="footer-link">Browse Gigs</Link>
             <Link href="/help" className="footer-link">Help Center</Link>
           </FooterSection>
           <FooterSection title="Company">
