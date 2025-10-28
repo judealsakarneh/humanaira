@@ -1,7 +1,7 @@
 'use client'
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+import { createSupabaseBrowser } from '../app/api/lib/supabaseBrowser'
 import { getOrCreateConversation } from '../lib/messaging'
 
 type Gig = {
