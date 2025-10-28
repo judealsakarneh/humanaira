@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
+import { createSupabaseBrowser } from '../../app/api/lib/supabaseBrowser'
 import {
   uploadChatFile,
   sendMessage,
@@ -86,7 +86,6 @@ export default function ChatWindow({ conversation }: { conversation: Conversatio
           .limit(500)
         const data = (res.data as unknown) as MessageRow[] | null
         if (mounted) setMessages(data || [])
-        // scroll after load
         setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'auto' }), 120)
       } catch (err) {
         console.error('Failed to load messages', err)
@@ -114,7 +113,7 @@ export default function ChatWindow({ conversation }: { conversation: Conversatio
     }
   }, [supabase, conversation])
 
-  // Load payment requests for this conversation and subscribe to realtime changes
+  // Load payment requests and subscribe
   useEffect(() => {
     if (!conversation) return
     let mounted = true
@@ -162,7 +161,6 @@ export default function ChatWindow({ conversation }: { conversation: Conversatio
   }, [supabase, conversation])
 
   useEffect(() => {
-    // keep scrolled to bottom when messages change
     setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current?.scrollHeight ?? 0, behavior: 'auto' }), 150)
   }, [messages.length])
 
@@ -171,7 +169,6 @@ export default function ChatWindow({ conversation }: { conversation: Conversatio
     if ((!text || text.trim().length === 0) && files.length === 0) return
     setSending(true)
 
-    // Moderation: simple detection for external contact or payment links
     if (text && detectExternalContact(text)) {
       await sendMessage({
         conversationId: conversation.id,
@@ -185,7 +182,6 @@ export default function ChatWindow({ conversation }: { conversation: Conversatio
       return
     }
 
-    // upload files
     const uploaded: string[] = []
     try {
       for (const f of files) {
@@ -213,7 +209,6 @@ export default function ChatWindow({ conversation }: { conversation: Conversatio
     const f = e.target.files
     if (!f?.length) return
     const file = f[0]
-    // simple size guard (100MB)
     if (file.size > 100 * 1024 * 1024) {
       alert('File too large (max 100MB)')
       return
@@ -230,13 +225,11 @@ export default function ChatWindow({ conversation }: { conversation: Conversatio
     if (!cents || cents <= 0) return alert('Invalid amount')
     const otherId = conversation.seller_id === userId ? conversation.buyer_id : conversation.seller_id
     try {
-      // create payment_request row (seller triggers this)
       const pr = await sendPaymentRequest({
         conversationId: conversation.id,
         amountCents: cents,
         toId: otherId,
       })
-      // optionally insert a system message announcing the request
       await sendMessage({
         conversationId: conversation.id,
         text: `Payment request: $${(cents / 100).toFixed(2)}`,
@@ -253,7 +246,6 @@ export default function ChatWindow({ conversation }: { conversation: Conversatio
   async function handlePay(requestId: string) {
     try {
       await startPaymentForRequest(requestId)
-      // startPaymentForRequest will redirect; code continues only if there was an error
     } catch (err: any) {
       console.error('Failed to start payment', err)
       alert(err?.message || 'Payment failed to start')
@@ -274,7 +266,6 @@ export default function ChatWindow({ conversation }: { conversation: Conversatio
         </div>
       </header>
 
-      {/* Payment requests list */}
       {paymentRequests.length > 0 && (
         <div className="mb-3 space-y-2">
           <div className="text-sm text-slate-300 font-medium">Payment requests</div>
@@ -323,6 +314,7 @@ export default function ChatWindow({ conversation }: { conversation: Conversatio
                       a.match(/\.(mp4|webm|ogg)$/i) ? (
                         <video key={i} src={a} controls className="w-48 h-28 rounded" />
                       ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img key={i} src={a} className="w-48 h-28 object-cover rounded" />
                       )
                     )}
