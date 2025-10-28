@@ -1,6 +1,1 @@
-{
-  "/messages/page": "app/messages/page.js",
-  "/page": "app/page.js",
-  "/browse/page": "app/browse/page.js",
-  "/services/[slug]/page": "app/services/[slug]/page.js"
-}
+{}
