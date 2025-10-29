@@ -607,7 +607,8 @@ export default function ServiceDetailsPage() {
       const body = await res.json()
       const conversationId = body?.id
       if (conversationId) {
-        router.push(`/messages/${conversationId}`)
+        // router.push(`/messages/${conversationId}`)
+        router.push(`/messages?cid=${encodeURIComponent(conversationId)}`)
       } else {
         router.push(profileHref)
       }
