@@ -1,72 +1,46 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
 
-/**
- * Server API route to create-or-get a conversation between buyer and seller.
- * Expects JSON body: { buyer_id: string, seller_id: string, gig_id?: string | null }
- *
- * Notes:
- * - This uses the SUPABASE_SERVICE_ROLE_KEY (server-only) from env. Add SUPABASE_SERVICE_ROLE_KEY and SUPABASE_URL.
- * - Adjust table/column names to match your DB schema.
- */
+export const runtime = 'nodejs'
 
-const SUPABASE_URL = process.env.SUPABASE_URL
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.warn('Missing SUPABASE env in conversations route')
-}
-
-const supabaseAdmin = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const body = await req.json()
-    const { buyer_id, seller_id, gig_id } = body || {}
+    // Lazy-import the helper and initialize the client at request-time
+    const { getSupabaseServer } = await import('@/lib/supabaseServer')
+    const supabaseServer = await getSupabaseServer()
 
-    if (!buyer_id || !seller_id) {
-      return NextResponse.json({ error: 'buyer_id and seller_id are required' }, { status: 400 })
+    if (!supabaseServer) {
+      console.error('Supabase not configured (SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing)')
+      return NextResponse.json({ error: 'supabase not configured' }, { status: 500 })
     }
 
-    // Try to find existing conversation
-    const { data: existing, error: selErr } = await supabaseAdmin
+    const body = await req.json().catch(() => ({}))
+    const { order_id, title, user_id } = body
+
+    if (!order_id) return NextResponse.json({ error: 'order_id required' }, { status: 400 })
+
+    // Adjust the insert payload to match your actual schema
+    const { data: conv, error } = await supabaseServer
       .from('conversations')
-      .select('id')
-      .match({ buyer_id: String(buyer_id), seller_id: String(seller_id) })
-      .limit(1)
-      .maybeSingle()
+      .insert([
+        {
+          order_id,
+          title: title ?? `Order ${order_id}`,
+          created_by: user_id ?? null,
+          status: 'ordered',
+          created_at: new Date().toISOString(),
+        },
+      ])
+      .select()
+      .single()
 
-    if (selErr) {
-      console.error('convo select error', selErr)
+    if (error) {
+      console.error('Failed to create conversation from order:', error)
+      return NextResponse.json({ error: 'db error' }, { status: 500 })
     }
 
-    if (existing && (existing as any).id) {
-      return NextResponse.json({ id: (existing as any).id }, { status: 200 })
-    }
-
-    // Create a new conversation
-    const insertRow: any = {
-      buyer_id: String(buyer_id),
-      seller_id: String(seller_id),
-      created_at: new Date().toISOString(),
-    }
-    if (gig_id) insertRow.gig_id = gig_id
-
-    const { data: inserted, error: insErr } = await supabaseAdmin
-      .from('conversations')
-      .insert([insertRow])
-      .select('id')
-      .limit(1)
-      .maybeSingle()
-
-    if (insErr || !inserted) {
-      console.error('convo insert error', insErr)
-      return NextResponse.json({ error: 'Could not create conversation' }, { status: 500 })
-    }
-
-    return NextResponse.json({ id: (inserted as any).id }, { status: 201 })
-  } catch (err) {
-    console.error('conversations route error', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ conversation: conv })
+  } catch (err: any) {
+    console.error('create-from-order error:', err)
+    return NextResponse.json({ error: err?.message ?? 'Unknown error' }, { status: 500 })
   }
 }
