@@ -1,6 +1,6 @@
 'use client'
 
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
@@ -250,6 +250,7 @@ const buildShareTargets = (url: string, title: string) => {
 /* ---------------- Page ---------------- */
 export default function ServiceDetailsPage() {
   const params = useParams<{ slug: string }>()
+  const router = useRouter()
   const slug = (Array.isArray(params?.slug) ? params.slug[0] : params?.slug) as string | undefined
 
   const [gig, setGig] = useState<any>(null)
@@ -269,6 +270,7 @@ export default function ServiceDetailsPage() {
   const [reportSuccess, setReportSuccess] = useState<string | null>(null)
   const [reportError, setReportError] = useState<string | null>(null)
   const [shareCopied, setShareCopied] = useState(false)
+  const [startingChat, setStartingChat] = useState(false)
 
   const videoRegex = useMemo(() => /\.(mp4|webm|ogg|mov|m4v|avi|mkv)$/i, [])
   const formatPrice = useCallback((cents: number) => `$${(cents / 100).toFixed(2)}`, [])
@@ -564,6 +566,59 @@ export default function ServiceDetailsPage() {
     }
   }, [gig?.slug, gig?.id, gig?.title, reportDetails, reportReason, mailtoReportHref])
 
+  /* ---------------- New: Start Chat Handler ---------------- */
+  const startChat = useCallback(async () => {
+    // This will:
+    // 1) Ensure the user is logged in via Supabase auth
+    // 2) Call our server API to get or create a conversation
+    // 3) Redirect to /messages/[conversationId]
+    if (!seller || !gig) return
+
+    try {
+      setStartingChat(true)
+      const supabase = createSupabaseBrowser()
+      const { data: authRes } = await supabase.auth.getUser()
+      const buyerId = authRes?.user?.id
+
+      if (!buyerId) {
+        // not logged in — redirect to login with return URL
+        const returnTo = typeof window !== 'undefined' ? window.location.pathname : '/'
+        router.push(`/login?redirect=${encodeURIComponent(returnTo)}`)
+        return
+      }
+
+      // Call server API to create-or-get conversation
+      const res = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          buyer_id: buyerId,
+          seller_id: seller.id,
+          gig_id: gig.id ?? null,
+        }),
+      })
+
+      if (!res.ok) {
+        // fallback: go to seller profile
+        router.push(profileHref)
+        return
+      }
+
+      const body = await res.json()
+      const conversationId = body?.id
+      if (conversationId) {
+        router.push(`/messages/${conversationId}`)
+      } else {
+        router.push(profileHref)
+      }
+    } catch (err) {
+      console.error('startChat error', err)
+      router.push(profileHref)
+    } finally {
+      setStartingChat(false)
+    }
+  }, [seller, gig, router, profileHref])
+
   /* ---------------- Render States ---------------- */
   if (loading) {
     return (
@@ -765,12 +820,16 @@ export default function ServiceDetailsPage() {
               >
                 Order Now ({activePackage?.tier ?? 'Base'})
               </Link>
-              <Link
-                href={profileHref}
+
+              {/* CONTACT SELLER now triggers startChat */}
+              <button
+                onClick={startChat}
+                disabled={startingChat}
                 className="flex-1 min-w-[200px] px-8 py-4 rounded-xl bg-[#070D1C] text-[#93C5FD] font-bold text-lg shadow border border-slate-700/60 hover:bg-[#0B1024] transition text-center"
+                title="Contact Seller"
               >
-                Contact Seller
-              </Link>
+                {startingChat ? 'Opening chat…' : 'Contact Seller'}
+              </button>
             </div>
           </div>
 
