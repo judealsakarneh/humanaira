@@ -1,21 +1,30 @@
 import { NextResponse } from 'next/server'
-import Stripe from 'stripe'
-import { supabaseServer } from '@/lib/supabaseServer' // adjust alias/path if needed
 
 export const runtime = 'nodejs'
 
-const stripeSecret = process.env.STRIPE_SECRET
-if (!stripeSecret) {
-  console.error('STRIPE_SECRET not set')
+async function getStripe() {
+  const stripeKey = process.env.STRIPE_SECRET
+  if (!stripeKey) throw new Error('STRIPE_SECRET not set')
+  // dynamic import so Stripe constructor is not evaluated at module import time
+  const StripeMod = (await import('stripe')).default
+  return new StripeMod(stripeKey, {
+    apiVersion: (process.env.STRIPE_API_VERSION ?? undefined) as any,
+  })
 }
-
-const stripe = new Stripe(stripeSecret ?? '', {
-  apiVersion: (process.env.STRIPE_API_VERSION ?? undefined) as any,
-})
 
 export async function POST(req: Request) {
   try {
-    if (!stripeSecret) return NextResponse.json({ error: 'stripe not configured' }, { status: 500 })
+    // Lazy-import supabase server to avoid module-eval side-effects at build time
+    const { supabaseServer } = await import('@/lib/supabaseServer')
+
+    // Create stripe inside handler (will throw if missing and we'll catch it)
+    let stripe
+    try {
+      stripe = await getStripe()
+    } catch (e: any) {
+      console.error('Stripe init error:', e?.message ?? e)
+      return NextResponse.json({ error: 'stripe not configured' }, { status: 500 })
+    }
 
     const body = await req.json().catch(() => ({}))
     const { payment_request_id, success_url, cancel_url } = body
@@ -36,7 +45,6 @@ export async function POST(req: Request) {
     const pr = prRows?.[0]
     if (!pr) return NextResponse.json({ error: 'payment_request not found' }, { status: 404 })
 
-    // Create a Stripe Checkout Session with metadata.payment_request_id
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -53,7 +61,6 @@ export async function POST(req: Request) {
         },
       ],
       mode: 'payment',
-      // fallback URLs if not provided by client
       success_url: success_url ?? `${process.env.NEXT_PUBLIC_BASE_URL ?? ''}/payments/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancel_url ?? `${process.env.NEXT_PUBLIC_BASE_URL ?? ''}/payments/cancel`,
       metadata: {
