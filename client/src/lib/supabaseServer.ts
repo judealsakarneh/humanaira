@@ -1,20 +1,25 @@
-'use server'
-// Server-side Supabase client (service role) used by server routes (webhooks, order-created handler).
-// IMPORTANT: set SUPABASE_URL and SUPABASE_SERVICE_ROLE in your environment (Vercel / deployment).
-import { createClient } from '@supabase/supabase-js'
+// Safe lazy Supabase server helper.
+// Do NOT construct the client at module import time (avoid build-time errors).
+// Export a named async function getSupabaseServer that returns the client or null.
 
-const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
-const serviceRole =
-  process.env.SUPABASE_SERVICE_ROLE ??
-  process.env.SUPABASE_SERVICE_ROLE_KEY ??
-  process.env.SUPABASE_KEY
+export async function getSupabaseServer() {
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ??
+    process.env.SUPABASE_SERVICE_KEY ??
+    process.env.SUPABASE_ANON_KEY
 
-if (!url || !serviceRole) {
-  // This will warn during dev; server routes will error if these are not set at runtime.
-  // eslint-disable-next-line no-console
-  console.warn('Supabase server client created without SUPABASE_URL or SUPABASE_SERVICE_ROLE env set')
+  if (!url || !serviceKey) {
+    // Warning instead of throwing so imports don't fail at build-time.
+    console.warn('getSupabaseServer: SUPABASE envs missing')
+    return null
+  }
+
+  const { createClient } = await import('@supabase/supabase-js')
+  const supabase = createClient(url, serviceKey, {
+    // optional client options
+    // fetch is provided by Node 18+ on Vercel serverless runtimes
+  })
+
+  return supabase
 }
-
-export const supabaseServer = createClient(url ?? '', serviceRole ?? '', {
-  auth: { persistSession: false },
-})

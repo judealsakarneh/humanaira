@@ -12,7 +12,6 @@ async function getStripe() {
 }
 
 export async function POST(req: Request) {
-  // Ensure required envs configured at runtime; return controlled error if not
   const stripeSecret = process.env.STRIPE_SECRET
   const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET
   if (!stripeSecret || !stripeWebhookSecret) {
@@ -25,7 +24,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Missing stripe-signature header' }, { status: 400 })
   }
 
-  // Initialize stripe lazily so constructor is not executed at module import time
+  // Lazy-init Stripe
   let stripe
   try {
     stripe = await getStripe()
@@ -47,15 +46,20 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Lazy-import supabaseServer to avoid any top-level side-effects during build
-    const { supabaseServer } = await import('../../../../lib/supabaseServer')
+    // IMPORTANT: import the named function that actually exists
+    const { getSupabaseServer } = await import('@/lib/supabaseServer')
+    const supabaseServer = await getSupabaseServer()
+
+    if (!supabaseServer) {
+      console.error('Supabase not configured (SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing)')
+      return NextResponse.json({ error: 'supabase not configured' }, { status: 500 })
+    }
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as any
       const requestId = session?.metadata?.payment_request_id || session?.metadata?.request_id
 
       if (requestId) {
-        // 1) mark payment_requests as paid
         const { data: pr, error: prErr } = await supabaseServer
           .from('payment_requests')
           .update({ status: 'paid', updated_at: new Date().toISOString() })
@@ -63,11 +67,8 @@ export async function POST(req: Request) {
           .select()
           .single()
 
-        if (prErr) {
-          console.error('Failed to update payment_request:', prErr)
-        }
+        if (prErr) console.error('Failed to update payment_request:', prErr)
 
-        // 2) ensure we have the payment row (fetch if update didn't return it)
         let paymentRow = pr
         if (!paymentRow) {
           const { data: fetched, error: fetchErr } = await supabaseServer
@@ -75,11 +76,8 @@ export async function POST(req: Request) {
             .select('*')
             .eq('id', requestId)
             .limit(1)
-          if (fetchErr) {
-            console.error('Failed to fetch payment_request after update attempt:', fetchErr)
-          } else {
-            paymentRow = fetched?.[0]
-          }
+          if (fetchErr) console.error('Failed to fetch payment_request after update attempt:', fetchErr)
+          else paymentRow = fetched?.[0]
         }
 
         if (paymentRow) {
@@ -92,7 +90,9 @@ export async function POST(req: Request) {
             if (convErr) console.error('Failed to update conversation status to ordered:', convErr)
           }
 
-          const systemText = `Payment received: ${(paymentRow.amount_cents / 100).toFixed(2)} ${paymentRow.currency?.toUpperCase() || 'USD'}. Payment request #${paymentRow.id} marked as paid.`
+          const systemText = `Payment received: ${(paymentRow.amount_cents / 100).toFixed(2)} ${
+            paymentRow.currency?.toUpperCase() || 'USD'
+          }. Payment request #${paymentRow.id} marked as paid.`
 
           const { error: msgErr } = await supabaseServer
             .from('messages')
@@ -113,8 +113,6 @@ export async function POST(req: Request) {
       } else {
         console.warn('checkout.session.completed received without payment_request_id metadata')
       }
-    } else if (event.type === 'payment_intent.succeeded') {
-      // optionally handle other event types
     }
   } catch (err: any) {
     console.error('Error handling stripe webhook event:', err)
