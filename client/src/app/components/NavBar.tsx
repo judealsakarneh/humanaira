@@ -1,8 +1,9 @@
 'use client'
+
 import Link from 'next/link'
 import UserMenu from './UserMenu'
 import { useSession } from '@supabase/auth-helpers-react'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
 
 export default function NavBar() {
@@ -12,9 +13,9 @@ export default function NavBar() {
   const [scrolled, setScrolled] = useState(false)
   const supabase = createSupabaseBrowser()
 
-  // Fetch profile for avatar and username
   useEffect(() => {
     setUser(session?.user || null)
+
     async function fetchProfile() {
       if (session?.user) {
         const { data, error } = await supabase
@@ -27,7 +28,9 @@ export default function NavBar() {
         setProfile(null)
       }
     }
+
     fetchProfile()
+
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null)
       if (session?.user) {
@@ -44,45 +47,45 @@ export default function NavBar() {
         setProfile(null)
       }
     })
+
     return () => {
       listener?.subscription.unsubscribe()
     }
   }, [session, supabase])
 
-  // Scroll effect for header background
   useEffect(() => {
-    function onScroll() {
-      setScrolled(window.scrollY > 32)
-    }
-    window.addEventListener('scroll', onScroll)
+    if (typeof window === 'undefined') return
+    const onScroll = () => setScrolled(window.scrollY > 32)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true } as AddEventListenerOptions)
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // Make header taller (h-20 = 80px, adjust as needed)
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 w-full h-20 flex items-center justify-between px-8 shadow-sm border-b transition-all duration-300
-        ${scrolled
-          ? 'bg-[rgba(10,12,20,0.82)] border-gray-900 backdrop-blur-[22px]'
-          : 'bg-transparent border-transparent backdrop-blur-0 shadow-none'
-        }
-      `}
-      style={{
-        boxShadow: scrolled ? '0 2px 24px 0 #10131e44' : 'none',
-        borderRadius: '0 0 1.5rem 1.5rem',
-      }}
+      data-scrolled={scrolled ? 'true' : 'false'}
+      className="nav-root fixed top-0 left-0 right-0 z-50 w-full h-20 flex items-center justify-between px-6 md:px-8"
+      aria-label="Main Navigation"
+      style={{ borderRadius: '0 0 18px 18px' }}
     >
-      <div className="flex items-center gap-4">
-        <Link href="/" className="focus:outline-none group flex items-center relative">
-          <AnimatedLogo />
+      {/* Blur layer */}
+      <div className="nav-blur" aria-hidden />
+      {/* Thin blue bottom line */}
+      <div className="nav-bottom-edge" aria-hidden />
+
+      {/* Content */}
+      <div className="flex items-center gap-4 relative z-10">
+        <Link href="/" className="focus:outline-none group flex items-center relative" aria-label="Humanaira Home">
+          <BrandLogo />
         </Link>
       </div>
-      <div className="flex items-center gap-3">
+
+      <div className="flex items-center gap-3 relative z-10">
         {!user ? (
           <Link
             href="/login"
-            className="ml-2 px-5 py-2 rounded-lg text-base font-semibold bg-blue-700 text-white hover:bg-blue-800 transition"
-            style={{ borderRadius: '1rem' }}
+            className="ml-2 px-5 py-2 rounded-xl text-base font-semibold bg-[#35BFFF] text-[#06121f] hover:bg-[#2fb2ff] transition"
+            style={{ boxShadow: '0 8px 24px rgba(53,191,255,0.22)' }}
           >
             Sign up / Login
           </Link>
@@ -91,116 +94,192 @@ export default function NavBar() {
             user={user}
             avatarUrl={profile?.avatar_url}
             username={profile?.username || user.email?.split('@')[0] || ''}
-            // Make sure your UserMenu avatar is also a bit bigger (w-12 h-12)
           />
         )}
       </div>
+
+      {/* Scoped styles */}
+      <style jsx>{`
+        .nav-root {
+          background: transparent;
+        }
+
+        .nav-blur {
+          position: absolute;
+          inset: 0;
+          border-radius: 0 0 18px 18px;
+          background: rgba(10, 14, 24, 0.15); /* slight tint for depth */
+          backdrop-filter: blur(28px) saturate(140%);
+          -webkit-backdrop-filter: blur(28px) saturate(140%);
+          transition: backdrop-filter 240ms ease, background 240ms ease;
+        }
+
+        nav[data-scrolled='true'] .nav-blur {
+          background: rgba(10, 14, 24, 0.25);
+          backdrop-filter: blur(40px) saturate(150%);
+          -webkit-backdrop-filter: blur(40px) saturate(150%);
+        }
+
+        .nav-bottom-edge {
+          position: absolute;
+          left: 14px;
+          right: 14px;
+          bottom: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(53, 191, 255, 0.6), transparent);
+          border-radius: 9999px;
+          pointer-events: none;
+        }
+      `}</style>
     </nav>
   )
 }
 
-// --- AnimatedLogo and MovingOrb ---
-function AnimatedLogo() {
-  const underlineRef = useRef<SVGPathElement | null>(null)
+/* Brand logo unchanged */
+function BrandLogo() {
+  const BLUE = '#35BFFF'
+  const wrapRef = useRef<HTMLSpanElement | null>(null)
+  const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
 
   useEffect(() => {
-    const path = underlineRef.current
-    if (!path) return
-    const length = path.getTotalLength()
-    path.style.strokeDasharray = `${length}`
-    path.style.strokeDashoffset = `${length}`
+    if (typeof window === 'undefined') return
+    const el = wrapRef.current
+    if (!el) return
 
-    setTimeout(() => {
-      path.style.transition = 'stroke-dashoffset 1.8s cubic-bezier(.2,.9,.3,1)'
-      path.style.strokeDashoffset = '0'
-    }, 400)
-  }, [])
-
-  return (
-    <span
-      className="relative flex items-center select-none"
-      style={{
-        letterSpacing: '-0.04em',
-        textShadow: '0 2px 8px #0f172a',
-        fontFamily: 'Inter, sans-serif',
-        fontWeight: 800,
-        fontSize: '1.75rem', // bigger logo
-        lineHeight: 1,
-        userSelect: 'none',
-      }}
-    >
-      <span style={{ color: '#2563eb' }}>hum</span>
-      <span style={{ color: '#2563eb' }}>an</span>
-      <span style={{ color: '#fff', fontWeight: 800 }}>a</span>
-      <span style={{ color: '#fff', fontWeight: 800 }}>i</span>
-      <span style={{ color: '#2563eb' }}>ra</span>
-      <svg
-        width="100"
-        height="18"
-        viewBox="0 0 120 18"
-        className="absolute left-0 bottom-[-8px] pointer-events-none"
-        style={{ zIndex: 1 }}
-        aria-hidden
-      >
-        <path
-          ref={underlineRef}
-          d="M8 12 Q40 20 80 10 Q110 2 118 14"
-          fill="none"
-          stroke="#38bdf8"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          style={{
-            filter: 'drop-shadow(0 0 6px #38bdf8cc)',
-            strokeDasharray: undefined,
-            strokeDashoffset: undefined,
-          }}
-        />
-        <MovingOrb />
-      </svg>
-      <span className="inline-block align-middle ml-2 w-3 h-3 rounded-full bg-blue-700 animate-pulse shadow-lg"></span>
-    </span>
-  )
-}
-
-function MovingOrb() {
-  const orbRef = useRef<SVGCircleElement | null>(null)
-  const pathRef = useRef<SVGPathElement | null>(null)
-
-  useEffect(() => {
-    if (!orbRef.current) return
-    const svg = orbRef.current.ownerSVGElement
-    if (!svg) return
-    const path = svg.querySelector('path')
-    if (!path) return
-    pathRef.current = path
-
-    let frame = 0
-    let raf: number
-    function animate() {
-      const length = path.getTotalLength()
-      const t = (Math.sin(frame * 0.025) * 0.5 + 0.5) * 0.85 + 0.08
-      const pt = path.getPointAtLength(length * t)
-      orbRef.current!.setAttribute('cx', pt.x.toString())
-      orbRef.current!.setAttribute('cy', pt.y.toString())
-      raf = requestAnimationFrame(() => {
-        frame++
-        animate()
-      })
+    const update = () => {
+      const r = el.getBoundingClientRect()
+      setSize({ w: Math.round(r.width), h: Math.round(r.height) })
     }
-    animate()
-    return () => cancelAnimationFrame(raf)
+
+    update()
+
+    let ro: ResizeObserver | null = null
+    try {
+      if (typeof ResizeObserver !== 'undefined') {
+        ro = new ResizeObserver(update)
+        ro.observe(el)
+      } else {
+        window.addEventListener('resize', update)
+      }
+    } catch {
+      window.addEventListener('resize', update)
+    }
+
+    return () => {
+      if (ro) ro.disconnect()
+      else window.removeEventListener('resize', update)
+    }
   }, [])
 
+  const padX = 14
+  const padY = 10
+  const rx = 12
+
+  const svgW = size.w + padX * 2
+  const svgH = size.h + padY * 2
+
   return (
-    <circle
-      ref={orbRef}
-      r="4"
-      fill="#38bdf8"
-      opacity="0.85"
-      style={{
-        filter: 'drop-shadow(0 0 8px #38bdf8cc)',
-        transition: 'cx 0.1s, cy 0.1s',
-      }}
-    />
+    <span className="relative inline-flex items-center">
+      {svgW > 0 && svgH > 0 && (
+        <svg
+          className="absolute -z-10"
+          width={svgW}
+          height={svgH}
+          viewBox={`0 0 ${svgW} ${svgH}`}
+          aria-hidden
+          style={{ left: -padX, top: -padY }}
+        >
+          <defs>
+            <linearGradient id="brandOrbitGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#e9fbff" stopOpacity="0.7" />
+              <stop offset="50%" stopColor={BLUE} stopOpacity="1" />
+              <stop offset="100%" stopColor="#91e6ff" stopOpacity="0.8" />
+            </linearGradient>
+            <filter id="brandGlow" x="-60%" y="-60%" width="220%" height="220%">
+              <feGaussianBlur stdDeviation="2.2" result="b" />
+              <feMerge>
+                <feMergeNode in="b" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          <rect
+            x="2"
+            y="2"
+            width={svgW - 4}
+            height={svgH - 4}
+            rx={rx + 2}
+            ry={rx + 2}
+            fill="rgba(53,191,255,0.06)"
+            filter="url(#brandGlow)"
+          />
+
+          <g style={{ transformOrigin: `${svgW / 2}px ${svgH / 2}px` }}>
+            <rect
+              x="3.5"
+              y="3.5"
+              width={svgW - 7}
+              height={svgH - 7}
+              rx={rx}
+              ry={rx}
+              fill="none"
+              stroke="url(#brandOrbitGrad)"
+              strokeWidth="1.8"
+              pathLength={100}
+              strokeDasharray="16 84"
+              className="orbit-stroke"
+            />
+            <rect
+              x="3.5"
+              y="3.5"
+              width={svgW - 7}
+              height={svgH - 7}
+              rx={rx}
+              ry={rx}
+              fill="none"
+              stroke="rgba(53,191,255,0.15)"
+              strokeWidth="2.2"
+              pathLength={100}
+              strokeDasharray="8 92"
+              className="orbit-stroke-slow"
+            />
+          </g>
+
+          <style jsx>{`
+            @keyframes dashMove {
+              to {
+                stroke-dashoffset: -100;
+              }
+            }
+            .orbit-stroke {
+              animation: dashMove 9s linear infinite;
+              stroke-linecap: round;
+            }
+            .orbit-stroke-slow {
+              animation: dashMove 18s linear infinite;
+              stroke-linecap: round;
+            }
+          `}</style>
+        </svg>
+      )}
+
+      <span
+        ref={wrapRef}
+        className="select-none"
+        style={{
+          fontFamily: 'Poppins, Inter, sans-serif',
+          fontWeight: 800,
+          fontSize: '1.6rem',
+          lineHeight: 1,
+          letterSpacing: '-0.04em',
+          textShadow: '0 2px 8px rgba(0,0,0,0.35)',
+        }}
+      >
+        <span style={{ color: BLUE }}>human</span>
+        <span style={{ color: '#ffffff' }}>ai</span>
+        <span style={{ color: BLUE }}>ra</span>
+      </span>
+    </span>
   )
 }

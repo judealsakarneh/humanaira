@@ -131,6 +131,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/login">
 }
 
+// Validate ../../src/app/messages/[id]/page.tsx
+{
+  const handler = {} as typeof import("../../src/app/messages/[id]/page.js")
+  handler satisfies AppPageConfig<"/messages/[id]">
+}
+
 // Validate ../../src/app/messages/page.tsx
 {
   const handler = {} as typeof import("../../src/app/messages/page.js")
@@ -273,6 +279,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   const handler = {} as typeof import("../../src/app/api/conversations/create-from-order/route.js")
   handler satisfies RouteHandlerConfig<"/api/conversations/create-from-order">
+}
+
+// Validate ../../src/app/api/conversations/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/conversations/route.js")
+  handler satisfies RouteHandlerConfig<"/api/conversations">
 }
 
 // Validate ../../src/app/api/gigs/route.ts
