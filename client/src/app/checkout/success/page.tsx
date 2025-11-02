@@ -13,7 +13,7 @@ export default function SuccessPage() {
         <h1 className="text-3xl font-extrabold text-white mb-2">Payment successful 🎉</h1>
         <p className="text-slate-400 mb-6">Thank you! Your order has been placed.</p>
         {sessionId && <p className="text-xs text-slate-500 mb-6">Session: {sessionId}</p>}
-        <Link href="/browse" className="inline-block px-6 py-3.5 rounded-xl bg-[#3B82F6] text-white font-bold hover:bg-sky-500">
+        <Link href="/browse" className="inline-block px-6 py-3.5 rounded-xl bg-[#35BFFF] text-white font-bold hover:bg-sky-500">
           Continue browsing
         </Link>
       </div>

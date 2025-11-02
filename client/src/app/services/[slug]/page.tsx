@@ -17,9 +17,9 @@ function Avatar({
   avatarUrl?: string | null
 }) {
   const baseClasses =
-    'w-24 h-24 rounded-full object-cover border-4 border-[#3B82F6] ring-4 ring-[#0A1022] bg-[#0A1022]'
+    'w-24 h-24 rounded-full object-cover border-4 border-[#35BFFF] ring-4 ring-[#0A1022] bg-[#0A1022]'
   const placeholderClasses =
-    'w-24 h-24 rounded-full bg-[#3B82F6]/20 flex items-center justify-center text-4xl text-[#3B82F6] font-extrabold border-4 border-[#3B82F6]/50 ring-4 ring-[#0A1022] hover:ring-[#3B82F6]'
+    'w-24 h-24 rounded-full bg-[#35BFFF]/20 flex items-center justify-center text-4xl text-[#35BFFF] font-extrabold border-4 border-[#35BFFF]/50 ring-4 ring-[#0A1022] hover:ring-[#35BFFF]'
   const hash = email ? String(email.length % 100) : ''
   const fallbackGravatar = email ? `https://www.gravatar.com/avatar/${hash}?d=identicon&s=96` : null
   const src = avatarUrl || fallbackGravatar
@@ -180,7 +180,7 @@ function MediaCarousel({ images }: { images: string[] }) {
           <button
             key={i}
             onClick={() => setIndex(i)}
-            className={`flex-shrink-0 rounded-lg overflow-hidden transition-all duration-300 ${i === index ? 'ring-2 ring-[#3B82F6] ring-offset-2 ring-offset-[#070D1C]' : 'opacity-70 hover:opacity-100'}`}
+            className={`flex-shrink-0 rounded-lg overflow-hidden transition-all duration-300 ${i === index ? 'ring-2 ring-[#35BFFF] ring-offset-2 ring-offset-[#070D1C]' : 'opacity-70 hover:opacity-100'}`}
             style={{ width: 96, height: 64 }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -608,7 +608,7 @@ export default function ServiceDetailsPage() {
       const conversationId = body?.id
       if (conversationId) {
         // router.push(`/messages/${conversationId}`)
-        router.push(`/messages?cid=${encodeURIComponent(conversationId)}`)
+        router.push(`/messages?conv=${encodeURIComponent(conversationId)}`)
       } else {
         router.push(profileHref)
       }
@@ -746,7 +746,7 @@ export default function ServiceDetailsPage() {
                       onClick={() => setActivePackage(pkg)}
                       className={`flex-1 min-w-[110px] text-center px-4 py-2.5 text-sm md:text-base font-semibold transition rounded-lg ${
                         activePackage?.tier === pkg.tier
-                          ? 'bg-[#3B82F6] text-white shadow-lg shadow-[#3B82F6]/30'
+                          ? 'bg-[#35BFFF] text-white shadow-lg shadow-[#35BFFF]/30'
                           : 'text-slate-300 hover:text-white'
                       }`}
                     >
@@ -756,7 +756,7 @@ export default function ServiceDetailsPage() {
                 </div>
 
                 {activePackage && (
-                  <div className="p-5 bg-[#070D1C] rounded-xl border border-[#3B82F6]/30 shadow-inner">
+                  <div className="p-5 bg-[#070D1C] rounded-xl border border-[#35BFFF]/30 shadow-inner">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-700/60 mb-4">
                       <h3 className="text-xl font-bold text-white">{activePackage.tier} Package</h3>
                       <span className="text-3xl font-extrabold text-[#93C5FD] mt-2 sm:mt-0">
@@ -787,7 +787,7 @@ export default function ServiceDetailsPage() {
                       <ul className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-200 text-sm">
                         {activePackage.features.map((feature: string, idx: number) => (
                           <li key={idx} className="flex items-start gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#3B82F6] flex-shrink-0 mt-0.5" viewBox="0 0 24 24">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#35BFFF] flex-shrink-0 mt-0.5" viewBox="0 0 24 24">
                               <path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                             </svg>
                             {feature}
@@ -814,7 +814,7 @@ export default function ServiceDetailsPage() {
                 href={checkoutHref}
                 prefetch
                 className={`flex-1 min-w-[200px] px-8 py-4 rounded-xl text-center font-bold text-lg shadow-xl transition transform hover:scale-[1.01] active:scale-[0.99] ${
-                  gig ? 'bg-[#3B82F6] text-white shadow-[#3B82F6]/40 hover:bg-sky-500' : 'bg-gray-600 cursor-not-allowed'
+                  gig ? 'bg-[#35BFFF] text-white shadow-[#35BFFF]/40 hover:bg-sky-500' : 'bg-gray-600 cursor-not-allowed'
                 }`}
                 role="button"
                 aria-disabled={!gig}
@@ -839,7 +839,7 @@ export default function ServiceDetailsPage() {
             <div className="sticky top-24 space-y-8">
               {/* Freelancer Profile Card (no completed gigs count) */}
               <Link href={profileHref} className="group block">
-                <div className="bg-[#0D1328] rounded-2xl shadow-2xl border border-slate-700/60 p-6 hover:border-[#3B82F6]/50 transition duration-300">
+                <div className="bg-[#0D1328] rounded-2xl shadow-2xl border border-slate-700/60 p-6 hover:border-[#35BFFF]/50 transition duration-300">
                   <div className="flex flex-col items-center text-center">
                     <Avatar email={seller?.email} name={displayName} avatarUrl={seller?.avatar_url} />
                     <div className="font-bold text-xl text-white mt-3 group-hover:text-[#93C5FD] transition">
@@ -867,7 +867,7 @@ export default function ServiceDetailsPage() {
               </Link>
 
               {/* Sticky Order Summary Box */}
-              <div className="bg-[#0D1328] rounded-2xl shadow-2xl border border-[#3B82F6]/50 p-6">
+              <div className="bg-[#0D1328] rounded-2xl shadow-2xl border border-[#35BFFF]/50 p-6">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-700/60">
                   <span className="font-semibold text-white text-lg">Starting From</span>
                   <span className="text-3xl font-extrabold text-[#93C5FD]">{startingPrice}</span>
@@ -881,7 +881,7 @@ export default function ServiceDetailsPage() {
                   href={checkoutHref}
                   prefetch
                   className={`w-full block text-center px-6 py-3.5 rounded-xl font-bold text-lg transition transform hover:scale-[1.01] active:scale-[0.99] ${
-                    gig ? 'bg-[#3B82F6] text-white shadow-xl shadow-[#3B82F6]/40 hover:bg-sky-500' : 'bg-gray-600 cursor-not-allowed text-white'
+                    gig ? 'bg-[#35BFFF] text-white shadow-xl shadow-[#35BFFF]/40 hover:bg-sky-500' : 'bg-gray-600 cursor-not-allowed text-white'
                   }`}
                   role="button"
                   aria-disabled={!gig}

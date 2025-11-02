@@ -39,10 +39,10 @@ export default function CheckoutPage() {
     <main className="min-h-screen bg-[#080E1B] text-slate-200 font-sans">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <nav className="text-sm text-slate-400 mb-6">
-          <Link className="hover:text-[#3B82F6]" href="/">Home</Link> <span>/</span>{' '}
-          <Link className="hover:text-[#3B82F6]" href="/browse">Browse</Link> <span>/</span>{' '}
-          {slug ? <Link className="hover:text-[#3B82F6]" href={`/services/${encodeURIComponent(slug)}`}>{title}</Link> : <span>{title}</span>} <span>/</span>{' '}
-          <span className="text-[#3B82F6] font-semibold">Checkout</span>
+          <Link className="hover:text-[#35BFFF]" href="/">Home</Link> <span>/</span>{' '}
+          <Link className="hover:text-[#35BFFF]" href="/browse">Browse</Link> <span>/</span>{' '}
+          {slug ? <Link className="hover:text-[#35BFFF]" href={`/services/${encodeURIComponent(slug)}`}>{title}</Link> : <span>{title}</span>} <span>/</span>{' '}
+          <span className="text-[#35BFFF] font-semibold">Checkout</span>
         </nav>
 
         <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-6 tracking-tight">Checkout</h1>
@@ -57,7 +57,7 @@ export default function CheckoutPage() {
             </div>
             <div className="text-right">
               <div className="uppercase text-xs tracking-wider text-slate-400 mb-1">Total</div>
-              <div className="text-3xl font-extrabold text-[#3B82F6]">${price}</div>
+              <div className="text-3xl font-extrabold text-[#35BFFF]">${price}</div>
             </div>
           </div>
 
@@ -70,7 +70,7 @@ export default function CheckoutPage() {
               className={`w-full px-6 py-3.5 rounded-xl font-bold text-lg transition transform hover:scale-[1.01] active:scale-[0.99] ${
                 loading || !gigId
                   ? 'bg-gray-600 cursor-not-allowed text-white'
-                  : 'bg-[#3B82F6] text-white shadow-xl shadow-[#3B82F6]/50 hover:bg-sky-500'
+                  : 'bg-[#35BFFF] text-white shadow-xl shadow-[#35BFFF]/50 hover:bg-sky-500'
               }`}
             >
               {loading ? 'Redirecting...' : `Pay $${price}`}
@@ -81,7 +81,7 @@ export default function CheckoutPage() {
                 if (slug) router.push(`/services/${encodeURIComponent(slug)}`)
                 else router.back()
               }}
-              className="mt-3 w-full px-6 py-3.5 rounded-xl bg-[#080E1B] text-[#3B82F6] font-bold text-lg shadow border border-[#334155] hover:bg-[#151C30] transition"
+              className="mt-3 w-full px-6 py-3.5 rounded-xl bg-[#080E1B] text-[#35BFFF] font-bold text-lg shadow border border-[#334155] hover:bg-[#151C30] transition"
             >
               Back to Service
             </button>
