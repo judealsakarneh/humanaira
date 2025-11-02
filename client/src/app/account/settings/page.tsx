@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
 import { useRouter } from 'next/navigation'
 
+// Brand color
+const BRAND = '#35BFFF'
+
 // --- SVG Icons (Lucide-like) ---
 const UserIcon = (props: any) => (
   <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -71,7 +74,7 @@ function ToggleSwitch({
       >
         <span
           className={`w-11 h-6 flex items-center rounded-full p-1 transition ${
-            checked ? 'bg-indigo-500' : 'bg-slate-700'
+            checked ? 'bg-[#35BFFF]' : 'bg-slate-700'
           }`}
         >
           <span
@@ -292,7 +295,6 @@ export default function SettingsPage() {
 
       if (payoutMethod === 'paypal') {
         payload.paypal_email = paypalEmail.trim()
-        // Optional: clear bank fields server-side if switching methods, but not required
       } else if (payoutMethod === 'bank') {
         payload.country = country.trim().toUpperCase()
         payload.wise_currency = currency.trim().toUpperCase()
@@ -327,8 +329,8 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white p-4">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <div className="text-xl font-medium text-indigo-400">Loading settings...</div>
+        <div className="w-12 h-12 border-4 border-[#35BFFF] border-t-transparent rounded-full animate-spin mb-4" />
+        <div className="text-xl font-medium" style={{ color: BRAND }}>Loading settings...</div>
       </div>
     )
   }
@@ -347,7 +349,7 @@ export default function SettingsPage() {
   // Section header helper
   const SettingsHeader = ({ icon: Icon, title }: { icon: React.ElementType; title: string }) => (
     <h2 className="flex items-center text-xl font-semibold text-white mb-4 border-b border-slate-700/50 pb-2">
-      <Icon className="w-5 h-5 mr-3 text-indigo-400" />
+      <Icon className="w-5 h-5 mr-3" style={{ color: BRAND }} />
       {title}
     </h2>
   )
@@ -359,8 +361,8 @@ export default function SettingsPage() {
     >
       {/* Background accents */}
       <div className="fixed inset-0 -z-10 pointer-events-none">
-        <div className="absolute top-[-6rem] left-[-6rem] w-[26rem] h-[26rem] bg-indigo-700/20 rounded-full blur-[140px]" />
-        <div className="absolute bottom-[-8rem] right-[-6rem] w-[28rem] h-[28rem] bg-sky-700/20 rounded-full blur-[140px]" />
+        <div className="absolute top-[-6rem] left-[-6rem] w-[26rem] h-[26rem] rounded-full blur-[140px]" style={{ background: 'rgba(53,191,255,0.20)' }} />
+        <div className="absolute bottom-[-8rem] right-[-6rem] w-[28rem] h-[28rem] rounded-full blur-[140px]" style={{ background: 'rgba(53,191,255,0.18)' }} />
       </div>
 
       <section className="relative z-10 w-full max-w-4xl bg-[#0D1324]/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-800 p-6 sm:p-10">
@@ -396,11 +398,12 @@ export default function SettingsPage() {
           <div className="mt-4 pt-4 border-t border-slate-800 text-xs text-slate-400">
             <ul className="list-disc list-inside space-y-1 ml-4">
               <li>Your profile can appear in the marketplace when enabled.</li>
+              <li>Platform commission fee is 7% per order.</li>
             </ul>
           </div>
         </div>
 
-        {/* 2. Payout Method (NEW) */}
+        {/* 2. Payout Method */}
         <div className="mb-8 p-5 rounded-2xl border border-slate-800 bg-slate-900/40">
           <SettingsHeader icon={UserIcon} title="Payout Method" />
 
@@ -410,10 +413,11 @@ export default function SettingsPage() {
               type="button"
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
                 payoutMethod === 'paypal'
-                  ? 'bg-sky-600 text-white shadow-lg shadow-sky-500/20'
+                  ? 'bg-[#35BFFF] text-[#06121f] shadow-lg'
                   : 'text-slate-300 hover:text-white'
               }`}
               onClick={() => setPayoutMethod('paypal')}
+              style={payoutMethod === 'paypal' ? { boxShadow: '0 8px 20px rgba(53,191,255,0.25)' } : undefined}
             >
               PayPal
             </button>
@@ -421,10 +425,11 @@ export default function SettingsPage() {
               type="button"
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
                 payoutMethod === 'bank'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                  ? 'bg-[#35BFFF] text-[#06121f] shadow-lg'
                   : 'text-slate-300 hover:text-white'
               }`}
               onClick={() => setPayoutMethod('bank')}
+              style={payoutMethod === 'bank' ? { boxShadow: '0 8px 20px rgba(53,191,255,0.25)' } : undefined}
             >
               Bank transfer
             </button>
@@ -439,7 +444,7 @@ export default function SettingsPage() {
               <input
                 type="email"
                 placeholder="your-email@paypal.com"
-                className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-sky-600 placeholder:text-slate-500"
+                className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-[#35BFFF] placeholder:text-slate-500"
                 value={paypalEmail}
                 onChange={(e) => setPaypalEmail(e.target.value)}
               />
@@ -460,7 +465,7 @@ export default function SettingsPage() {
                     value={country}
                     onChange={(e) => setCountry(e.target.value.toUpperCase())}
                     placeholder="US, DE, AE..."
-                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#35BFFF]"
                   />
                 </div>
                 <div>
@@ -469,7 +474,7 @@ export default function SettingsPage() {
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value.toUpperCase())}
                     placeholder="USD, EUR..."
-                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#35BFFF]"
                   />
                 </div>
               </div>
@@ -480,7 +485,7 @@ export default function SettingsPage() {
                   <input
                     value={bankHolderName}
                     onChange={(e) => setBankHolderName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#35BFFF]"
                     placeholder="Full legal name"
                   />
                 </div>
@@ -489,7 +494,7 @@ export default function SettingsPage() {
                   <input
                     value={bankCountry}
                     onChange={(e) => setBankCountry(e.target.value.toUpperCase())}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#35BFFF]"
                     placeholder="US, DE, AE..."
                   />
                 </div>
@@ -502,7 +507,7 @@ export default function SettingsPage() {
                     value={iban}
                     onChange={(e) => setIban(e.target.value)}
                     placeholder="IBAN"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#35BFFF]"
                   />
                 </div>
                 <div>
@@ -511,7 +516,7 @@ export default function SettingsPage() {
                     value={swiftBic}
                     onChange={(e) => setSwiftBic(e.target.value)}
                     placeholder="Required if no IBAN (with Account Number)"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#35BFFF]"
                   />
                 </div>
               </div>
@@ -523,7 +528,7 @@ export default function SettingsPage() {
                     value={acctNumber}
                     onChange={(e) => setAcctNumber(e.target.value)}
                     placeholder="If no IBAN"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#35BFFF]"
                   />
                 </div>
                 <div>
@@ -531,7 +536,7 @@ export default function SettingsPage() {
                   <input
                     value={bankName}
                     onChange={(e) => setBankName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#35BFFF]"
                     placeholder="Optional"
                   />
                 </div>
@@ -543,7 +548,7 @@ export default function SettingsPage() {
                   <input
                     value={bankCity}
                     onChange={(e) => setBankCity(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#35BFFF]"
                     placeholder="Optional"
                   />
                 </div>
@@ -552,7 +557,7 @@ export default function SettingsPage() {
                   <input
                     value={bankInfo}
                     onChange={(e) => setBankInfo(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#35BFFF]"
                     placeholder="Reference, branch, etc. (Optional)"
                   />
                 </div>
@@ -565,7 +570,7 @@ export default function SettingsPage() {
             <div
               className={`text-sm font-medium ${
                 payoutMsg
-                  ? payoutMsg.includes('Saved')
+                  ? payoutMsg.toLowerCase().includes('saved')
                     ? 'text-emerald-400'
                     : 'text-rose-400'
                   : 'text-slate-400'
@@ -576,9 +581,13 @@ export default function SettingsPage() {
             <button
               onClick={savePayoutSettings}
               disabled={savingPayout}
-              className={`px-6 py-2 rounded-xl font-semibold text-white transition ${
-                savingPayout ? 'bg-slate-700 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-500'
-              }`}
+              className="px-6 py-2 rounded-xl font-semibold transition"
+              style={{
+                backgroundColor: savingPayout ? '#334155' : BRAND,
+                color: savingPayout ? '#cbd5e1' : '#06121f',
+                boxShadow: savingPayout ? 'none' : '0 10px 24px rgba(53,191,255,0.20)',
+                cursor: savingPayout ? 'not-allowed' : 'pointer',
+              }}
             >
               {savingPayout ? 'Saving…' : 'Save Payout Settings'}
             </button>
@@ -595,7 +604,7 @@ export default function SettingsPage() {
             <input
               type="password"
               placeholder="Old Password"
-              className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-indigo-600 placeholder:text-slate-500"
+              className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-[#35BFFF] placeholder:text-slate-500"
               value={oldPassword}
               onChange={(e) => setOldPassword(e.target.value)}
               minLength={6}
@@ -607,7 +616,7 @@ export default function SettingsPage() {
               <input
                 type="password"
                 placeholder="New Password (min 6 chars)"
-                className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-indigo-600 placeholder:text-slate-500"
+                className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-[#35BFFF] placeholder:text-slate-500"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 minLength={6}
@@ -617,7 +626,7 @@ export default function SettingsPage() {
               <input
                 type="password"
                 placeholder="Confirm New Password"
-                className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-indigo-600 placeholder:text-slate-500"
+                className="w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-[#35BFFF] placeholder:text-slate-500"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 minLength={6}
@@ -638,7 +647,11 @@ export default function SettingsPage() {
               )}
               <button
                 type="submit"
-                className="px-6 py-2 ml-auto rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition text-sm disabled:opacity-50"
+                className="px-6 py-2 ml-auto rounded-xl text-white font-semibold transition text-sm disabled:opacity-50"
+                style={{
+                  backgroundColor: passwordSaving ? '#334155' : BRAND,
+                  color: '#06121f',
+                }}
                 disabled={passwordSaving}
               >
                 {passwordSaving ? 'Verifying…' : 'Update Password'}
@@ -703,12 +716,12 @@ export default function SettingsPage() {
         <div className="p-5 rounded-2xl border border-slate-800 bg-slate-900/40">
           <SettingsHeader icon={BookOpenIcon} title="Legal" />
           <ul className="text-sm text-slate-300 space-y-2">
-            <li className="transition hover:text-indigo-400">
+            <li className="transition hover:text-[#35BFFF]">
               <a href="/terms" target="_blank" rel="noopener noreferrer">
                 Terms of Service <span className="text-xs text-slate-500 ml-1">(opens in new tab)</span>
               </a>
             </li>
-            <li className="transition hover:text-indigo-400">
+            <li className="transition hover:text-[#35BFFF]">
               <a href="/privacy" target="_blank" rel="noopener noreferrer">
                 Privacy Policy <span className="text-xs text-slate-500 ml-1">(opens in new tab)</span>
               </a>
@@ -726,8 +739,13 @@ export default function SettingsPage() {
                   message.includes('disabled') ||
                   message.toLowerCase().includes('success')
                 ? 'bg-emerald-900/40 text-emerald-300 border border-emerald-800/70'
-                : 'bg-indigo-900/40 text-indigo-300 border border-indigo-800/70'
+                : ''
             }`}
+            style={
+              message.includes('Failed') || message.toLowerCase().includes('success') || message.includes('enabled') || message.includes('disabled')
+                ? undefined
+                : { background: 'rgba(53,191,255,0.15)', color: BRAND, border: '1px solid rgba(53,191,255,0.35)' }
+            }
           >
             {message}
           </div>
