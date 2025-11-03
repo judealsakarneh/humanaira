@@ -2,10 +2,20 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createSupabaseServer } from '../../lib/supabaseServer'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY
 const PLATFORM_FEE_PERCENT = Number(process.env.PLATFORM_FEE_PERCENT || 20)
 
 export async function POST(req: Request) {
+  const secretKey = stripeSecretKey
+  if (!secretKey) {
+    console.error('Missing STRIPE_SECRET_KEY environment variable for addon checkout route')
+    return NextResponse.json(
+      { ok: false, error: 'Payments are temporarily unavailable. Please try again later.' },
+      { status: 500 }
+    )
+  }
+
+  const stripe = new Stripe(secretKey)
   const supabase = createSupabaseServer()
   const { data: userRes } = await supabase.auth.getUser()
   if (!userRes?.user) return NextResponse.json({ ok: false, error: 'Login required' }, { status: 401 })
