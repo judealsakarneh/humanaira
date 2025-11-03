@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
 import HumanairaLoader from '../../../components/HumanairaLoader'
+import { sendMessage } from '../../../lib/messaging'
 
 /* ---------------- Avatar ---------------- */
 function Avatar({
@@ -571,7 +572,8 @@ export default function ServiceDetailsPage() {
     // This will:
     // 1) Ensure the user is logged in via Supabase auth
     // 2) Call our server API to get or create a conversation
-    // 3) Redirect to /messages/[conversationId]
+    // 3) Send an initial message about the service
+    // 4) Redirect to /messages with the conversation
     if (!seller || !gig) return
 
     try {
@@ -607,7 +609,21 @@ export default function ServiceDetailsPage() {
       const body = await res.json()
       const conversationId = body?.id
       if (conversationId) {
-        // router.push(`/messages/${conversationId}`)
+        // Send initial message about the service
+        try {
+          const initialMessage = `Hi! I'm interested in your service: "${gig.title}". Can you provide more details?`
+          await sendMessage({
+            conversationId,
+            text: initialMessage,
+            attachments: [],
+            isSystem: false,
+          })
+        } catch (msgErr) {
+          console.error('Failed to send initial message', msgErr)
+          // Continue anyway - the conversation is created
+        }
+        
+        // Redirect to messages with the conversation open
         router.push(`/messages?conv=${encodeURIComponent(conversationId)}`)
       } else {
         router.push(profileHref)
