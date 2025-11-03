@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
 
+// Brand color
+const BRAND = '#35BFFF'
+
 // Initialize Supabase instance (browser)
 const supabase = createSupabaseBrowser()
 
@@ -185,8 +188,13 @@ export default function Page() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white p-4">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent border-solid rounded-full animate-spin mb-4" />
-        <div className="text-xl font-medium text-indigo-400">Fetching profile data...</div>
+        <div
+          className="w-12 h-12 border-4 border-solid border-t-transparent rounded-full animate-spin mb-4"
+          style={{ borderColor: BRAND }}
+        />
+        <div className="text-xl font-medium" style={{ color: BRAND }}>
+          Fetching profile data...
+        </div>
       </div>
     )
   }
@@ -195,9 +203,9 @@ export default function Page() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
-        <div className="bg-red-900/30 border border-red-700 p-8 rounded-xl shadow-xl text-center">
-          <div className="text-xl font-bold text-red-400 mb-3">Authentication Required</div>
-          <div className="text-red-300 text-sm">{message}</div>
+        <div className="bg-[rgba(53,191,255,0.12)] border border-[rgba(53,191,255,0.35)] p-8 rounded-xl shadow-xl text-center">
+          <div className="text-xl font-bold mb-3" style={{ color: BRAND }}>Authentication Required</div>
+          <div className="text-slate-300 text-sm">{message}</div>
         </div>
       </div>
     )
@@ -209,15 +217,15 @@ export default function Page() {
       className="min-h-screen w-full bg-slate-950 flex flex-col items-center pb-16 px-4 font-sans"
       style={{ paddingTop: HEADER_HEIGHT + 32 }}
     >
-      {/* Subtle Gradient background */}
+      {/* Subtle brand background */}
       <div className="fixed inset-0 z-0 pointer-events-none opacity-15">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-700 rounded-full blur-[150px]" />
+        <div className="absolute top-0 right-0 w-80 h-80 rounded-full blur-[150px]" style={{ background: 'rgba(53,191,255,0.22)' }} />
       </div>
 
       <section className="relative z-10 w-full max-w-3xl bg-slate-900/90 backdrop-blur-sm rounded-2xl shadow-2xl shadow-black/50 border border-slate-800 p-6 sm:p-10">
         {/* Header with Back Button */}
         <div className="flex items-center mb-10">
-          <Link href="/account" className="flex items-center text-indigo-400 hover:text-indigo-300 transition">
+          <Link href="/account" className="flex items-center transition" style={{ color: BRAND }}>
             <ArrowLeftIcon className="w-5 h-5 mr-2" />
             <span className="text-sm font-semibold">Back to Account</span>
           </Link>
@@ -233,7 +241,8 @@ export default function Page() {
               <img
                 src={avatarUrl || 'https://placehold.co/96x96/1e293b/94a3b8?text=AI'}
                 alt="Avatar"
-                className="w-24 h-24 rounded-full border-4 border-indigo-500 object-cover bg-slate-800 transition duration-300 group-hover:opacity-70"
+                className="w-24 h-24 rounded-full object-cover bg-slate-800 transition duration-300 group-hover:opacity-70 border-4"
+                style={{ borderColor: BRAND }}
               />
               <button
                 type="button"
@@ -265,12 +274,13 @@ export default function Page() {
               <input
                 id="username"
                 type="text"
-                className="w-full px-4 py-3 rounded-lg border border-slate-700 bg-slate-800 text-white text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150"
+                className="w-full px-4 py-3 rounded-lg border border-slate-700 bg-slate-800 text-white text-base focus:outline-none focus:ring-2 focus:ring-[var(--brand)] transition duration-150"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 autoComplete="username"
                 required
                 disabled={saving}
+                style={{ ['--brand' as any]: BRAND }}
               />
             </div>
 
@@ -317,13 +327,13 @@ export default function Page() {
             <div
               id="bio-editor"
               ref={bioRef}
-              className="w-full min-h-[150px] px-4 py-3 rounded-b-lg border-x border-b border-slate-700 bg-slate-800 text-white text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 prose prose-invert max-w-none"
+              className="w-full min-h-[150px] px-4 py-3 rounded-b-lg border-x border-b border-slate-700 bg-slate-800 text-white text-base focus:outline-none focus:ring-2 focus:ring-[var(--brand)] transition duration-150 prose prose-invert max-w-none"
               contentEditable
               suppressContentEditableWarning
               onInput={handleBioInput}
               spellCheck={true}
               aria-label="Bio editor"
-              style={{ listStylePosition: 'inside', lineHeight: '1.6' }}
+              style={{ listStylePosition: 'inside', lineHeight: '1.6', ['--brand' as any]: BRAND }}
               data-placeholder="Describe your skills and experience here..."
             />
             <style jsx global>{`
@@ -344,10 +354,16 @@ export default function Page() {
             {message && (
               <div
                 className={`text-sm font-medium w-full text-center p-3 rounded-xl ${
-                  message.includes('Failed') ? 'bg-red-900/40 text-red-300 border border-red-700'
-                  : message.includes('updated') ? 'bg-green-900/40 text-green-300 border border-green-700'
-                  : 'bg-indigo-900/40 text-indigo-300 border border-indigo-700'
+                  message.toLowerCase().includes('failed') ? 'bg-rose-900/40 text-rose-300 border border-rose-700'
+                  : message.toLowerCase().includes('updated') || message.toLowerCase().includes('success')
+                  ? 'bg-emerald-900/40 text-emerald-300 border border-emerald-700'
+                  : ''
                 }`}
+                style={
+                  message.toLowerCase().includes('failed') || message.toLowerCase().includes('updated') || message.toLowerCase().includes('success')
+                    ? undefined
+                    : { background: 'rgba(53,191,255,0.15)', color: BRAND, border: '1px solid rgba(53,191,255,0.35)' }
+                }
               >
                 {message}
               </div>
@@ -355,8 +371,13 @@ export default function Page() {
 
             <button
               type="submit"
-              className="flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-indigo-600 text-white font-bold text-lg shadow-lg shadow-indigo-900/50 hover:bg-indigo-500 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-bold text-lg shadow-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={saving || !username.trim()}
+              style={{
+                backgroundColor: saving ? '#334155' : BRAND,
+                color: saving ? '#cbd5e1' : '#06121f',
+                boxShadow: saving ? 'none' : '0 10px 24px rgba(53,191,255,0.20)',
+              }}
             >
               <SaveIcon className="w-5 h-5" />
               {saving ? 'Saving...' : 'Save Changes'}

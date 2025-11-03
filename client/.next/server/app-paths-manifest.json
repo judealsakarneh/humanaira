@@ -1,5 +1,7 @@
 {
-  "/browse/page": "app/browse/page.js",
-  "/account/settings/page": "app/account/settings/page.js",
-  "/page": "app/page.js"
+  "/seller/orders/page": "app/seller/orders/page.js",
+  "/about/page": "app/about/page.js",
+  "/page": "app/page.js",
+  "/terms/page": "app/terms/page.js",
+  "/privacy/page": "app/privacy/page.js"
 }
