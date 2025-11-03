@@ -5,7 +5,6 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
 import HumanairaLoader from '../../../components/HumanairaLoader'
-import { sendMessage } from '../../../lib/messaging'
 
 /* ---------------- Avatar ---------------- */
 function Avatar({
@@ -573,7 +572,8 @@ export default function ServiceDetailsPage() {
     // 1) Ensure the user is logged in via Supabase auth
     // 2) Call our server API to get or create a conversation
     // 3) Send an initial message about the service
-    // 4) Redirect to /messages with the conversation
+    // 4) Update conversation metadata
+    // 5) Redirect to /messages with the conversation
     if (!seller || !gig) return
 
     try {
@@ -612,12 +612,36 @@ export default function ServiceDetailsPage() {
         // Send initial message about the service
         try {
           const initialMessage = `Hi! I'm interested in your service: "${gig.title}". Can you provide more details?`
-          await sendMessage({
-            conversationId,
-            text: initialMessage,
-            attachments: [],
-            isSystem: false,
-          })
+          
+          // Insert the message
+          const { error: msgError } = await supabase
+            .from('messages')
+            .insert([
+              {
+                conversation_id: conversationId,
+                sender_id: buyerId,
+                text: initialMessage,
+                attachments: [],
+                is_system: false,
+              },
+            ])
+
+          if (msgError) {
+            console.error('Failed to send initial message:', msgError)
+            throw msgError
+          }
+
+          // Update conversation's last_message and updated_at
+          await supabase
+            .from('conversations')
+            .update({
+              last_message: initialMessage,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', conversationId)
+
+          // Wait a moment to ensure everything is committed
+          await new Promise(resolve => setTimeout(resolve, 300))
         } catch (msgErr) {
           console.error('Failed to send initial message', msgErr)
           // Continue anyway - the conversation is created
