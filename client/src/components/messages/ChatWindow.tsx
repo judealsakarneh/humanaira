@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { createSupabaseBrowser } from '../../app/api/lib/supabaseBrowser'
 import {
   uploadChatFile,
@@ -15,6 +16,15 @@ type Conversation = {
   seller_id: string
   buyer_id: string
   status?: string
+  gig?: GigSummary | null
+}
+
+type GigSummary = {
+  id: string
+  title?: string | null
+  slug?: string | null
+  cover_image_url?: string | null
+  price_cents?: number | null
 }
 
 type MessageRow = {
@@ -57,6 +67,7 @@ export default function ChatWindow({ conversation }: { conversation: Conversatio
   const [files, setFiles] = useState<File[]>([])
   const [userId, setUserId] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement | null>(null)
+  const [gig, setGig] = useState<GigSummary | null>(conversation.gig ?? null)
 
   // load current user id
   useEffect(() => {
@@ -70,6 +81,31 @@ export default function ChatWindow({ conversation }: { conversation: Conversatio
       mounted = false
     }
   }, [supabase])
+
+  useEffect(() => {
+    setGig(conversation.gig ?? null)
+  }, [conversation.gig])
+
+  useEffect(() => {
+    if (!conversation.gig_id || conversation.gig) return
+    let active = true
+    ;(async () => {
+      try {
+        const { data } = await supabase
+          .from('gigs')
+          .select('id,title,slug,cover_image_url,price_cents')
+          .eq('id', conversation.gig_id)
+          .maybeSingle()
+        if (active) setGig((data as GigSummary) || null)
+      } catch (err) {
+        if (active) setGig(null)
+        console.error('Failed to load gig for conversation', err)
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [conversation.gig_id, conversation.gig, supabase])
 
   // Load messages and subscribe to realtime inserts
   useEffect(() => {
@@ -265,6 +301,55 @@ export default function ChatWindow({ conversation }: { conversation: Conversatio
           </button>
         </div>
       </header>
+
+      {gig && (
+        <div className="mb-4 rounded-xl border border-slate-700/60 bg-[#0b1429] p-4 flex flex-col sm:flex-row gap-4">
+          {gig.cover_image_url && (
+            <div className="w-full sm:w-32 sm:flex-shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={gig.cover_image_url}
+                alt={gig.title || 'Service image'}
+                className="w-full h-24 object-cover rounded-lg border border-slate-800"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+            </div>
+          )}
+          <div className="flex-1">
+            <div className="text-xs uppercase text-slate-400 tracking-wide">Service</div>
+            <div className="text-lg font-semibold text-white">{gig.title || 'Humanaira service'}</div>
+            {typeof gig.price_cents === 'number' && !Number.isNaN(gig.price_cents) && (
+              <div className="text-sm text-slate-400 mt-1">
+                Starting from ${(gig.price_cents / 100).toFixed(2)}
+              </div>
+            )}
+            {gig.slug && (
+              <Link
+                href={`/services/${gig.slug}`}
+                className="inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-lg bg-sky-600/20 text-sky-300 text-sm hover:bg-sky-600/30"
+              >
+                View service details
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M7 17L17 7" />
+                  <polyline points="7 7 17 7 17 17" />
+                </svg>
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
       {paymentRequests.length > 0 && (
         <div className="mb-3 space-y-2">
