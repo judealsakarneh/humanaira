@@ -2,12 +2,13 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '../app/api/lib/supabaseBrowser'
-import { getOrCreateConversation } from '../lib/messaging'
+import { sendMessage } from '../lib/messaging'
 
 type Gig = {
   id: string
   seller_id: string
-  title?: string
+  title?: string | null
+  slug?: string | null
 }
 
 export default function ContactSellerButton({ gig, className }: { gig: Gig; className?: string }) {
@@ -26,15 +27,51 @@ export default function ContactSellerButton({ gig, className }: { gig: Gig; clas
         return
       }
 
-      // create or fetch existing conversation
-      const conv = await getOrCreateConversation({
-        gigId: gig.id,
-        sellerId: gig.seller_id,
-        buyerId: user.id,
+      const res = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          buyer_id: user.id,
+          seller_id: gig.seller_id,
+          gig_id: gig.id,
+        }),
       })
 
-      // redirect to messages page and auto-open conversation
-      router.push(`/messages?conv=${conv.id}`)
+      if (!res.ok) {
+        throw new Error('Could not start conversation')
+      }
+
+      const body = await res.json()
+      const conversationId = body?.id as string | undefined
+      const wasCreated = Boolean(body?.created)
+
+      if (!conversationId) {
+        throw new Error('Missing conversation identifier')
+      }
+
+      if (wasCreated && gig.title) {
+        try {
+          const origin = typeof window !== 'undefined' ? window.location.origin : ''
+          const serviceUrl = gig.slug ? `${origin}/services/${gig.slug}` : ''
+          const introLines = [
+            `Hi there,`,
+            '',
+            `I'm interested in your service "${gig.title}" and would love to chat about the details.`,
+          ]
+          if (serviceUrl) {
+            introLines.push('', `Service link: ${serviceUrl}`)
+          }
+          await sendMessage({
+            conversationId,
+            text: introLines.join('\n'),
+            attachments: [],
+          })
+        } catch (messageErr) {
+          console.error('Failed to send intro message', messageErr)
+        }
+      }
+
+      router.push(`/messages?conv=${conversationId}`)
     } catch (err) {
       console.error('Contact seller failed', err)
       alert('Could not open chat. Please try again.')
