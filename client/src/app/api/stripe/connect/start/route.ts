@@ -1,18 +1,20 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createSupabaseServer } from '../../../lib/supabaseServer'
-import { isLive } from '../../../lib/stripeEnv'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
 export async function POST() {
   try {
     if (!process.env.STRIPE_SECRET_KEY) {
       return NextResponse.json({ ok: false, error: 'Payments not configured' }, { status: 500 })
     }
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+    
+    // Determine if we're in live mode based on the Stripe key
+    const isLive = (process.env.STRIPE_SECRET_KEY ?? '').startsWith('sk_live_')
 
     const supabase = createSupabaseServer()
     const { data: { user } } = await supabase.auth.getUser()
