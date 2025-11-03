@@ -1,12 +1,17 @@
 'use client'
 import React from 'react'
 
+type GigSummary = {
+  title?: string | null
+}
+
 type Conversation = {
   id: string
   gig_id?: string | null
   last_message?: string | null
   updated_at?: string | null
   status?: string | null
+  gig?: GigSummary | null
 }
 
 export default function ConversationList({
@@ -37,7 +42,14 @@ export default function ConversationList({
   return (
     <div className="space-y-3 overflow-auto max-h-[64vh] pr-2">
       {conversations.map((c) => {
-        const subtitle = c.last_message ? c.last_message : c.gig_id ? 'About service' : 'New conversation'
+        const label = c.gig?.title?.trim() ? c.gig.title : c.gig_id ? 'Service chat' : 'Conversation'
+        const subtitle = c.last_message
+          ? c.last_message
+          : c.gig?.title
+          ? `About “${c.gig.title}”`
+          : c.gig_id
+          ? 'About service'
+          : 'New conversation'
         const isActive = activeId === c.id
         return (
           <button
@@ -48,7 +60,7 @@ export default function ConversationList({
             }`}
           >
             <div className="flex items-center justify-between">
-              <div className="font-semibold text-white">{c.gig_id ? 'Service chat' : 'Conversation'}</div>
+              <div className="font-semibold text-white">{label}</div>
               <div className="text-xs text-slate-400">{c.updated_at ? new Date(c.updated_at).toLocaleString() : ''}</div>
             </div>
             <div className="text-slate-400 text-sm truncate">{subtitle}</div>
