@@ -6,6 +6,14 @@ import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
 import ConversationList from '../../components/messages/ConversationList'
 import ChatWindow from '../../components/messages/ChatWindow'
 
+type GigSummary = {
+  id: string
+  title?: string | null
+  slug?: string | null
+  cover_image_url?: string | null
+  price_cents?: number | null
+}
+
 type Conversation = {
   id: string
   gig_id?: string | null
@@ -16,6 +24,7 @@ type Conversation = {
   metadata?: Record<string, any>
   created_at?: string
   updated_at?: string
+  gig?: GigSummary | null
 }
 
 export default function MessagesPage() {
@@ -60,7 +69,7 @@ export default function MessagesPage() {
         const orFilter = `seller_id.eq.${user.id},buyer_id.eq.${user.id}`
         const res = await supabase
           .from('conversations')
-          .select('*')
+          .select('*, gig:gigs(id,title,slug,cover_image_url,price_cents)')
           .or(orFilter)
           .order('updated_at', { ascending: false })
 
@@ -92,10 +101,12 @@ export default function MessagesPage() {
           const newRow = payload.new as Conversation
           setConversations((prev) => {
             const exists = prev.find((p) => p.id === newRow.id)
+            const enriched: Conversation =
+              exists && !newRow.gig ? { ...newRow, gig: exists.gig } : newRow
             if (exists) {
-              return prev.map((p) => (p.id === newRow.id ? newRow : p))
+              return prev.map((p) => (p.id === enriched.id ? enriched : p))
             }
-            return [newRow, ...prev]
+            return [enriched, ...prev]
           })
         }
       )
@@ -106,10 +117,12 @@ export default function MessagesPage() {
           const newRow = payload.new as Conversation
           setConversations((prev) => {
             const exists = prev.find((p) => p.id === newRow.id)
+            const enriched: Conversation =
+              exists && !newRow.gig ? { ...newRow, gig: exists.gig } : newRow
             if (exists) {
-              return prev.map((p) => (p.id === newRow.id ? newRow : p))
+              return prev.map((p) => (p.id === enriched.id ? enriched : p))
             }
-            return [newRow, ...prev]
+            return [enriched, ...prev]
           })
         }
       )
@@ -131,7 +144,7 @@ export default function MessagesPage() {
   // navigate to messages page from other UI areas
   const openMessages = (conv?: Conversation) => {
     if (conv) {
-      router.push(`/messages?conv=${conv.id}`)
+      router.push(`/messages?conv=${encodeURIComponent(conv.id)}`)
       setActiveConv(conv)
     } else {
       router.push('/messages')
