@@ -2,9 +2,18 @@ import Stripe from 'stripe'
 import { NextResponse } from 'next/server'
 import { createSupabaseServer } from '../../lib/supabaseServer'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY
 
 export async function POST() {
+  if (!stripeSecretKey) {
+    console.error('Missing STRIPE_SECRET_KEY environment variable for Stripe connect route')
+    return NextResponse.json(
+      { error: 'Payments are temporarily unavailable. Please try again later.' },
+      { status: 500 }
+    )
+  }
+
+  const stripe = new Stripe(stripeSecretKey)
   const supabase = createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

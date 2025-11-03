@@ -5,11 +5,20 @@ import { createSupabaseServer } from '../lib/supabaseServer'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY
+const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null
 const PLATFORM_FEE_PERCENT = Number(process.env.PLATFORM_FEE_PERCENT || 20)
 
 export async function POST(req: Request) {
   try {
+    if (!stripe) {
+      console.error('Stripe secret key missing, cannot create checkout session')
+      return NextResponse.json(
+        { ok: false, error: 'Stripe configuration missing, please contact support' },
+        { status: 500 }
+      )
+    }
+
     const supabase = createSupabaseServer()
     const { data: userRes } = await supabase.auth.getUser()
     if (!userRes?.user) return NextResponse.json({ ok: false, error: 'Login required' }, { status: 401 })
