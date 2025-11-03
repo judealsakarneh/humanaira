@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     const { data: existing, error: findErr } = await query.limit(1).maybeSingle()
     if (findErr) return NextResponse.json({ error: findErr.message }, { status: 500 })
-    if (existing) return NextResponse.json({ id: existing.id }, { status: 200 })
+    if (existing) return NextResponse.json({ id: existing.id, created: false }, { status: 200 })
 
     // Create new
     const insertRow = { seller_id, buyer_id, gig_id: gig_id ?? null, status: 'open' }
@@ -54,11 +54,11 @@ export async function POST(req: Request) {
       again = gig_id == null ? again.is('gig_id', null) : again.eq('gig_id', gig_id)
 
       const { data: after } = await again.limit(1).maybeSingle()
-      if (after) return NextResponse.json({ id: after.id }, { status: 200 })
+      if (after) return NextResponse.json({ id: after.id, created: false }, { status: 200 })
       return NextResponse.json({ error: insertErr.message }, { status: 500 })
     }
 
-    return NextResponse.json({ id: created.id }, { status: 200 })
+    return NextResponse.json({ id: created.id, created: true }, { status: 200 })
   } catch (e: any) {
     console.error('conversations POST error', e)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
