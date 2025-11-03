@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
 import HumanairaLoader from '../../../components/HumanairaLoader'
+import { sendMessage } from '../../../lib/messaging'
 
 /* ---------------- Avatar ---------------- */
 function Avatar({
@@ -605,10 +606,33 @@ export default function ServiceDetailsPage() {
       }
 
       const body = await res.json()
-      const conversationId = body?.id
+      const conversationId = body?.id as string | undefined
+      const wasCreated = Boolean(body?.created)
       if (conversationId) {
-        // router.push(`/messages/${conversationId}`)
-        router.push(`/messages?cid=${encodeURIComponent(conversationId)}`)
+        if (wasCreated && gig?.title) {
+          try {
+            const nameForGreeting =
+              displayName && displayName !== 'Freelancer' ? displayName : 'there'
+            const origin = typeof window !== 'undefined' ? window.location.origin : ''
+            const serviceUrl = gig.slug ? `${origin}/services/${gig.slug}` : ''
+            const introLines = [
+              `Hi ${nameForGreeting},`,
+              '',
+              `I'm interested in your service "${gig.title}" and would love to discuss the details.`,
+            ]
+            if (serviceUrl) {
+              introLines.push('', `Service link: ${serviceUrl}`)
+            }
+            await sendMessage({
+              conversationId,
+              text: introLines.join('\n'),
+              attachments: [],
+            })
+          } catch (messageErr) {
+            console.error('Failed to send intro message', messageErr)
+          }
+        }
+        router.push(`/messages?conv=${encodeURIComponent(conversationId)}`)
       } else {
         router.push(profileHref)
       }
@@ -618,7 +642,7 @@ export default function ServiceDetailsPage() {
     } finally {
       setStartingChat(false)
     }
-  }, [seller, gig, router, profileHref])
+  }, [seller, gig, router, profileHref, displayName])
 
   /* ---------------- Render States ---------------- */
   if (loading) {
