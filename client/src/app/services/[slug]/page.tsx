@@ -571,7 +571,8 @@ export default function ServiceDetailsPage() {
     // This will:
     // 1) Ensure the user is logged in via Supabase auth
     // 2) Call our server API to get or create a conversation
-    // 3) Redirect to /messages/[conversationId]
+    // 3) Send an automatic initial message from buyer to seller
+    // 4) Redirect to /messages/[conversationId]
     if (!seller || !gig) return
 
     try {
@@ -606,9 +607,32 @@ export default function ServiceDetailsPage() {
 
       const body = await res.json()
       const conversationId = body?.id
+      const isNewConversation = body?.is_new === true
+
       if (conversationId) {
+        // Send automatic initial message if this is a new conversation
+        if (isNewConversation) {
+          try {
+            const gigTitle = gig.title || 'your service'
+            const initialMessage = `Hi! I'm interested in "${gigTitle}". I'd like to learn more about this service.`
+            
+            await supabase.from('messages').insert([
+              {
+                conversation_id: conversationId,
+                sender_id: buyerId,
+                text: initialMessage,
+                attachments: [],
+                is_system: false,
+              },
+            ])
+          } catch (msgErr) {
+            console.error('Failed to send initial message', msgErr)
+            // Continue anyway - conversation was created
+          }
+        }
+
         // router.push(`/messages/${conversationId}`)
-        router.push(`/messages?cid=${encodeURIComponent(conversationId)}`)
+        router.push(`/messages?conv=${encodeURIComponent(conversationId)}`)
       } else {
         router.push(profileHref)
       }
