@@ -6,13 +6,13 @@ import { isLive } from '../../../lib/stripeEnv'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-
 export async function POST() {
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY
+    if (!stripeSecretKey) {
       return NextResponse.json({ ok: false, error: 'Payments not configured' }, { status: 500 })
     }
+    const stripe = new Stripe(stripeSecretKey)
 
     const supabase = createSupabaseServer()
     const { data: { user } } = await supabase.auth.getUser()
