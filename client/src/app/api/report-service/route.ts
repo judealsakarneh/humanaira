@@ -24,29 +24,30 @@ async function trySendEmail({
   // If SMTP isn’t configured, do nothing (we rely on mailto fallback).
   if (!host || !port || !user || !pass) return
 
-  // Try to import nodemailer only when needed
-  let nodemailerMod: any
+  // Try to dynamically import nodemailer only if needed
+  // This prevents build errors when nodemailer isn't installed
   try {
-    nodemailerMod = await import('nodemailer')
-  } catch {
-    // nodemailer not installed – skip silently
-    return
+    const nodemailerMod = await import('nodemailer').catch(() => null)
+    if (!nodemailerMod) return
+
+    const nodemailer = nodemailerMod?.default ?? nodemailerMod
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465, // true for 465, false for others
+      auth: { user, pass },
+    })
+
+    await transporter.sendMail({
+      from,
+      to,
+      subject,
+      text,
+    })
+  } catch (error) {
+    // Silently fail - mailto fallback will handle it
+    console.log('Email send skipped (nodemailer not available or SMTP error)')
   }
-
-  const nodemailer = nodemailerMod?.default ?? nodemailerMod
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465, // true for 465, false for others
-    auth: { user, pass },
-  })
-
-  await transporter.sendMail({
-    from,
-    to,
-    subject,
-    text,
-  })
 }
 
 export async function POST(req: Request) {

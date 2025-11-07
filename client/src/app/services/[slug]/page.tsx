@@ -843,7 +843,7 @@ export default function ServiceDetailsPage() {
                 role="button"
                 aria-disabled={!gig}
               >
-                Order Now ({activePackage?.tier ?? 'Base'})
+                Order Now
               </Link>
 
               {/* CONTACT SELLER now triggers startChat */}
@@ -910,7 +910,7 @@ export default function ServiceDetailsPage() {
                   role="button"
                   aria-disabled={!gig}
                 >
-                  Confirm Order ({activePackage?.tier ?? 'Base'})
+                  Confirm Order
                 </Link>
               </div>
             </div>
