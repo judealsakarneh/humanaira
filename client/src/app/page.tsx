@@ -829,69 +829,6 @@ function FAQSection() {
 }
 
 /* ---------------------------------------
-   Footer
---------------------------------------- */
-function Footer() {
-  return (
-    <footer className="w-full bg-gray-950 border-t border-gray-800 pt-16 pb-12">
-      <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row md:items-start md:justify-between gap-12">
-        <div className="flex flex-col items-start gap-3">
-          <div className="text-4xl font-extrabold select-none" style={{ fontFamily: 'Poppins, Inter, sans-serif', letterSpacing: '-0.04em' }}>
-            <span style={{ color: '#35BFFF' }}>human</span>
-            <span style={{ color: '#fff' }}>ai</span>
-            <span style={{ color: '#35BFFF' }}>ra</span>
-          </div>
-          <div className="text-slate-400 text-sm max-w-xs mt-2">
-            The premium freelance marketplace. Built for professionals.
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-12 gap-y-6">
-          <FooterSection title="Explore">
-            <Link href="/blog" className="footer-link">Blog</Link>
-            <Link href="/browse" className="footer-link">Browse Gigs</Link>
-            <Link href="/help" className="footer-link">Help Center</Link>
-          </FooterSection>
-          <FooterSection title="Company">
-            <Link href="/about" className="footer-link">About Us</Link>
-          </FooterSection>
-          <FooterSection title="Legal">
-            <Link href="/terms" className="footer-link">Terms</Link>
-            <Link href="/privacy" className="footer-link">Privacy</Link>
-          </FooterSection>
-        </div>
-      </div>
-      <div className="text-center text-slate-500 text-xs mt-12 pt-8 border-t border-gray-900 opacity-70">
-        &copy; {new Date().getFullYear()} Humanaira. All rights reserved.
-      </div>
-      <style jsx global>{`
-        .footer-link {
-          color: #9fb0c3;
-          font-size: 0.95rem;
-          padding: 0.35rem 0;
-          text-decoration: none;
-          transition: color 0.2s;
-          display: block;
-          font-weight: 400;
-        }
-        .footer-link:hover { color: #35BFFF; }
-      `}</style>
-    </footer>
-  )
-}
-
-function FooterSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="text-[#35BFFF] font-semibold mb-2 text-base uppercase tracking-wider" style={{ fontFamily: 'Poppins, Inter, sans-serif' }}>
-        {title}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-/* ---------------------------------------
    BackgroundBrand
 --------------------------------------- */
 function BackgroundBrand() {
@@ -1081,7 +1018,6 @@ export default function HomePage() {
         <ReadyToMakeTheChangeCTA />
         <SectionDivider />
         <FAQSection />
-        <Footer />
         <GlobalStyles />
         <BackgroundBrand />
       </div>
