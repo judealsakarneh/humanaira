@@ -122,11 +122,39 @@ export default function MessagesPage() {
   }, [supabase, user, requestedConvId])
 
   // If the requested conv id arrives after conversations are loaded, auto-select it
+  // If not found in the list, fetch it directly (handles newly created conversations)
   useEffect(() => {
-    if (!requestedConvId || conversations.length === 0) return
+    if (!requestedConvId || !user) return
+    
     const found = conversations.find((c) => c.id === requestedConvId)
-    if (found) setActiveConv(found)
-  }, [requestedConvId, conversations])
+    if (found) {
+      setActiveConv(found)
+    } else if (conversations.length > 0 || !loading) {
+      // Conversation not in list - fetch it directly (likely just created)
+      const fetchConversation = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('conversations')
+            .select('*')
+            .eq('id', requestedConvId)
+            .single()
+          
+          if (!error && data) {
+            const conv = data as Conversation
+            // Add to conversations list if not already there
+            setConversations((prev) => {
+              const exists = prev.find((c) => c.id === conv.id)
+              return exists ? prev : [conv, ...prev]
+            })
+            setActiveConv(conv)
+          }
+        } catch (err) {
+          console.error('Failed to fetch requested conversation', err)
+        }
+      }
+      fetchConversation()
+    }
+  }, [requestedConvId, conversations, loading, user, supabase])
 
   // navigate to messages page from other UI areas
   const openMessages = (conv?: Conversation) => {
