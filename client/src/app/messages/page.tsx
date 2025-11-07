@@ -29,13 +29,6 @@ export default function MessagesPage() {
   const [activeConv, setActiveConv] = useState<Conversation | null>(null)
   const [loading, setLoading] = useState(true)
   const fetchedConvIds = useRef<Set<string>>(new Set())
-  
-  // Debug: log when requestedConvId changes
-  useEffect(() => {
-    if (requestedConvId) {
-      console.log('[Messages] Requested conversation ID:', requestedConvId)
-    }
-  }, [requestedConvId])
 
   // load current user
   useEffect(() => {
@@ -132,17 +125,11 @@ export default function MessagesPage() {
   // If the requested conv id arrives after conversations are loaded, auto-select it
   // If not found in the list, fetch it directly (handles newly created conversations)
   useEffect(() => {
-    if (!requestedConvId || !user || loading) {
-      console.log('[Messages] Skipping conversation fetch:', { requestedConvId, user: !!user, loading })
-      return
-    }
-    
-    console.log('[Messages] Checking for conversation:', requestedConvId, 'in', conversations.length, 'conversations')
+    if (!requestedConvId || !user || loading) return
     
     // Check if conversation is already loaded
     const found = conversations.find((c) => c.id === requestedConvId)
     if (found) {
-      console.log('[Messages] Found conversation in list, setting active')
       setActiveConv(found)
       return
     }
@@ -150,7 +137,6 @@ export default function MessagesPage() {
     // Conversation not found - fetch it directly (likely just created)
     // Use ref to prevent multiple fetches of the same conversation
     if (!fetchedConvIds.current.has(requestedConvId)) {
-      console.log('[Messages] Fetching conversation by ID:', requestedConvId)
       fetchedConvIds.current.add(requestedConvId)
       
       const fetchConversation = async () => {
@@ -162,21 +148,16 @@ export default function MessagesPage() {
             .single()
           
           if (!error && data) {
-            console.log('[Messages] Fetched conversation successfully:', data.id)
             const conv = data as Conversation
             // Add to conversations list
             setConversations((prev) => [conv, ...prev])
             setActiveConv(conv)
-          } else {
-            console.error('[Messages] Failed to fetch conversation:', error)
           }
         } catch (err) {
-          console.error('[Messages] Error fetching conversation:', err)
+          console.error('Failed to fetch requested conversation', err)
         }
       }
       fetchConversation()
-    } else {
-      console.log('[Messages] Already fetched this conversation ID')
     }
   }, [requestedConvId, loading, user, supabase, conversations])
 
