@@ -56,7 +56,7 @@ export async function sendMessage(input: SendMessageInput) {
   const supabase = createSupabaseBrowser()
   const senderId = await getUserIdOrThrow(supabase)
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('messages')
     .insert([
       {
@@ -67,8 +67,11 @@ export async function sendMessage(input: SendMessageInput) {
         is_system: !!input.isSystem,
       },
     ])
+    .select()
+    .single()
 
   if (error) throw error
+  return data
 }
 
 export async function sendPaymentRequest(input: SendPaymentRequestInput) {
