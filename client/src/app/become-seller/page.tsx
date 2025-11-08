@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { CheckCircle2, TrendingUp, Shield, DollarSign } from 'lucide-react'
 
 export default function BecomeSellerPage() {
   return (
@@ -20,7 +19,7 @@ export default function BecomeSellerPage() {
         {/* Benefits Grid */}
         <div className="grid md:grid-cols-2 gap-8 mb-16">
           <div className="bg-[#0D1328]/60 border border-[#35BFFF]/20 rounded-2xl p-8">
-            <DollarSign className="w-12 h-12 text-[#35BFFF] mb-4" />
+            <div className="w-12 h-12 text-[#35BFFF] mb-4 text-4xl">💰</div>
             <h3 className="text-2xl font-bold mb-3">Low Commission</h3>
             <p className="text-slate-300 mb-4">
               Keep more of what you earn with our industry-leading <span className="text-[#35BFFF] font-bold">5% commission rate</span>. That's significantly lower than most platforms.
@@ -28,7 +27,7 @@ export default function BecomeSellerPage() {
           </div>
 
           <div className="bg-[#0D1328]/60 border border-[#35BFFF]/20 rounded-2xl p-8">
-            <TrendingUp className="w-12 h-12 text-[#35BFFF] mb-4" />
+            <div className="w-12 h-12 text-[#35BFFF] mb-4 text-4xl">📈</div>
             <h3 className="text-2xl font-bold mb-3">Grow Your Business</h3>
             <p className="text-slate-300 mb-4">
               Access a global audience of clients looking for AI services, digital expertise, and creative solutions.
@@ -36,7 +35,7 @@ export default function BecomeSellerPage() {
           </div>
 
           <div className="bg-[#0D1328]/60 border border-[#35BFFF]/20 rounded-2xl p-8">
-            <Shield className="w-12 h-12 text-[#35BFFF] mb-4" />
+            <div className="w-12 h-12 text-[#35BFFF] mb-4 text-4xl">🔒</div>
             <h3 className="text-2xl font-bold mb-3">Secure Payments</h3>
             <p className="text-slate-300 mb-4">
               Get paid safely with Stripe-powered transactions. Funds are held securely and released upon project completion.
@@ -44,7 +43,7 @@ export default function BecomeSellerPage() {
           </div>
 
           <div className="bg-[#0D1328]/60 border border-[#35BFFF]/20 rounded-2xl p-8">
-            <CheckCircle2 className="w-12 h-12 text-[#35BFFF] mb-4" />
+            <div className="w-12 h-12 text-[#35BFFF] mb-4 text-4xl">✅</div>
             <h3 className="text-2xl font-bold mb-3">Professional Tools</h3>
             <p className="text-slate-300 mb-4">
               Manage orders, track earnings, communicate with clients, and build your portfolio—all in one platform.
