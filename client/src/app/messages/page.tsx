@@ -141,6 +141,9 @@ export default function MessagesPage() {
       
       const fetchConversation = async () => {
         try {
+          // Add a small delay to allow for DB write to complete
+          await new Promise(resolve => setTimeout(resolve, 500))
+          
           const { data, error } = await supabase
             .from('conversations')
             .select('*')
@@ -150,7 +153,12 @@ export default function MessagesPage() {
           if (!error && data) {
             const conv = data as Conversation
             // Add to conversations list
-            setConversations((prev) => [conv, ...prev])
+            setConversations((prev) => {
+              // Check if already exists to avoid duplicates
+              const exists = prev.find((p) => p.id === conv.id)
+              if (exists) return prev
+              return [conv, ...prev]
+            })
             setActiveConv(conv)
           }
         } catch (err) {

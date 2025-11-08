@@ -921,14 +921,13 @@ function Hero() {
     >
       <div className="w-full max-w-4xl mx-auto px-4 py-20 text-center">
         <h1
-          className="mb-2 leading-tight tracking-tight hero-headline"
+          className="mb-2 leading-tight tracking-tight hero-headline flex flex-col items-center"
           style={{
             fontSize: 'clamp(2.6rem, 7vw, 4.8rem)',
             lineHeight: 1.02,
           }}
         >
           <span style={{ whiteSpace: 'nowrap' }}>Elevate Your Next Project</span>
-          <br />
           <span className="handwritten">with Humanaira</span>
         </h1>
 

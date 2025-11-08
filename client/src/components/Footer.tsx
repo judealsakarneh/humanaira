@@ -45,8 +45,8 @@ export default function Footer() {
             <ul className="space-y-2.5">
               <li><Link href="/browse" className="footer-link">Browse Services</Link></li>
               <li><Link href="/browse" className="footer-link">Find Freelancers</Link></li>
-              <li><Link href="/help" className="footer-link">How it Works</Link></li>
-              <li><Link href="/help" className="footer-link">Payment Protection</Link></li>
+              <li><Link href="/how-it-works" className="footer-link">How it Works</Link></li>
+              <li><Link href="/payment-protection" className="footer-link">Payment Protection</Link></li>
               <li><Link href="/help" className="footer-link">Client Support</Link></li>
             </ul>
           </div>
@@ -55,11 +55,11 @@ export default function Footer() {
           <div>
             <h3 className="text-[#35BFFF] font-semibold mb-4 text-base uppercase tracking-wider">For Freelancers</h3>
             <ul className="space-y-2.5">
-              <li><Link href="/seller/gigs/new" className="footer-link">Become a Seller</Link></li>
+              <li><Link href="/become-seller" className="footer-link">Become a Seller</Link></li>
               <li><Link href="/seller/dashboard" className="footer-link">Seller Dashboard</Link></li>
-              <li><Link href="/help" className="footer-link">Success Stories</Link></li>
-              <li><Link href="/help" className="footer-link">Seller Resources</Link></li>
-              <li><Link href="/help" className="footer-link">Community</Link></li>
+              <li><Link href="/success-stories" className="footer-link">Success Stories</Link></li>
+              <li><Link href="/seller-resources" className="footer-link">Seller Resources</Link></li>
+              <li><Link href="/community" className="footer-link">Community</Link></li>
             </ul>
           </div>
 
@@ -68,7 +68,6 @@ export default function Footer() {
             <h3 className="text-[#35BFFF] font-semibold mb-4 text-base uppercase tracking-wider">Company</h3>
             <ul className="space-y-2.5">
               <li><Link href="/about" className="footer-link">About Us</Link></li>
-              <li><Link href="/careers" className="footer-link">Careers</Link></li>
               <li><Link href="/blog" className="footer-link">Blog</Link></li>
               <li><Link href="/press-delete" className="footer-link">Press</Link></li>
               <li><Link href="/contact" className="footer-link">Contact Us</Link></li>
