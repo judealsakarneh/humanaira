@@ -24,4 +24,4 @@ yarn-error.log*
 
 
 client/.next
-client/.env.local
+client/.env.local.next/
