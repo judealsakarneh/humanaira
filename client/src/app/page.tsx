@@ -927,7 +927,7 @@ function Hero() {
             lineHeight: 1.02,
           }}
         >
-          Elevate Your Next Project
+          <span style={{ whiteSpace: 'nowrap' }}>Elevate Your Next Project</span>
           <br />
           <span className="handwritten">with Humanaira</span>
         </h1>

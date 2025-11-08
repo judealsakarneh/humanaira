@@ -9,7 +9,10 @@ import Script from 'next/script'
 export const metadata = {
   title: 'Humanaira',
   description: 'The best AI services marketplace',
-  icons: { icon: '/favicon.ico' }
+  icons: { 
+    icon: '/favicon.svg',
+    apple: '/logo192.png'
+  }
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

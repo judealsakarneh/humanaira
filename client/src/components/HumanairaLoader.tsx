@@ -7,9 +7,9 @@ export default function HumanairaLoader({ subtitle }: { subtitle?: string }) {
         <svg viewBox="0 0 560 140" className="w-full h-auto" role="img" aria-label="humanaira loading">
           <defs>
             <linearGradient id="humanaira-grad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#38bdf8" />
-              <stop offset="50%" stopColor="#6366f1" />
-              <stop offset="100%" stopColor="#22d3ee" />
+              <stop offset="0%" stopColor="#35BFFF" />
+              <stop offset="50%" stopColor="#2BA3E0" />
+              <stop offset="100%" stopColor="#35BFFF" />
             </linearGradient>
             <filter id="soft-glow" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur stdDeviation="6" result="coloredBlur" />
@@ -23,7 +23,7 @@ export default function HumanairaLoader({ subtitle }: { subtitle?: string }) {
           {/* Stroke (outline drawing) */}
           <text
             x="50%" y="55%" textAnchor="middle" dominantBaseline="middle"
-            fontFamily="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial"
+            fontFamily="Poppins, Inter, ui-sans-serif, system-ui, -apple-system"
             fontWeight="800" fontSize="72"
             fill="transparent" stroke="url(#humanaira-grad)" strokeWidth="2.2"
             className="hum-stroke" filter="url(#soft-glow)"
@@ -34,7 +34,7 @@ export default function HumanairaLoader({ subtitle }: { subtitle?: string }) {
           {/* Fill fades in after stroke draws */}
           <text
             x="50%" y="55%" textAnchor="middle" dominantBaseline="middle"
-            fontFamily="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial"
+            fontFamily="Poppins, Inter, ui-sans-serif, system-ui, -apple-system"
             fontWeight="800" fontSize="72"
             fill="url(#humanaira-grad)" className="hum-fill"
           >
