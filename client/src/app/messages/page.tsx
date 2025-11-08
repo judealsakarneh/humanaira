@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
 import ConversationList from '../../components/messages/ConversationList'
@@ -28,6 +28,7 @@ export default function MessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConv, setActiveConv] = useState<Conversation | null>(null)
   const [loading, setLoading] = useState(true)
+  const fetchedConvIds = useRef<Set<string>>(new Set())
 
   // load current user
   useEffect(() => {
@@ -122,11 +123,51 @@ export default function MessagesPage() {
   }, [supabase, user, requestedConvId])
 
   // If the requested conv id arrives after conversations are loaded, auto-select it
+  // If not found in the list, fetch it directly (handles newly created conversations)
   useEffect(() => {
-    if (!requestedConvId || conversations.length === 0) return
+    if (!requestedConvId || !user || loading) return
+    
+    // Check if conversation is already loaded
     const found = conversations.find((c) => c.id === requestedConvId)
-    if (found) setActiveConv(found)
-  }, [requestedConvId, conversations])
+    if (found) {
+      setActiveConv(found)
+      return
+    }
+    
+    // Conversation not found - fetch it directly (likely just created)
+    // Use ref to prevent multiple fetches of the same conversation
+    if (!fetchedConvIds.current.has(requestedConvId)) {
+      fetchedConvIds.current.add(requestedConvId)
+      
+      const fetchConversation = async () => {
+        try {
+          // Add a small delay to allow for DB write to complete
+          await new Promise(resolve => setTimeout(resolve, 500))
+          
+          const { data, error } = await supabase
+            .from('conversations')
+            .select('*')
+            .eq('id', requestedConvId)
+            .single()
+          
+          if (!error && data) {
+            const conv = data as Conversation
+            // Add to conversations list
+            setConversations((prev) => {
+              // Check if already exists to avoid duplicates
+              const exists = prev.find((p) => p.id === conv.id)
+              if (exists) return prev
+              return [conv, ...prev]
+            })
+            setActiveConv(conv)
+          }
+        } catch (err) {
+          console.error('Failed to fetch requested conversation', err)
+        }
+      }
+      fetchConversation()
+    }
+  }, [requestedConvId, loading, user, supabase, conversations])
 
   // navigate to messages page from other UI areas
   const openMessages = (conv?: Conversation) => {

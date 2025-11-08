@@ -30,6 +30,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,6 +41,10 @@ export default function LoginPage() {
       }
       if (password !== confirmPassword) {
         toast.error('Passwords do not match!')
+        return
+      }
+      if (!agreedToTerms) {
+        toast.error('Please agree to the Terms and Privacy Policy to continue.')
         return
       }
     }
@@ -97,10 +102,11 @@ export default function LoginPage() {
     setPassword('');
     setConfirmPassword('');
     setLoading(false);
+    setAgreedToTerms(false);
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-950 text-gray-100 font-inter relative overflow-hidden p-4">
+    <main className="min-h-screen flex items-center justify-center bg-slate-950 text-gray-100 font-inter relative overflow-hidden p-4 pt-28">
       {/* Dynamic Animated Background Gradients */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-sky-700 opacity-10 blur-3xl animate-blob-one" />
@@ -211,7 +217,7 @@ export default function LoginPage() {
                 <div className="relative">
                   <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
-                    className="pl-10 pr-4 py-3 border border-slate-700 rounded-xl w-full bg-slate-800 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
+                    className="pl-10 pr-4 py-3 border border-slate-700 rounded-xl w-full bg-slate-800 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#35BFFF] transition"
                     placeholder="Confirm Password"
                     type="password"
                     value={confirmPassword}
@@ -222,6 +228,28 @@ export default function LoginPage() {
                 </div>
                 <div className="text-xs text-slate-400 pt-1">
                   Password requires 8+ characters, including one letter and one number.
+                </div>
+                
+                {/* Terms and Conditions Checkbox */}
+                <div className="flex items-start gap-3 pt-2">
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-800 text-[#35BFFF] focus:ring-2 focus:ring-[#35BFFF]"
+                    required
+                  />
+                  <label htmlFor="terms" className="text-sm text-slate-300">
+                    I agree to the{' '}
+                    <a href="/terms" target="_blank" className="text-[#35BFFF] hover:text-[#2BA3E0] transition">
+                      Terms of Service
+                    </a>
+                    {' '}and{' '}
+                    <a href="/privacy" target="_blank" className="text-[#35BFFF] hover:text-[#2BA3E0] transition">
+                      Privacy Policy
+                    </a>
+                  </label>
                 </div>
               </>
             )}
@@ -237,7 +265,7 @@ export default function LoginPage() {
             {mode === 'signin' && (
               <div className="text-right text-sm pt-1">
                 <button
-                  className="text-sky-400 hover:text-sky-300 transition"
+                  className="text-[#35BFFF] hover:text-[#2BA3E0] transition"
                   onClick={() => changeMode('forgot')}
                   type="button"
                 >
