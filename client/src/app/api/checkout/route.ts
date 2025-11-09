@@ -5,11 +5,12 @@ import { createSupabaseServer } from '../lib/supabaseServer'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 const PLATFORM_FEE_PERCENT = Number(process.env.PLATFORM_FEE_PERCENT || 20)
 
 export async function POST(req: Request) {
   try {
+    // Initialize Stripe inside the function to avoid module-level side effects
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
     const supabase = createSupabaseServer()
     const { data: userRes } = await supabase.auth.getUser()
     if (!userRes?.user) return NextResponse.json({ ok: false, error: 'Login required' }, { status: 401 })
