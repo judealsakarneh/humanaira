@@ -625,13 +625,19 @@ export default function ServiceDetailsPage() {
             
             if (!msgRes.ok) {
               console.error('Failed to send initial message:', await msgRes.text())
+            } else {
+              console.log('Initial message sent successfully')
             }
+            
+            // Add small delay to ensure database writes complete
+            await new Promise(resolve => setTimeout(resolve, 300))
           } catch (msgErr) {
             console.error('Failed to send initial message', msgErr)
             // Continue anyway - conversation was created
           }
         }
 
+        console.log('Redirecting to messages with conversation:', conversationId)
         // router.push(`/messages/${conversationId}`)
         router.push(`/messages?conv=${encodeURIComponent(conversationId)}`)
       } else {

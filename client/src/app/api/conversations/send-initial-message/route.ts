@@ -62,6 +62,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: msgError.message }, { status: 500 })
     }
 
+    // Update conversation's updated_at timestamp
+    await supabase
+      .from('conversations')
+      .update({ updated_at: new Date().toISOString(), last_message: initialMessage })
+      .eq('id', conversation_id)
+
     return NextResponse.json({ success: true, message }, { status: 200 })
   } catch (e: any) {
     console.error('send-initial-message POST error', e)

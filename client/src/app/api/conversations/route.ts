@@ -36,7 +36,15 @@ export async function POST(req: Request) {
     if (existing) return NextResponse.json({ id: existing.id, is_new: false }, { status: 200 })
 
     // Create new
-    const insertRow = { seller_id, buyer_id, gig_id: gig_id ?? null, status: 'open' }
+    const now = new Date().toISOString()
+    const insertRow = { 
+      seller_id, 
+      buyer_id, 
+      gig_id: gig_id ?? null, 
+      status: 'open',
+      created_at: now,
+      updated_at: now
+    }
     const { data: created, error: insertErr } = await supabase
       .from('conversations')
       .insert([insertRow])

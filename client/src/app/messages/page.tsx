@@ -70,10 +70,16 @@ export default function MessagesPage() {
         setConversations(rows || [])
         setLoading(false)
 
+        console.log('Loaded conversations:', rows?.length || 0)
         // Auto-open conversation if conv query param provided
         if (requestedConvId && rows && rows.length > 0) {
           const found = rows.find((r) => r.id === requestedConvId)
-          if (found) setActiveConv(found)
+          if (found) {
+            console.log('Found requested conversation in initial load:', requestedConvId)
+            setActiveConv(found)
+          } else {
+            console.log('Requested conversation not found in initial load:', requestedConvId)
+          }
         }
       } catch (err) {
         console.error('Failed to load conversations', err)
@@ -141,6 +147,7 @@ export default function MessagesPage() {
       
       const fetchConversation = async () => {
         try {
+          console.log('Fetching conversation:', requestedConvId)
           // Add a small delay to allow for DB write to complete
           await new Promise(resolve => setTimeout(resolve, 500))
           
@@ -150,7 +157,12 @@ export default function MessagesPage() {
             .eq('id', requestedConvId)
             .single()
           
+          if (error) {
+            console.error('Error fetching conversation:', error)
+          }
+          
           if (!error && data) {
+            console.log('Conversation fetched successfully:', data)
             const conv = data as Conversation
             // Add to conversations list
             setConversations((prev) => {
@@ -160,6 +172,8 @@ export default function MessagesPage() {
               return [conv, ...prev]
             })
             setActiveConv(conv)
+          } else if (!data) {
+            console.warn('No conversation data returned for ID:', requestedConvId)
           }
         } catch (err) {
           console.error('Failed to fetch requested conversation', err)
