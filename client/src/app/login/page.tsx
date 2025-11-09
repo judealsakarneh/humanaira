@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 // NOTE: Ensure these imports are correct in your project structure
 import { createSupabaseBrowser } from '../api/lib/supabaseBrowser' 
 import Link from 'next/link'
+import AnimatedEyes from '../../components/AnimatedEyes'
 
 // Inline SVG Icon Components (Lucide style) for a modern look
 const MailIcon = (props: any) => (
@@ -30,6 +31,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false)
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -110,6 +112,13 @@ export default function LoginPage() {
 
       {/* Main Form Container - Glassy Card */}
       <div className="max-w-md w-full bg-slate-900/70 backdrop-blur-md rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border border-slate-700/50 px-6 py-10 sm:p-10 relative z-10 transform transition-all duration-300">
+        
+        {/* Animated Eyes - Only show in signin/signup modes */}
+        {mode !== 'forgot' && (
+          <div className="mb-6">
+            <AnimatedEyes isPasswordFocused={isPasswordFocused} />
+          </div>
+        )}
         
         {/* Header and Branding */}
         <div className="mb-8 flex flex-col items-center">
@@ -201,6 +210,8 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
+                onFocus={() => setIsPasswordFocused(true)}
+                onBlur={() => setIsPasswordFocused(false)}
                 required
                 autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
               />
@@ -216,6 +227,8 @@ export default function LoginPage() {
                     type="password"
                     value={confirmPassword}
                     onChange={e => setConfirmPassword(e.target.value)}
+                    onFocus={() => setIsPasswordFocused(true)}
+                    onBlur={() => setIsPasswordFocused(false)}
                     required
                     autoComplete="new-password"
                   />
