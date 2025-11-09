@@ -613,18 +613,15 @@ export default function ServiceDetailsPage() {
         // Send automatic initial message if this is a new conversation
         if (isNewConversation) {
           try {
-            const gigTitle = gig.title || 'your service'
-            const initialMessage = `Hi! I'm interested in "${gigTitle}". I'd like to learn more about this service.`
-            
-            await supabase.from('messages').insert([
-              {
+            await fetch('/api/conversations/send-initial-message', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
                 conversation_id: conversationId,
                 sender_id: buyerId,
-                text: initialMessage,
-                attachments: [],
-                is_system: false,
-              },
-            ])
+                gig_title: gig.title || 'your service',
+              }),
+            })
           } catch (msgErr) {
             console.error('Failed to send initial message', msgErr)
             // Continue anyway - conversation was created
