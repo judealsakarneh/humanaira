@@ -613,7 +613,7 @@ export default function ServiceDetailsPage() {
         // Send automatic initial message if this is a new conversation
         if (isNewConversation) {
           try {
-            await fetch('/api/conversations/send-initial-message', {
+            const msgRes = await fetch('/api/conversations/send-initial-message', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -622,6 +622,10 @@ export default function ServiceDetailsPage() {
                 gig_title: gig.title || 'your service',
               }),
             })
+            
+            if (!msgRes.ok) {
+              console.error('Failed to send initial message:', await msgRes.text())
+            }
           } catch (msgErr) {
             console.error('Failed to send initial message', msgErr)
             // Continue anyway - conversation was created
