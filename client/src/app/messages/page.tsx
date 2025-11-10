@@ -46,16 +46,29 @@ export default function MessagesPage() {
   // PRIORITY: If we have a requestedConvId, fetch it IMMEDIATELY
   // Don't wait for the full conversation list to load
   useEffect(() => {
-    if (!requestedConvId || !user) return
+    if (!requestedConvId) {
+      console.log('PRIORITY FETCH: No requestedConvId in URL')
+      return
+    }
+    
+    if (!user) {
+      console.log('PRIORITY FETCH: Waiting for user to load...')
+      return
+    }
     
     // Prevent duplicate fetches
-    if (fetchedConvIds.current.has(requestedConvId)) return
+    if (fetchedConvIds.current.has(requestedConvId)) {
+      console.log('PRIORITY FETCH: Already fetched this conversation')
+      return
+    }
     fetchedConvIds.current.add(requestedConvId)
     
-    console.log('PRIORITY FETCH: Immediately fetching requested conversation:', requestedConvId)
+    console.log('PRIORITY FETCH: Starting fetch for conversation:', requestedConvId)
+    console.log('PRIORITY FETCH: User ID:', user.id)
     
     const fetchImmediate = async () => {
       try {
+        console.log('PRIORITY FETCH: Attempting direct Supabase query...')
         const { data, error } = await supabase
           .from('conversations')
           .select('*')
@@ -64,7 +77,32 @@ export default function MessagesPage() {
         
         if (error) {
           console.error('Priority fetch error:', error)
+          console.error('Priority fetch error code:', error.code)
+          console.error('Priority fetch error message:', error.message)
           console.error('Priority fetch error details:', JSON.stringify(error))
+          
+          // Try fetching via API route instead (bypasses RLS)
+          console.log('PRIORITY FETCH: Trying via API route to bypass RLS...')
+          try {
+            const apiRes = await fetch(`/api/conversations/${requestedConvId}`)
+            if (apiRes.ok) {
+              const apiData = await apiRes.json()
+              console.log('PRIORITY FETCH: API route SUCCESS:', apiData)
+              if (apiData) {
+                const conv = apiData as Conversation
+                setActiveConv(conv)
+                setConversations((prev) => {
+                  const exists = prev.find((p) => p.id === conv.id)
+                  if (exists) return prev
+                  return [conv, ...prev]
+                })
+              }
+            } else {
+              console.error('PRIORITY FETCH: API route failed:', apiRes.status, await apiRes.text())
+            }
+          } catch (apiErr) {
+            console.error('PRIORITY FETCH: API route exception:', apiErr)
+          }
           return
         }
         
@@ -222,8 +260,17 @@ export default function MessagesPage() {
               <h3 className="text-yellow-400 font-bold mb-2">DEBUG: Raw Database Data</h3>
               <div className="text-white text-sm space-y-2">
                 <div><strong>Requested Conv ID:</strong> {requestedConvId}</div>
+                <div><strong>User Loaded:</strong> {user ? `YES (${user.id})` : 'NO - WAITING...'}</div>
                 <div><strong>Active Conv:</strong> {activeConv ? activeConv.id : 'NONE'}</div>
                 <div><strong>Total Conversations:</strong> {conversations.length}</div>
+                <div className="mt-2 p-2 bg-red-900/30 rounded text-xs">
+                  <strong>Check browser console (F12) for detailed logs:</strong>
+                  <ul className="list-disc ml-4 mt-1">
+                    <li>PRIORITY FETCH messages</li>
+                    <li>Any error messages</li>
+                    <li>Whether API fallback was triggered</li>
+                  </ul>
+                </div>
                 {activeConv && (
                   <div className="mt-2 p-2 bg-black/30 rounded">
                     <div><strong>Active Conv Data:</strong></div>
@@ -246,6 +293,12 @@ export default function MessagesPage() {
             <div className="h-full flex flex-col items-center justify-center text-slate-400">
               <div className="text-xl font-semibold mb-2">No conversation selected</div>
               <div className="text-sm">Open a conversation from the left, or contact a seller from a service page.</div>
+              {requestedConvId && !user && (
+                <div className="mt-4 text-yellow-400 text-sm">⏳ Waiting for user authentication...</div>
+              )}
+              {requestedConvId && user && !activeConv && (
+                <div className="mt-4 text-red-400 text-sm">⚠️ Conversation not loading - check console for errors</div>
+              )}
             </div>
           )}
         </section>
