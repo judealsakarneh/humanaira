@@ -652,7 +652,7 @@ export default function ServiceDetailsPage() {
             }
             
             // Add delay to ensure database writes complete
-            await new Promise(resolve => setTimeout(resolve, 1000))
+            await new Promise(resolve => setTimeout(resolve, 2000))
           } catch (msgErr) {
             console.error('Failed to send initial message', msgErr)
             // Continue anyway - conversation was created

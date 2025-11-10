@@ -31,7 +31,6 @@ export default function MessagesPage() {
   const [fetchAttempts, setFetchAttempts] = useState(0)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const fetchedConvIds = useRef<Set<string>>(new Set())
-  const retryTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // load current user
   useEffect(() => {
@@ -72,75 +71,88 @@ export default function MessagesPage() {
       return
     }
     
-    console.log(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: Starting fetch for conversation:`, requestedConvId)
-    console.log('PRIORITY FETCH: User status:', user ? `Loaded (${user.id})` : 'NOT LOADED YET')
+    // If we've already fetched this conversation successfully, don't fetch again
+    if (fetchedConvIds.current.has(requestedConvId)) {
+      console.log('PRIORITY FETCH: Conversation already fetched successfully')
+      return
+    }
+    
+    let currentAttempt = 0
+    let isMounted = true
     
     const fetchWithRetry = async () => {
-      try {
-        setFetchAttempts(prev => prev + 1)
+      while (isMounted && currentAttempt < 10) {
+        currentAttempt++
+        setFetchAttempts(currentAttempt)
         
-        // ALWAYS try API route (works with or without user auth)
-        console.log(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: Calling API route /api/conversations/${requestedConvId}`)
+        console.log(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: Starting fetch for conversation:`, requestedConvId)
+        console.log('PRIORITY FETCH: User status:', user ? `Loaded (${user.id})` : 'NOT LOADED YET')
         
-        const apiRes = await fetch(`/api/conversations/${requestedConvId}`)
-        console.log(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: API response status:`, apiRes.status)
-        
-        if (apiRes.ok) {
-          const apiData = await apiRes.json()
-          console.log(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: API route SUCCESS! Data:`, apiData)
+        try {
+          // ALWAYS try API route (works with or without user auth)
+          console.log(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: Calling API route /api/conversations/${requestedConvId}`)
           
-          if (apiData && apiData.id) {
-            const conv = apiData as Conversation
-            console.log(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: Setting active conversation:`, conv.id)
-            setActiveConv(conv)
-            setConversations((prev) => {
-              const exists = prev.find((p) => p.id === conv.id)
-              if (exists) return prev
-              return [conv, ...prev]
-            })
-            setFetchError(null)
-            fetchedConvIds.current.add(requestedConvId)
-            return true // Success!
+          const apiRes = await fetch(`/api/conversations/${requestedConvId}`)
+          console.log(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: API response status:`, apiRes.status)
+          
+          if (apiRes.ok) {
+            const apiData = await apiRes.json()
+            console.log(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: API route SUCCESS! Data:`, apiData)
+            
+            if (apiData && apiData.id) {
+              const conv = apiData as Conversation
+              console.log(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: Setting active conversation:`, conv.id)
+              
+              if (!isMounted) return
+              
+              setActiveConv(conv)
+              setConversations((prev) => {
+                const exists = prev.find((p) => p.id === conv.id)
+                if (exists) return prev
+                return [conv, ...prev]
+              })
+              setFetchError(null)
+              fetchedConvIds.current.add(requestedConvId)
+              
+              console.log('✅ PRIORITY FETCH: SUCCESS - Conversation loaded!')
+              return // Success! Exit the retry loop
+            } else {
+              console.error(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: API returned invalid data:`, apiData)
+              setFetchError('Invalid data returned from API')
+            }
           } else {
-            console.error(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: API returned invalid data:`, apiData)
-            setFetchError('Invalid data returned from API')
+            const errorText = await apiRes.text()
+            console.error(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: API route failed with status ${apiRes.status}:`, errorText)
+            setFetchError(`API error: ${apiRes.status} - ${errorText}`)
           }
-        } else {
-          const errorText = await apiRes.text()
-          console.error(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: API route failed with status ${apiRes.status}:`, errorText)
-          setFetchError(`API error: ${apiRes.status} - ${errorText}`)
+        } catch (apiErr: any) {
+          console.error(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: API route exception:`, apiErr)
+          setFetchError(`Exception: ${apiErr.message}`)
         }
-      } catch (apiErr: any) {
-        console.error(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: API route exception:`, apiErr)
-        setFetchError(`Exception: ${apiErr.message}`)
+        
+        // If we get here, the fetch failed - wait before retrying
+        if (currentAttempt < 10 && isMounted) {
+          const delay = Math.min(1000 * currentAttempt, 5000) // Progressive delay, max 5s
+          console.log(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: FAILED - waiting ${delay}ms before retry...`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+        }
       }
       
-      // If we get here, the fetch failed - schedule a retry
-      if (fetchAttempts < 10) { // Max 10 attempts
-        const delay = Math.min(1000 * (fetchAttempts + 1), 5000) // Progressive delay, max 5s
-        console.log(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: FAILED - will retry in ${delay}ms...`)
-        retryTimerRef.current = setTimeout(() => {
-          console.log(`PRIORITY FETCH: Triggering retry...`)
-          fetchWithRetry()
-        }, delay)
-      } else {
-        console.error('PRIORITY FETCH: Max retry attempts reached (10). Giving up.')
-        setFetchError('Max retry attempts reached. Conversation could not be loaded.')
+      // If we've exhausted all retries
+      if (currentAttempt >= 10 && isMounted) {
+        console.error('❌ PRIORITY FETCH: Max retry attempts reached (10). Giving up.')
+        setFetchError('Conversation not found after 10 attempts. It may not exist yet or there may be a database issue.')
       }
-      
-      return false // Failed
     }
     
+    // Start the fetch/retry loop
     fetchWithRetry()
     
-    // Cleanup retry timer on unmount
+    // Cleanup on unmount
     return () => {
-      if (retryTimerRef.current) {
-        clearTimeout(retryTimerRef.current)
-        retryTimerRef.current = null
-      }
+      isMounted = false
     }
-  }, [requestedConvId, fetchAttempts]) // Re-run when requestedConvId changes or when we trigger a retry
+  }, [requestedConvId]) // Only re-run when requestedConvId changes
 
   // load conversations once we have user
   useEffect(() => {
