@@ -28,7 +28,10 @@ export default function MessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConv, setActiveConv] = useState<Conversation | null>(null)
   const [loading, setLoading] = useState(true)
+  const [fetchAttempts, setFetchAttempts] = useState(0)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const fetchedConvIds = useRef<Set<string>>(new Set())
+  const retryTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // load current user
   useEffect(() => {
@@ -55,118 +58,89 @@ export default function MessagesPage() {
     }
   }, [supabase])
 
-  // PRIORITY: If we have a requestedConvId, fetch it IMMEDIATELY
-  // Don't wait for the full conversation list to load
-  // CRITICAL: This now works even WITHOUT user being loaded (uses API route)
+  // PRIORITY: If we have a requestedConvId, fetch it IMMEDIATELY with RETRY LOOP
+  // This will keep trying until it succeeds
   useEffect(() => {
     if (!requestedConvId) {
       console.log('PRIORITY FETCH: No requestedConvId in URL')
       return
     }
     
-    // Prevent duplicate fetches
-    if (fetchedConvIds.current.has(requestedConvId)) {
-      console.log('PRIORITY FETCH: Already fetched this conversation')
+    // If we already successfully loaded this conversation, don't fetch again
+    if (activeConv && activeConv.id === requestedConvId) {
+      console.log('PRIORITY FETCH: Conversation already loaded')
       return
     }
-    fetchedConvIds.current.add(requestedConvId)
     
-    console.log('PRIORITY FETCH: Starting fetch for conversation:', requestedConvId)
-    console.log('PRIORITY FETCH: User status:', user ? `Loaded (${user.id})` : 'NOT LOADED - will use API route')
+    console.log(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: Starting fetch for conversation:`, requestedConvId)
+    console.log('PRIORITY FETCH: User status:', user ? `Loaded (${user.id})` : 'NOT LOADED YET')
     
-    const fetchImmediate = async () => {
+    const fetchWithRetry = async () => {
       try {
-        // ALWAYS try API route first when user isn't loaded
-        // API route doesn't require user auth and uses service role key
-        if (!user) {
-          console.log('PRIORITY FETCH: User not loaded, going straight to API route...')
-          try {
-            const apiRes = await fetch(`/api/conversations/${requestedConvId}`)
-            console.log('PRIORITY FETCH: API response status:', apiRes.status)
-            if (apiRes.ok) {
-              const apiData = await apiRes.json()
-              console.log('PRIORITY FETCH: API route SUCCESS:', apiData)
-              if (apiData) {
-                const conv = apiData as Conversation
-                setActiveConv(conv)
-                setConversations((prev) => {
-                  const exists = prev.find((p) => p.id === conv.id)
-                  if (exists) return prev
-                  return [conv, ...prev]
-                })
-              }
-              return // Success!
-            } else {
-              const errorText = await apiRes.text()
-              console.error('PRIORITY FETCH: API route failed:', apiRes.status, errorText)
-            }
-          } catch (apiErr) {
-            console.error('PRIORITY FETCH: API route exception:', apiErr)
-          }
-          return // Don't try Supabase client without user
-        }
+        setFetchAttempts(prev => prev + 1)
         
-        // User is loaded, try direct Supabase query first
-        console.log('PRIORITY FETCH: Attempting direct Supabase query...')
-        const { data, error } = await supabase
-          .from('conversations')
-          .select('*')
-          .eq('id', requestedConvId)
-          .single()
+        // ALWAYS try API route (works with or without user auth)
+        console.log(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: Calling API route /api/conversations/${requestedConvId}`)
         
-        if (error) {
-          console.error('Priority fetch error:', error)
-          console.error('Priority fetch error code:', error.code)
-          console.error('Priority fetch error message:', error.message)
-          console.error('Priority fetch error details:', JSON.stringify(error))
+        const apiRes = await fetch(`/api/conversations/${requestedConvId}`)
+        console.log(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: API response status:`, apiRes.status)
+        
+        if (apiRes.ok) {
+          const apiData = await apiRes.json()
+          console.log(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: API route SUCCESS! Data:`, apiData)
           
-          // Try fetching via API route instead (bypasses RLS)
-          console.log('PRIORITY FETCH: Trying via API route to bypass RLS...')
-          try {
-            const apiRes = await fetch(`/api/conversations/${requestedConvId}`)
-            if (apiRes.ok) {
-              const apiData = await apiRes.json()
-              console.log('PRIORITY FETCH: API route SUCCESS:', apiData)
-              if (apiData) {
-                const conv = apiData as Conversation
-                setActiveConv(conv)
-                setConversations((prev) => {
-                  const exists = prev.find((p) => p.id === conv.id)
-                  if (exists) return prev
-                  return [conv, ...prev]
-                })
-              }
-            } else {
-              console.error('PRIORITY FETCH: API route failed:', apiRes.status, await apiRes.text())
-            }
-          } catch (apiErr) {
-            console.error('PRIORITY FETCH: API route exception:', apiErr)
+          if (apiData && apiData.id) {
+            const conv = apiData as Conversation
+            console.log(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: Setting active conversation:`, conv.id)
+            setActiveConv(conv)
+            setConversations((prev) => {
+              const exists = prev.find((p) => p.id === conv.id)
+              if (exists) return prev
+              return [conv, ...prev]
+            })
+            setFetchError(null)
+            fetchedConvIds.current.add(requestedConvId)
+            return true // Success!
+          } else {
+            console.error(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: API returned invalid data:`, apiData)
+            setFetchError('Invalid data returned from API')
           }
-          return
-        }
-        
-        if (data) {
-          console.log('Priority fetch SUCCESS - conversation data:', data)
-          const conv = data as Conversation
-          console.log('Setting active conversation to:', conv.id)
-          setActiveConv(conv)
-          // Also add to conversations list if not already there
-          setConversations((prev) => {
-            const exists = prev.find((p) => p.id === conv.id)
-            if (exists) return prev
-            console.log('Adding conversation to list')
-            return [conv, ...prev]
-          })
         } else {
-          console.error('Priority fetch returned no data for conversation ID:', requestedConvId)
+          const errorText = await apiRes.text()
+          console.error(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: API route failed with status ${apiRes.status}:`, errorText)
+          setFetchError(`API error: ${apiRes.status} - ${errorText}`)
         }
-      } catch (err) {
-        console.error('Priority fetch exception:', err)
+      } catch (apiErr: any) {
+        console.error(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: API route exception:`, apiErr)
+        setFetchError(`Exception: ${apiErr.message}`)
       }
+      
+      // If we get here, the fetch failed - schedule a retry
+      if (fetchAttempts < 10) { // Max 10 attempts
+        const delay = Math.min(1000 * (fetchAttempts + 1), 5000) // Progressive delay, max 5s
+        console.log(`PRIORITY FETCH [Attempt ${fetchAttempts + 1}]: FAILED - will retry in ${delay}ms...`)
+        retryTimerRef.current = setTimeout(() => {
+          console.log(`PRIORITY FETCH: Triggering retry...`)
+          fetchWithRetry()
+        }, delay)
+      } else {
+        console.error('PRIORITY FETCH: Max retry attempts reached (10). Giving up.')
+        setFetchError('Max retry attempts reached. Conversation could not be loaded.')
+      }
+      
+      return false // Failed
     }
     
-    fetchImmediate()
-  }, [requestedConvId, user, supabase])
+    fetchWithRetry()
+    
+    // Cleanup retry timer on unmount
+    return () => {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current)
+        retryTimerRef.current = null
+      }
+    }
+  }, [requestedConvId, fetchAttempts]) // Re-run when requestedConvId changes or when we trigger a retry
 
   // load conversations once we have user
   useEffect(() => {
@@ -299,15 +273,30 @@ export default function MessagesPage() {
               <h3 className="text-yellow-400 font-bold mb-2">DEBUG: Raw Database Data</h3>
               <div className="text-white text-sm space-y-2">
                 <div><strong>Requested Conv ID:</strong> {requestedConvId}</div>
-                <div><strong>User Loaded:</strong> {user ? `YES (${user.id})` : 'NO - WAITING...'}</div>
+                <div><strong>User Loaded:</strong> {user ? `YES (${user.id})` : 'NO - Trying API route anyway...'}</div>
+                <div><strong>Fetch Attempts:</strong> {fetchAttempts} {fetchAttempts > 0 && fetchAttempts < 10 && !activeConv && '(retrying...)'} {fetchAttempts >= 10 && !activeConv && '(MAX ATTEMPTS REACHED)'}</div>
+                {fetchError && (
+                  <div className="p-2 bg-red-900/40 border border-red-600 rounded">
+                    <strong>Last Error:</strong> {fetchError}
+                  </div>
+                )}
                 <div><strong>Active Conv:</strong> {activeConv ? activeConv.id : 'NONE'}</div>
                 <div><strong>Total Conversations:</strong> {conversations.length}</div>
+                <div className="mt-2 p-2 bg-blue-900/30 rounded text-xs">
+                  <strong>Status:</strong> {
+                    activeConv ? '✅ Conversation loaded successfully!' :
+                    fetchAttempts === 0 ? '⏳ Starting fetch...' :
+                    fetchAttempts < 10 ? `🔄 Retrying... (attempt ${fetchAttempts}/10)` :
+                    '❌ Failed after 10 attempts'
+                  }
+                </div>
                 <div className="mt-2 p-2 bg-red-900/30 rounded text-xs">
                   <strong>Check browser console (F12) for detailed logs:</strong>
                   <ul className="list-disc ml-4 mt-1">
-                    <li>PRIORITY FETCH messages</li>
+                    <li>PRIORITY FETCH [Attempt X] messages</li>
+                    <li>API response status codes</li>
                     <li>Any error messages</li>
-                    <li>Whether API fallback was triggered</li>
+                    <li>Retry countdown messages</li>
                   </ul>
                 </div>
                 {activeConv && (
