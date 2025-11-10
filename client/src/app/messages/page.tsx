@@ -33,10 +33,22 @@ export default function MessagesPage() {
   // load current user
   useEffect(() => {
     let mounted = true
+    console.log('Loading user authentication...')
     ;(async () => {
-      const { data } = await supabase.auth.getUser()
-      if (!mounted) return
-      setUser(data?.user ?? null)
+      try {
+        const { data, error } = await supabase.auth.getUser()
+        console.log('Auth getUser result:', { data, error })
+        if (!mounted) return
+        if (error) {
+          console.error('Error loading user:', error)
+        }
+        const loadedUser = data?.user ?? null
+        console.log('User loaded:', loadedUser ? loadedUser.id : 'NO USER')
+        setUser(loadedUser)
+      } catch (err) {
+        console.error('Exception loading user:', err)
+        if (mounted) setUser(null)
+      }
     })()
     return () => {
       mounted = false
@@ -45,14 +57,10 @@ export default function MessagesPage() {
 
   // PRIORITY: If we have a requestedConvId, fetch it IMMEDIATELY
   // Don't wait for the full conversation list to load
+  // CRITICAL: This now works even WITHOUT user being loaded (uses API route)
   useEffect(() => {
     if (!requestedConvId) {
       console.log('PRIORITY FETCH: No requestedConvId in URL')
-      return
-    }
-    
-    if (!user) {
-      console.log('PRIORITY FETCH: Waiting for user to load...')
       return
     }
     
@@ -64,10 +72,41 @@ export default function MessagesPage() {
     fetchedConvIds.current.add(requestedConvId)
     
     console.log('PRIORITY FETCH: Starting fetch for conversation:', requestedConvId)
-    console.log('PRIORITY FETCH: User ID:', user.id)
+    console.log('PRIORITY FETCH: User status:', user ? `Loaded (${user.id})` : 'NOT LOADED - will use API route')
     
     const fetchImmediate = async () => {
       try {
+        // ALWAYS try API route first when user isn't loaded
+        // API route doesn't require user auth and uses service role key
+        if (!user) {
+          console.log('PRIORITY FETCH: User not loaded, going straight to API route...')
+          try {
+            const apiRes = await fetch(`/api/conversations/${requestedConvId}`)
+            console.log('PRIORITY FETCH: API response status:', apiRes.status)
+            if (apiRes.ok) {
+              const apiData = await apiRes.json()
+              console.log('PRIORITY FETCH: API route SUCCESS:', apiData)
+              if (apiData) {
+                const conv = apiData as Conversation
+                setActiveConv(conv)
+                setConversations((prev) => {
+                  const exists = prev.find((p) => p.id === conv.id)
+                  if (exists) return prev
+                  return [conv, ...prev]
+                })
+              }
+              return // Success!
+            } else {
+              const errorText = await apiRes.text()
+              console.error('PRIORITY FETCH: API route failed:', apiRes.status, errorText)
+            }
+          } catch (apiErr) {
+            console.error('PRIORITY FETCH: API route exception:', apiErr)
+          }
+          return // Don't try Supabase client without user
+        }
+        
+        // User is loaded, try direct Supabase query first
         console.log('PRIORITY FETCH: Attempting direct Supabase query...')
         const { data, error } = await supabase
           .from('conversations')
