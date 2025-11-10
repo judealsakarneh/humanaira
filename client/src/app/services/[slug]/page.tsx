@@ -589,17 +589,24 @@ export default function ServiceDetailsPage() {
       }
 
       // Call server API to create-or-get conversation
+      // Try to use the most appropriate seller ID
+      // Priority: auth_user_id (from profile) > gig.seller_id (direct from gig) > seller.id (normalized)
+      const sellerAuthId = seller.auth_user_id || gig.seller_id || seller.user_id || seller.id
+      
+      console.log('Starting chat - Buyer:', buyerId, 'Seller:', sellerAuthId, 'Gig:', gig.id)
+      
       const res = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           buyer_id: buyerId,
-          seller_id: seller.id,
+          seller_id: sellerAuthId,
           gig_id: gig.id ?? null,
         }),
       })
 
       if (!res.ok) {
+        console.error('Failed to create conversation:', res.status, await res.text())
         // fallback: go to seller profile
         router.push(profileHref)
         return
@@ -608,6 +615,8 @@ export default function ServiceDetailsPage() {
       const body = await res.json()
       const conversationId = body?.id
       const isNewConversation = body?.is_new === true
+      
+      console.log('Conversation result:', { conversationId, isNewConversation })
 
       if (conversationId) {
         // Send automatic initial message if this is a new conversation
@@ -629,8 +638,8 @@ export default function ServiceDetailsPage() {
               console.log('Initial message sent successfully')
             }
             
-            // Add small delay to ensure database writes complete
-            await new Promise(resolve => setTimeout(resolve, 300))
+            // Add delay to ensure database writes complete
+            await new Promise(resolve => setTimeout(resolve, 600))
           } catch (msgErr) {
             console.error('Failed to send initial message', msgErr)
             // Continue anyway - conversation was created

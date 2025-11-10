@@ -148,8 +148,8 @@ export default function MessagesPage() {
       const fetchConversation = async () => {
         try {
           console.log('Fetching conversation:', requestedConvId)
-          // Add a small delay to allow for DB write to complete
-          await new Promise(resolve => setTimeout(resolve, 500))
+          // Add a delay to allow for DB write to complete
+          await new Promise(resolve => setTimeout(resolve, 800))
           
           const { data, error } = await supabase
             .from('conversations')
@@ -159,9 +159,34 @@ export default function MessagesPage() {
           
           if (error) {
             console.error('Error fetching conversation:', error)
+            
+            // Retry once after another delay if first attempt fails
+            await new Promise(resolve => setTimeout(resolve, 1000))
+            const { data: retryData, error: retryError } = await supabase
+              .from('conversations')
+              .select('*')
+              .eq('id', requestedConvId)
+              .single()
+            
+            if (retryError) {
+              console.error('Retry also failed:', retryError)
+              return
+            }
+            
+            if (retryData) {
+              console.log('Conversation fetched successfully on retry:', retryData)
+              const conv = retryData as Conversation
+              setConversations((prev) => {
+                const exists = prev.find((p) => p.id === conv.id)
+                if (exists) return prev
+                return [conv, ...prev]
+              })
+              setActiveConv(conv)
+            }
+            return
           }
           
-          if (!error && data) {
+          if (data) {
             console.log('Conversation fetched successfully:', data)
             const conv = data as Conversation
             // Add to conversations list
@@ -172,7 +197,7 @@ export default function MessagesPage() {
               return [conv, ...prev]
             })
             setActiveConv(conv)
-          } else if (!data) {
+          } else {
             console.warn('No conversation data returned for ID:', requestedConvId)
           }
         } catch (err) {
