@@ -73,22 +73,33 @@ export default function ChatWindow({ conversation }: { conversation: Conversatio
 
   // Load messages and subscribe to realtime inserts
   useEffect(() => {
-    if (!conversation) return
+    if (!conversation) {
+      console.log('ChatWindow: No conversation provided')
+      return
+    }
+    console.log('ChatWindow: Loading messages for conversation:', conversation.id)
     let mounted = true
 
     const loadMessages = async () => {
       try {
+        console.log('ChatWindow: Fetching messages from database...')
         const res = await supabase
           .from('messages')
           .select('*')
           .eq('conversation_id', conversation.id)
           .order('created_at', { ascending: true })
           .limit(500)
+        
+        console.log('ChatWindow: Messages query result:', res)
+        
         const data = (res.data as unknown) as MessageRow[] | null
-        if (mounted) setMessages(data || [])
+        if (mounted) {
+          console.log(`ChatWindow: Setting ${data?.length || 0} messages`)
+          setMessages(data || [])
+        }
         setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'auto' }), 120)
       } catch (err) {
-        console.error('Failed to load messages', err)
+        console.error('ChatWindow: Failed to load messages', err)
       }
     }
 

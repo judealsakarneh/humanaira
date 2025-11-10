@@ -64,19 +64,24 @@ export default function MessagesPage() {
         
         if (error) {
           console.error('Priority fetch error:', error)
+          console.error('Priority fetch error details:', JSON.stringify(error))
           return
         }
         
         if (data) {
-          console.log('Priority fetch SUCCESS:', data)
+          console.log('Priority fetch SUCCESS - conversation data:', data)
           const conv = data as Conversation
+          console.log('Setting active conversation to:', conv.id)
           setActiveConv(conv)
           // Also add to conversations list if not already there
           setConversations((prev) => {
             const exists = prev.find((p) => p.id === conv.id)
             if (exists) return prev
+            console.log('Adding conversation to list')
             return [conv, ...prev]
           })
+        } else {
+          console.error('Priority fetch returned no data for conversation ID:', requestedConvId)
         }
       } catch (err) {
         console.error('Priority fetch exception:', err)
