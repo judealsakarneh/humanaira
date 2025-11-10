@@ -131,25 +131,32 @@ export default function MessagesPage() {
   // If the requested conv id arrives after conversations are loaded, auto-select it
   // If not found in the list, fetch it directly (handles newly created conversations)
   useEffect(() => {
-    if (!requestedConvId || !user || loading) return
+    if (!requestedConvId || !user) return
     
     // Check if conversation is already loaded
     const found = conversations.find((c) => c.id === requestedConvId)
     if (found) {
+      console.log('Found requested conversation in loaded list:', requestedConvId)
       setActiveConv(found)
       return
     }
     
-    // Conversation not found - fetch it directly (likely just created)
+    // If still loading, wait for it to finish
+    if (loading) {
+      console.log('Still loading conversations, will check again after load completes')
+      return
+    }
+    
+    // Conversation not found after loading - fetch it directly (likely just created)
     // Use ref to prevent multiple fetches of the same conversation
     if (!fetchedConvIds.current.has(requestedConvId)) {
       fetchedConvIds.current.add(requestedConvId)
       
       const fetchConversation = async () => {
         try {
-          console.log('Fetching conversation:', requestedConvId)
-          // Add a delay to allow for DB write to complete
-          await new Promise(resolve => setTimeout(resolve, 800))
+          console.log('Conversation not in list, fetching directly:', requestedConvId)
+          // Longer initial delay for newly created conversations
+          await new Promise(resolve => setTimeout(resolve, 1200))
           
           const { data, error } = await supabase
             .from('conversations')
@@ -160,8 +167,9 @@ export default function MessagesPage() {
           if (error) {
             console.error('Error fetching conversation:', error)
             
-            // Retry once after another delay if first attempt fails
-            await new Promise(resolve => setTimeout(resolve, 1000))
+            // Retry with longer delay
+            console.log('Retrying fetch after 1.5 seconds...')
+            await new Promise(resolve => setTimeout(resolve, 1500))
             const { data: retryData, error: retryError } = await supabase
               .from('conversations')
               .select('*')
@@ -170,6 +178,30 @@ export default function MessagesPage() {
             
             if (retryError) {
               console.error('Retry also failed:', retryError)
+              // One more try
+              console.log('Final retry after 2 seconds...')
+              await new Promise(resolve => setTimeout(resolve, 2000))
+              const { data: finalData, error: finalError } = await supabase
+                .from('conversations')
+                .select('*')
+                .eq('id', requestedConvId)
+                .single()
+              
+              if (finalError) {
+                console.error('Final retry failed:', finalError)
+                return
+              }
+              
+              if (finalData) {
+                console.log('Conversation fetched on final retry:', finalData)
+                const conv = finalData as Conversation
+                setConversations((prev) => {
+                  const exists = prev.find((p) => p.id === conv.id)
+                  if (exists) return prev
+                  return [conv, ...prev]
+                })
+                setActiveConv(conv)
+              }
               return
             }
             

@@ -574,7 +574,7 @@ export default function ServiceDetailsPage() {
     // 3) Send an automatic initial message from buyer to seller
     // 4) Redirect to /messages/[conversationId]
     if (!seller || !gig) {
-      alert('DEBUG: Seller or gig not loaded yet')
+      console.error('DEBUG: Seller or gig not loaded yet')
       return
     }
 
@@ -596,16 +596,6 @@ export default function ServiceDetailsPage() {
       // Priority: auth_user_id (from profile) > gig.seller_id (direct from gig) > seller.id (normalized)
       const sellerAuthId = seller.auth_user_id || gig.seller_id || seller.user_id || seller.id
       
-      const debugInfo = {
-        buyerId,
-        sellerAuthId,
-        gigId: gig.id,
-        gigSellerId: gig.seller_id,
-        sellerAuthUserId: seller.auth_user_id,
-        sellerUserId: seller.user_id,
-        sellerId: seller.id
-      }
-      
       console.log('=== DEBUG: Starting chat ===')
       console.log('Buyer ID:', buyerId)
       console.log('Seller Auth ID (using):', sellerAuthId)
@@ -615,8 +605,6 @@ export default function ServiceDetailsPage() {
       console.log('Seller user_id:', seller.user_id)
       console.log('Seller id:', seller.id)
       console.log('=== END DEBUG ===')
-      
-      alert(`DEBUG INFO:\nBuyer: ${buyerId}\nSeller (using): ${sellerAuthId}\nGig seller_id: ${gig.seller_id}\nCheck console for full details`)
       
       const res = await fetch('/api/conversations', {
         method: 'POST',
@@ -631,7 +619,6 @@ export default function ServiceDetailsPage() {
       if (!res.ok) {
         const errorText = await res.text()
         console.error('Failed to create conversation:', res.status, errorText)
-        alert(`ERROR creating conversation: ${res.status} - ${errorText}`)
         // fallback: go to seller profile
         router.push(profileHref)
         return
@@ -642,7 +629,6 @@ export default function ServiceDetailsPage() {
       const isNewConversation = body?.is_new === true
       
       console.log('Conversation result:', { conversationId, isNewConversation })
-      alert(`Conversation ${isNewConversation ? 'created' : 'found'}: ${conversationId}`)
 
       if (conversationId) {
         // Send automatic initial message if this is a new conversation
@@ -661,32 +647,27 @@ export default function ServiceDetailsPage() {
             if (!msgRes.ok) {
               const msgError = await msgRes.text()
               console.error('Failed to send initial message:', msgError)
-              alert(`ERROR sending message: ${msgError}`)
             } else {
               console.log('Initial message sent successfully')
-              alert('Initial message sent successfully!')
             }
             
             // Add delay to ensure database writes complete
-            await new Promise(resolve => setTimeout(resolve, 600))
+            await new Promise(resolve => setTimeout(resolve, 1000))
           } catch (msgErr) {
             console.error('Failed to send initial message', msgErr)
-            alert(`ERROR: ${msgErr}`)
             // Continue anyway - conversation was created
           }
         }
 
         console.log('Redirecting to messages with conversation:', conversationId)
-        alert(`Now redirecting to: /messages?conv=${conversationId}`)
         // router.push(`/messages/${conversationId}`)
         router.push(`/messages?conv=${encodeURIComponent(conversationId)}`)
       } else {
-        alert('ERROR: No conversation ID returned')
+        console.error('ERROR: No conversation ID returned')
         router.push(profileHref)
       }
     } catch (err) {
       console.error('startChat error', err)
-      alert(`CRITICAL ERROR: ${err}`)
       router.push(profileHref)
     } finally {
       setStartingChat(false)
