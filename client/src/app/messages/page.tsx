@@ -216,6 +216,30 @@ export default function MessagesPage() {
         </aside>
 
         <section className="lg:col-span-8 bg-[#0D1328] border border-slate-700/60 rounded-2xl p-4 min-h-[480px]">
+          {/* DEBUG VIEW - Show raw data from database */}
+          {requestedConvId && (
+            <div className="mb-4 p-4 bg-yellow-900/20 border border-yellow-600/50 rounded">
+              <h3 className="text-yellow-400 font-bold mb-2">DEBUG: Raw Database Data</h3>
+              <div className="text-white text-sm space-y-2">
+                <div><strong>Requested Conv ID:</strong> {requestedConvId}</div>
+                <div><strong>Active Conv:</strong> {activeConv ? activeConv.id : 'NONE'}</div>
+                <div><strong>Total Conversations:</strong> {conversations.length}</div>
+                {activeConv && (
+                  <div className="mt-2 p-2 bg-black/30 rounded">
+                    <div><strong>Active Conv Data:</strong></div>
+                    <pre className="text-xs overflow-auto">{JSON.stringify(activeConv, null, 2)}</pre>
+                  </div>
+                )}
+                {conversations.length > 0 && (
+                  <div className="mt-2 p-2 bg-black/30 rounded">
+                    <div><strong>All Conversations:</strong></div>
+                    <pre className="text-xs overflow-auto max-h-40">{JSON.stringify(conversations, null, 2)}</pre>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
           {activeConv ? (
             <ChatWindow conversation={activeConv} />
           ) : (

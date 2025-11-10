@@ -265,6 +265,22 @@ export default function ChatWindow({ conversation }: { conversation: Conversatio
 
   return (
     <div className="h-full flex flex-col">
+      {/* DEBUG VIEW - Show raw messages data */}
+      <div className="mb-3 p-3 bg-green-900/20 border border-green-600/50 rounded">
+        <h3 className="text-green-400 font-bold mb-2 text-sm">DEBUG: Messages Data</h3>
+        <div className="text-white text-xs space-y-1">
+          <div><strong>Conversation ID:</strong> {conversation.id}</div>
+          <div><strong>Total Messages:</strong> {messages.length}</div>
+          <div><strong>User ID:</strong> {userId || 'Loading...'}</div>
+          {messages.length > 0 && (
+            <div className="mt-2 p-2 bg-black/30 rounded">
+              <div><strong>Messages:</strong></div>
+              <pre className="text-xs overflow-auto max-h-32">{JSON.stringify(messages, null, 2)}</pre>
+            </div>
+          )}
+        </div>
+      </div>
+      
       <header className="border-b border-slate-700/60 pb-3 mb-3 flex items-center justify-between">
         <div>
           <div className="text-lg font-bold">{conversation.gig_id ? 'Service conversation' : 'Conversation'}</div>
