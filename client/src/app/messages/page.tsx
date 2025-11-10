@@ -43,6 +43,49 @@ export default function MessagesPage() {
     }
   }, [supabase])
 
+  // PRIORITY: If we have a requestedConvId, fetch it IMMEDIATELY
+  // Don't wait for the full conversation list to load
+  useEffect(() => {
+    if (!requestedConvId || !user) return
+    
+    // Prevent duplicate fetches
+    if (fetchedConvIds.current.has(requestedConvId)) return
+    fetchedConvIds.current.add(requestedConvId)
+    
+    console.log('PRIORITY FETCH: Immediately fetching requested conversation:', requestedConvId)
+    
+    const fetchImmediate = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('conversations')
+          .select('*')
+          .eq('id', requestedConvId)
+          .single()
+        
+        if (error) {
+          console.error('Priority fetch error:', error)
+          return
+        }
+        
+        if (data) {
+          console.log('Priority fetch SUCCESS:', data)
+          const conv = data as Conversation
+          setActiveConv(conv)
+          // Also add to conversations list if not already there
+          setConversations((prev) => {
+            const exists = prev.find((p) => p.id === conv.id)
+            if (exists) return prev
+            return [conv, ...prev]
+          })
+        }
+      } catch (err) {
+        console.error('Priority fetch exception:', err)
+      }
+    }
+    
+    fetchImmediate()
+  }, [requestedConvId, user, supabase])
+
   // load conversations once we have user
   useEffect(() => {
     if (!user) {
@@ -71,14 +114,12 @@ export default function MessagesPage() {
         setLoading(false)
 
         console.log('Loaded conversations:', rows?.length || 0)
-        // Auto-open conversation if conv query param provided
-        if (requestedConvId && rows && rows.length > 0) {
+        // Auto-open conversation if conv query param provided and not already set
+        if (requestedConvId && rows && rows.length > 0 && !activeConv) {
           const found = rows.find((r) => r.id === requestedConvId)
           if (found) {
-            console.log('Found requested conversation in initial load:', requestedConvId)
+            console.log('Found requested conversation in full list:', requestedConvId)
             setActiveConv(found)
-          } else {
-            console.log('Requested conversation not found in initial load:', requestedConvId)
           }
         }
       } catch (err) {
@@ -126,119 +167,7 @@ export default function MessagesPage() {
       supabase.removeChannel(channel)
       mounted = false
     }
-  }, [supabase, user, requestedConvId])
-
-  // If the requested conv id arrives after conversations are loaded, auto-select it
-  // If not found in the list, fetch it directly (handles newly created conversations)
-  useEffect(() => {
-    if (!requestedConvId || !user) return
-    
-    // Check if conversation is already loaded
-    const found = conversations.find((c) => c.id === requestedConvId)
-    if (found) {
-      console.log('Found requested conversation in loaded list:', requestedConvId)
-      setActiveConv(found)
-      return
-    }
-    
-    // If still loading, wait for it to finish
-    if (loading) {
-      console.log('Still loading conversations, will check again after load completes')
-      return
-    }
-    
-    // Conversation not found after loading - fetch it directly (likely just created)
-    // Use ref to prevent multiple fetches of the same conversation
-    if (!fetchedConvIds.current.has(requestedConvId)) {
-      fetchedConvIds.current.add(requestedConvId)
-      
-      const fetchConversation = async () => {
-        try {
-          console.log('Conversation not in list, fetching directly:', requestedConvId)
-          // Longer initial delay for newly created conversations
-          await new Promise(resolve => setTimeout(resolve, 1200))
-          
-          const { data, error } = await supabase
-            .from('conversations')
-            .select('*')
-            .eq('id', requestedConvId)
-            .single()
-          
-          if (error) {
-            console.error('Error fetching conversation:', error)
-            
-            // Retry with longer delay
-            console.log('Retrying fetch after 1.5 seconds...')
-            await new Promise(resolve => setTimeout(resolve, 1500))
-            const { data: retryData, error: retryError } = await supabase
-              .from('conversations')
-              .select('*')
-              .eq('id', requestedConvId)
-              .single()
-            
-            if (retryError) {
-              console.error('Retry also failed:', retryError)
-              // One more try
-              console.log('Final retry after 2 seconds...')
-              await new Promise(resolve => setTimeout(resolve, 2000))
-              const { data: finalData, error: finalError } = await supabase
-                .from('conversations')
-                .select('*')
-                .eq('id', requestedConvId)
-                .single()
-              
-              if (finalError) {
-                console.error('Final retry failed:', finalError)
-                return
-              }
-              
-              if (finalData) {
-                console.log('Conversation fetched on final retry:', finalData)
-                const conv = finalData as Conversation
-                setConversations((prev) => {
-                  const exists = prev.find((p) => p.id === conv.id)
-                  if (exists) return prev
-                  return [conv, ...prev]
-                })
-                setActiveConv(conv)
-              }
-              return
-            }
-            
-            if (retryData) {
-              console.log('Conversation fetched successfully on retry:', retryData)
-              const conv = retryData as Conversation
-              setConversations((prev) => {
-                const exists = prev.find((p) => p.id === conv.id)
-                if (exists) return prev
-                return [conv, ...prev]
-              })
-              setActiveConv(conv)
-            }
-            return
-          }
-          
-          if (data) {
-            console.log('Conversation fetched successfully:', data)
-            const conv = data as Conversation
-            // Add to conversations list
-            setConversations((prev) => {
-              // Check if already exists to avoid duplicates
-              const exists = prev.find((p) => p.id === conv.id)
-              if (exists) return prev
-              return [conv, ...prev]
-            })
-            setActiveConv(conv)
-          } else {
-            console.warn('No conversation data returned for ID:', requestedConvId)
-          }
-        } catch (err) {
-          console.error('Failed to fetch requested conversation', err)
-        }
-      }
-      fetchConversation()
-    }
-  }, [requestedConvId, loading, user, supabase, conversations])
+  }, [supabase, user, requestedConvId, activeConv])
 
   // navigate to messages page from other UI areas
   const openMessages = (conv?: Conversation) => {
