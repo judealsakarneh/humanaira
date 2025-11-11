@@ -660,7 +660,7 @@ export default function ServiceDetailsPage() {
         }
 
         console.log('Redirecting to messages with conversation:', conversationId)
-        router.push(`/messages/${conversationId}`)
+        router.push(`/messages?conv=${conversationId}`)
       } else {
         console.error('ERROR: No conversation ID returned')
         router.push(profileHref)

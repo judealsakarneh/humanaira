@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
 import ConversationList from '../../components/messages/ConversationList'
-import ChatWindow from '../../components/messages/ChatWindow'
+import ChatWindowWithUIKit from '../../components/messages/ChatWindowWithUIKit'
 
 type Conversation = {
   id: string
@@ -278,67 +278,13 @@ export default function MessagesPage() {
           </div>
         </aside>
 
-        <section className="lg:col-span-8 bg-[#0D1328] border border-slate-700/60 rounded-2xl p-4 min-h-[480px]">
-          {/* DEBUG VIEW - Show raw data from database */}
-          {requestedConvId && (
-            <div className="mb-4 p-4 bg-yellow-900/20 border border-yellow-600/50 rounded">
-              <h3 className="text-yellow-400 font-bold mb-2">DEBUG: Raw Database Data</h3>
-              <div className="text-white text-sm space-y-2">
-                <div><strong>Requested Conv ID:</strong> {requestedConvId}</div>
-                <div><strong>User Loaded:</strong> {user ? `YES (${user.id})` : 'NO - Trying API route anyway...'}</div>
-                <div><strong>Fetch Attempts:</strong> {fetchAttempts} {fetchAttempts > 0 && fetchAttempts < 10 && !activeConv && '(retrying...)'} {fetchAttempts >= 10 && !activeConv && '(MAX ATTEMPTS REACHED)'}</div>
-                {fetchError && (
-                  <div className="p-2 bg-red-900/40 border border-red-600 rounded">
-                    <strong>Last Error:</strong> {fetchError}
-                  </div>
-                )}
-                <div><strong>Active Conv:</strong> {activeConv ? activeConv.id : 'NONE'}</div>
-                <div><strong>Total Conversations:</strong> {conversations.length}</div>
-                <div className="mt-2 p-2 bg-blue-900/30 rounded text-xs">
-                  <strong>Status:</strong> {
-                    activeConv ? '✅ Conversation loaded successfully!' :
-                    fetchAttempts === 0 ? '⏳ Starting fetch...' :
-                    fetchAttempts < 10 ? `🔄 Retrying... (attempt ${fetchAttempts}/10)` :
-                    '❌ Failed after 10 attempts'
-                  }
-                </div>
-                <div className="mt-2 p-2 bg-red-900/30 rounded text-xs">
-                  <strong>Check browser console (F12) for detailed logs:</strong>
-                  <ul className="list-disc ml-4 mt-1">
-                    <li>PRIORITY FETCH [Attempt X] messages</li>
-                    <li>API response status codes</li>
-                    <li>Any error messages</li>
-                    <li>Retry countdown messages</li>
-                  </ul>
-                </div>
-                {activeConv && (
-                  <div className="mt-2 p-2 bg-black/30 rounded">
-                    <div><strong>Active Conv Data:</strong></div>
-                    <pre className="text-xs overflow-auto">{JSON.stringify(activeConv, null, 2)}</pre>
-                  </div>
-                )}
-                {conversations.length > 0 && (
-                  <div className="mt-2 p-2 bg-black/30 rounded">
-                    <div><strong>All Conversations:</strong></div>
-                    <pre className="text-xs overflow-auto max-h-40">{JSON.stringify(conversations, null, 2)}</pre>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          
+        <section className="lg:col-span-8 bg-[#0D1328] border border-slate-700/60 rounded-2xl overflow-hidden">
           {activeConv ? (
-            <ChatWindow conversation={activeConv} />
+            <ChatWindowWithUIKit conversation={activeConv} />
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-slate-400">
+            <div className="h-full flex flex-col items-center justify-center text-slate-400 min-h-[480px] p-4">
               <div className="text-xl font-semibold mb-2">No conversation selected</div>
               <div className="text-sm">Open a conversation from the left, or contact a seller from a service page.</div>
-              {requestedConvId && !user && (
-                <div className="mt-4 text-yellow-400 text-sm">⏳ Waiting for user authentication...</div>
-              )}
-              {requestedConvId && user && !activeConv && (
-                <div className="mt-4 text-red-400 text-sm">⚠️ Conversation not loading - check console for errors</div>
-              )}
             </div>
           )}
         </section>
