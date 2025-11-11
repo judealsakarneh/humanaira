@@ -53,22 +53,25 @@ export async function uploadChatFile(file: File): Promise<string> {
 }
 
 export async function sendMessage(input: SendMessageInput) {
-  const supabase = createSupabaseBrowser()
-  const senderId = await getUserIdOrThrow(supabase)
+  // Use server-side API route to bypass RLS and ensure message is inserted
+  const res = await fetch('/api/conversations/send-message', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      conversation_id: input.conversationId,
+      text: input.text,
+      attachments: input.attachments ?? [],
+      is_system: !!input.isSystem,
+    }),
+  })
 
-  const { error } = await supabase
-    .from('messages')
-    .insert([
-      {
-        conversation_id: input.conversationId,
-        sender_id: senderId,
-        text: input.text,
-        attachments: input.attachments ?? [],
-        is_system: !!input.isSystem,
-      },
-    ])
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    throw new Error(errorData.error || `Failed to send message: ${res.status}`)
+  }
 
-  if (error) throw error
+  const data = await res.json()
+  return data.message
 }
 
 export async function sendPaymentRequest(input: SendPaymentRequestInput) {
