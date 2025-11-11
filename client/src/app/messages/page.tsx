@@ -65,15 +65,9 @@ export default function MessagesPage() {
       return
     }
     
-    // If we already successfully loaded this conversation, don't fetch again
-    if (activeConv && activeConv.id === requestedConvId) {
-      console.log('PRIORITY FETCH: Conversation already loaded')
-      return
-    }
-    
     // If we've already fetched this conversation successfully, don't fetch again
     if (fetchedConvIds.current.has(requestedConvId)) {
-      console.log('PRIORITY FETCH: Conversation already fetched successfully')
+      console.log('PRIORITY FETCH: Conversation already fetched successfully, skipping')
       return
     }
     
@@ -105,16 +99,20 @@ export default function MessagesPage() {
               
               if (!isMounted) return
               
+              // Set the conversation as active
               setActiveConv(conv)
+              
+              // Add to conversations list if not already there
               setConversations((prev) => {
                 const exists = prev.find((p) => p.id === conv.id)
                 if (exists) return prev
                 return [conv, ...prev]
               })
+              
               setFetchError(null)
               fetchedConvIds.current.add(requestedConvId)
               
-              console.log('✅ PRIORITY FETCH: SUCCESS - Conversation loaded!')
+              console.log('✅ PRIORITY FETCH: SUCCESS - Conversation loaded and set as active!')
               return // Success! Exit the retry loop
             } else {
               console.error(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: API returned invalid data:`, apiData)
@@ -152,13 +150,13 @@ export default function MessagesPage() {
     return () => {
       isMounted = false
     }
-  }, [requestedConvId]) // Only re-run when requestedConvId changes
+  }, [requestedConvId, user]) // Re-run when requestedConvId or user changes
 
   // load conversations once we have user
   useEffect(() => {
     if (!user) {
       setConversations([])
-      setActiveConv(null)
+      // Don't clear activeConv here - it may have been set by priority fetch
       setLoading(false)
       return
     }
@@ -181,15 +179,10 @@ export default function MessagesPage() {
         setConversations(rows || [])
         setLoading(false)
 
-        console.log('Loaded conversations:', rows?.length || 0)
-        // Auto-open conversation if conv query param provided and not already set
-        if (requestedConvId && rows && rows.length > 0 && !activeConv) {
-          const found = rows.find((r) => r.id === requestedConvId)
-          if (found) {
-            console.log('Found requested conversation in full list:', requestedConvId)
-            setActiveConv(found)
-          }
-        }
+        console.log('Loaded conversations from user query:', rows?.length || 0)
+        
+        // Note: We DON'T auto-set activeConv here - that's handled by the priority fetch effect
+        // This prevents race conditions between the two effects
       } catch (err) {
         console.error('Failed to load conversations', err)
         if (mounted) setLoading(false)
@@ -235,7 +228,7 @@ export default function MessagesPage() {
       supabase.removeChannel(channel)
       mounted = false
     }
-  }, [supabase, user, requestedConvId, activeConv])
+  }, [supabase, user]) // Removed requestedConvId and activeConv from dependencies
 
   // navigate to messages page from other UI areas
   const openMessages = (conv?: Conversation) => {
