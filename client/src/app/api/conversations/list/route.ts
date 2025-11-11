@@ -1,23 +1,24 @@
 import { createClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 /**
- * GET /api/conversations/list
+ * GET /api/conversations/list?userId={userId}
  * 
- * Fetches all conversations for the authenticated user (as buyer OR seller)
+ * Fetches all conversations for the specified user (as buyer OR seller)
  * Uses service role key to bypass RLS restrictions
  */
 export async function GET(request: Request) {
   try {
-    // Get user from session cookie
-    const cookieStore = cookies()
-    const authCookie = cookieStore.get('sb-access-token') || cookieStore.get('supabase-auth-token')
+    // Get userId from query parameter
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
     
-    if (!authCookie) {
-      console.error('[API /conversations/list] No auth cookie found')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!userId) {
+      console.error('[API /conversations/list] Missing userId parameter')
+      return NextResponse.json({ error: 'userId parameter required' }, { status: 400 })
     }
+
+    console.log(`[API /conversations/list] Fetching conversations for user: ${userId}`)
 
     // Create Supabase admin client with service role key
     const supabaseAdmin = createClient(
@@ -31,22 +32,12 @@ export async function GET(request: Request) {
       }
     )
 
-    // Get the user from the auth cookie
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(authCookie.value)
-    
-    if (authError || !user) {
-      console.error('[API /conversations/list] Auth error:', authError)
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    console.log(`[API /conversations/list] Fetching conversations for user: ${user.id}`)
-
     // Fetch conversations where user is buyer OR seller
     // Using service role bypasses RLS
     const { data: conversations, error: fetchError } = await supabaseAdmin
       .from('conversations')
       .select('*')
-      .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
+      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
       .order('updated_at', { ascending: false })
 
     if (fetchError) {
