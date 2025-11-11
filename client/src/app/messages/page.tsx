@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
 import ConversationList from '../../components/messages/ConversationList'
-import ChatWindow from '../../components/messages/ChatWindow'
+import ChatWindowWithUIKit from '../../components/messages/ChatWindowWithUIKit'
 
 type Conversation = {
   id: string
@@ -28,26 +28,135 @@ export default function MessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConv, setActiveConv] = useState<Conversation | null>(null)
   const [loading, setLoading] = useState(true)
+  const [fetchAttempts, setFetchAttempts] = useState(0)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const fetchedConvIds = useRef<Set<string>>(new Set())
 
   // load current user
   useEffect(() => {
     let mounted = true
+    console.log('Loading user authentication...')
     ;(async () => {
-      const { data } = await supabase.auth.getUser()
-      if (!mounted) return
-      setUser(data?.user ?? null)
+      try {
+        const { data, error } = await supabase.auth.getUser()
+        console.log('Auth getUser result:', { data, error })
+        if (!mounted) return
+        if (error) {
+          console.error('Error loading user:', error)
+        }
+        const loadedUser = data?.user ?? null
+        console.log('User loaded:', loadedUser ? loadedUser.id : 'NO USER')
+        setUser(loadedUser)
+      } catch (err) {
+        console.error('Exception loading user:', err)
+        if (mounted) setUser(null)
+      }
     })()
     return () => {
       mounted = false
     }
   }, [supabase])
 
+  // PRIORITY: If we have a requestedConvId, fetch it IMMEDIATELY with RETRY LOOP
+  // This will keep trying until it succeeds
+  useEffect(() => {
+    if (!requestedConvId) {
+      console.log('PRIORITY FETCH: No requestedConvId in URL')
+      return
+    }
+    
+    // If we've already fetched this conversation successfully, don't fetch again
+    if (fetchedConvIds.current.has(requestedConvId)) {
+      console.log('PRIORITY FETCH: Conversation already fetched successfully, skipping')
+      return
+    }
+    
+    let currentAttempt = 0
+    let isMounted = true
+    
+    const fetchWithRetry = async () => {
+      while (isMounted && currentAttempt < 10) {
+        currentAttempt++
+        setFetchAttempts(currentAttempt)
+        
+        console.log(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: Starting fetch for conversation:`, requestedConvId)
+        console.log('PRIORITY FETCH: User status:', user ? `Loaded (${user.id})` : 'NOT LOADED YET')
+        
+        try {
+          // ALWAYS try API route (works with or without user auth)
+          console.log(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: Calling API route /api/conversations/${requestedConvId}`)
+          
+          const apiRes = await fetch(`/api/conversations/${requestedConvId}`)
+          console.log(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: API response status:`, apiRes.status)
+          
+          if (apiRes.ok) {
+            const apiData = await apiRes.json()
+            console.log(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: API route SUCCESS! Data:`, apiData)
+            
+            if (apiData && apiData.id) {
+              const conv = apiData as Conversation
+              console.log(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: Setting active conversation:`, conv.id)
+              
+              if (!isMounted) return
+              
+              // Set the conversation as active
+              setActiveConv(conv)
+              
+              // Add to conversations list if not already there
+              setConversations((prev) => {
+                const exists = prev.find((p) => p.id === conv.id)
+                if (exists) return prev
+                return [conv, ...prev]
+              })
+              
+              setFetchError(null)
+              fetchedConvIds.current.add(requestedConvId)
+              
+              console.log('✅ PRIORITY FETCH: SUCCESS - Conversation loaded and set as active!')
+              return // Success! Exit the retry loop
+            } else {
+              console.error(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: API returned invalid data:`, apiData)
+              setFetchError('Invalid data returned from API')
+            }
+          } else {
+            const errorText = await apiRes.text()
+            console.error(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: API route failed with status ${apiRes.status}:`, errorText)
+            setFetchError(`API error: ${apiRes.status} - ${errorText}`)
+          }
+        } catch (apiErr: any) {
+          console.error(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: API route exception:`, apiErr)
+          setFetchError(`Exception: ${apiErr.message}`)
+        }
+        
+        // If we get here, the fetch failed - wait before retrying
+        if (currentAttempt < 10 && isMounted) {
+          const delay = Math.min(1000 * currentAttempt, 5000) // Progressive delay, max 5s
+          console.log(`PRIORITY FETCH [Attempt ${currentAttempt}/10]: FAILED - waiting ${delay}ms before retry...`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+        }
+      }
+      
+      // If we've exhausted all retries
+      if (currentAttempt >= 10 && isMounted) {
+        console.error('❌ PRIORITY FETCH: Max retry attempts reached (10). Giving up.')
+        setFetchError('Conversation not found after 10 attempts. It may not exist yet or there may be a database issue.')
+      }
+    }
+    
+    // Start the fetch/retry loop
+    fetchWithRetry()
+    
+    // Cleanup on unmount
+    return () => {
+      isMounted = false
+    }
+  }, [requestedConvId, user]) // Re-run when requestedConvId or user changes
+
   // load conversations once we have user
   useEffect(() => {
     if (!user) {
       setConversations([])
-      setActiveConv(null)
+      // Don't clear activeConv here - it may have been set by priority fetch
       setLoading(false)
       return
     }
@@ -57,26 +166,27 @@ export default function MessagesPage() {
 
     const load = async () => {
       try {
-        // Query both where seller_id = user.id OR buyer_id = user.id
-        const orFilter = `seller_id.eq.${user.id},buyer_id.eq.${user.id}`
-        const res = await supabase
-          .from('conversations')
-          .select('*')
-          .or(orFilter)
-          .order('updated_at', { ascending: false })
-
-        const rows = (res.data as unknown) as Conversation[] | null
+        console.log('[Messages Page] Fetching conversation list via API for user:', user.id)
+        
+        // Use API endpoint to fetch conversations (bypasses RLS)
+        const response = await fetch(`/api/conversations/list?userId=${user.id}`)
+        
+        if (!response.ok) {
+          throw new Error(`API returned ${response.status}: ${response.statusText}`)
+        }
+        
+        const { conversations: rows } = await response.json()
+        
         if (!mounted) return
         setConversations(rows || [])
         setLoading(false)
 
-        // Auto-open conversation if conv query param provided
-        if (requestedConvId && rows && rows.length > 0) {
-          const found = rows.find((r) => r.id === requestedConvId)
-          if (found) setActiveConv(found)
-        }
+        console.log('[Messages Page] Loaded conversations from API:', rows?.length || 0)
+        
+        // Note: We DON'T auto-set activeConv here - that's handled by the priority fetch effect
+        // This prevents race conditions between the two effects
       } catch (err) {
-        console.error('Failed to load conversations', err)
+        console.error('[Messages Page] Failed to load conversations:', err)
         if (mounted) setLoading(false)
       }
     }
@@ -120,54 +230,7 @@ export default function MessagesPage() {
       supabase.removeChannel(channel)
       mounted = false
     }
-  }, [supabase, user, requestedConvId])
-
-  // If the requested conv id arrives after conversations are loaded, auto-select it
-  // If not found in the list, fetch it directly (handles newly created conversations)
-  useEffect(() => {
-    if (!requestedConvId || !user || loading) return
-    
-    // Check if conversation is already loaded
-    const found = conversations.find((c) => c.id === requestedConvId)
-    if (found) {
-      setActiveConv(found)
-      return
-    }
-    
-    // Conversation not found - fetch it directly (likely just created)
-    // Use ref to prevent multiple fetches of the same conversation
-    if (!fetchedConvIds.current.has(requestedConvId)) {
-      fetchedConvIds.current.add(requestedConvId)
-      
-      const fetchConversation = async () => {
-        try {
-          // Add a small delay to allow for DB write to complete
-          await new Promise(resolve => setTimeout(resolve, 500))
-          
-          const { data, error } = await supabase
-            .from('conversations')
-            .select('*')
-            .eq('id', requestedConvId)
-            .single()
-          
-          if (!error && data) {
-            const conv = data as Conversation
-            // Add to conversations list
-            setConversations((prev) => {
-              // Check if already exists to avoid duplicates
-              const exists = prev.find((p) => p.id === conv.id)
-              if (exists) return prev
-              return [conv, ...prev]
-            })
-            setActiveConv(conv)
-          }
-        } catch (err) {
-          console.error('Failed to fetch requested conversation', err)
-        }
-      }
-      fetchConversation()
-    }
-  }, [requestedConvId, loading, user, supabase, conversations])
+  }, [supabase, user]) // Removed requestedConvId and activeConv from dependencies
 
   // navigate to messages page from other UI areas
   const openMessages = (conv?: Conversation) => {
@@ -210,11 +273,11 @@ export default function MessagesPage() {
           </div>
         </aside>
 
-        <section className="lg:col-span-8 bg-[#0D1328] border border-slate-700/60 rounded-2xl p-4 min-h-[480px]">
+        <section className="lg:col-span-8 bg-[#0D1328] border border-slate-700/60 rounded-2xl overflow-hidden">
           {activeConv ? (
-            <ChatWindow conversation={activeConv} />
+            <ChatWindowWithUIKit conversation={activeConv} />
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-slate-400">
+            <div className="h-full flex flex-col items-center justify-center text-slate-400 min-h-[480px] p-4">
               <div className="text-xl font-semibold mb-2">No conversation selected</div>
               <div className="text-sm">Open a conversation from the left, or contact a seller from a service page.</div>
             </div>

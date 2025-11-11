@@ -573,7 +573,10 @@ export default function ServiceDetailsPage() {
     // 2) Call our server API to get or create a conversation
     // 3) Send an automatic initial message from buyer to seller
     // 4) Redirect to /messages/[conversationId]
-    if (!seller || !gig) return
+    if (!seller || !gig) {
+      console.error('DEBUG: Seller or gig not loaded yet')
+      return
+    }
 
     try {
       setStartingChat(true)
@@ -589,17 +592,33 @@ export default function ServiceDetailsPage() {
       }
 
       // Call server API to create-or-get conversation
+      // Try to use the most appropriate seller ID
+      // Priority: auth_user_id (from profile) > gig.seller_id (direct from gig) > seller.id (normalized)
+      const sellerAuthId = seller.auth_user_id || gig.seller_id || seller.user_id || seller.id
+      
+      console.log('=== DEBUG: Starting chat ===')
+      console.log('Buyer ID:', buyerId)
+      console.log('Seller Auth ID (using):', sellerAuthId)
+      console.log('Gig ID:', gig.id)
+      console.log('Gig Seller ID:', gig.seller_id)
+      console.log('Seller auth_user_id:', seller.auth_user_id)
+      console.log('Seller user_id:', seller.user_id)
+      console.log('Seller id:', seller.id)
+      console.log('=== END DEBUG ===')
+      
       const res = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           buyer_id: buyerId,
-          seller_id: seller.id,
+          seller_id: sellerAuthId,
           gig_id: gig.id ?? null,
         }),
       })
 
       if (!res.ok) {
+        const errorText = await res.text()
+        console.error('Failed to create conversation:', res.status, errorText)
         // fallback: go to seller profile
         router.push(profileHref)
         return
@@ -608,32 +627,42 @@ export default function ServiceDetailsPage() {
       const body = await res.json()
       const conversationId = body?.id
       const isNewConversation = body?.is_new === true
+      
+      console.log('Conversation result:', { conversationId, isNewConversation })
 
       if (conversationId) {
         // Send automatic initial message if this is a new conversation
         if (isNewConversation) {
           try {
-            const gigTitle = gig.title || 'your service'
-            const initialMessage = `Hi! I'm interested in "${gigTitle}". I'd like to learn more about this service.`
-            
-            await supabase.from('messages').insert([
-              {
+            const msgRes = await fetch('/api/conversations/send-initial-message', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
                 conversation_id: conversationId,
                 sender_id: buyerId,
-                text: initialMessage,
-                attachments: [],
-                is_system: false,
-              },
-            ])
+                gig_title: gig.title || 'your service',
+              }),
+            })
+            
+            if (!msgRes.ok) {
+              const msgError = await msgRes.text()
+              console.error('Failed to send initial message:', msgError)
+            } else {
+              console.log('Initial message sent successfully')
+            }
+            
+            // Add delay to ensure database writes complete
+            await new Promise(resolve => setTimeout(resolve, 2000))
           } catch (msgErr) {
             console.error('Failed to send initial message', msgErr)
             // Continue anyway - conversation was created
           }
         }
 
-        // router.push(`/messages/${conversationId}`)
-        router.push(`/messages?conv=${encodeURIComponent(conversationId)}`)
+        console.log('Redirecting to messages with conversation:', conversationId)
+        router.push(`/messages?conv=${conversationId}`)
       } else {
+        console.error('ERROR: No conversation ID returned')
         router.push(profileHref)
       }
     } catch (err) {
