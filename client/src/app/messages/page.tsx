@@ -166,25 +166,27 @@ export default function MessagesPage() {
 
     const load = async () => {
       try {
-        // Query both where seller_id = user.id OR buyer_id = user.id
-        const orFilter = `seller_id.eq.${user.id},buyer_id.eq.${user.id}`
-        const res = await supabase
-          .from('conversations')
-          .select('*')
-          .or(orFilter)
-          .order('updated_at', { ascending: false })
-
-        const rows = (res.data as unknown) as Conversation[] | null
+        console.log('[Messages Page] Fetching conversation list via API for user:', user.id)
+        
+        // Use API endpoint to fetch conversations (bypasses RLS)
+        const response = await fetch(`/api/conversations/list?userId=${user.id}`)
+        
+        if (!response.ok) {
+          throw new Error(`API returned ${response.status}: ${response.statusText}`)
+        }
+        
+        const { conversations: rows } = await response.json()
+        
         if (!mounted) return
         setConversations(rows || [])
         setLoading(false)
 
-        console.log('Loaded conversations from user query:', rows?.length || 0)
+        console.log('[Messages Page] Loaded conversations from API:', rows?.length || 0)
         
         // Note: We DON'T auto-set activeConv here - that's handled by the priority fetch effect
         // This prevents race conditions between the two effects
       } catch (err) {
-        console.error('Failed to load conversations', err)
+        console.error('[Messages Page] Failed to load conversations:', err)
         if (mounted) setLoading(false)
       }
     }
