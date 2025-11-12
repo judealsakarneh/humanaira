@@ -38,7 +38,7 @@ export async function GET(request: Request) {
       .from('conversations')
       .select('*')
       .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
-      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false, nullsFirst: false })
 
     if (basicError) {
       console.error('[API /conversations/list] Basic query error:', basicError)
@@ -67,7 +67,7 @@ export async function GET(request: Request) {
         gig:gigs!gig_id(id, title, slug)
       `)
       .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
-      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false, nullsFirst: false })
 
     // Use enriched data if available, otherwise fall back to basic
     const conversationsToProcess = enrichError ? basicConversations : (enrichedConversations || basicConversations)
