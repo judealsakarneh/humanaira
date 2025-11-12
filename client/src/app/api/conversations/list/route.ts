@@ -38,6 +38,7 @@ export async function GET(request: Request) {
       .from('conversations')
       .select(`
         *,
+        messages(count),
         buyer:profiles!buyer_id(id, username, avatar_url, full_name),
         seller:profiles!seller_id(id, username, avatar_url, full_name),
         gig:gigs!gig_id(id, title, slug)

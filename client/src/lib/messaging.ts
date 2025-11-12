@@ -140,14 +140,19 @@ export async function getOrCreateConversation(input: {
     throw new Error(errorData.error || `Failed to create conversation: ${response.status}`)
   }
 
-  const { id } = await response.json()
+  const { id, conversation } = await response.json()
 
-  // Fetch the full conversation details using the service role API
+  // If the API returned the full conversation object, use it
+  if (conversation) {
+    return conversation as ConversationRow
+  }
+
+  // Otherwise, fetch the full conversation details using the service role API
   const fetchResponse = await fetch(`/api/conversations/${id}`)
   if (!fetchResponse.ok) {
     throw new Error('Failed to fetch conversation details')
   }
 
-  const conversation = await fetchResponse.json()
-  return conversation as ConversationRow
+  const conversationData = await fetchResponse.json()
+  return conversationData as ConversationRow
 }
