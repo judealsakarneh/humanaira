@@ -121,46 +121,33 @@ export async function getOrCreateConversation(input: {
   sellerId: string
   buyerId: string
 }): Promise<ConversationRow> {
-  const supabase = createSupabaseBrowser()
+  // Use API route to bypass RLS restrictions
+  // This ensures conversation creation always succeeds and is visible to both participants
+  const response = await fetch('/api/conversations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      gig_id: input.gigId,
+      seller_id: input.sellerId,
+      buyer_id: input.buyerId,
+    }),
+  })
 
-  const { data: existing, error: findErr } = await supabase
-    .from('conversations')
-    .select('*')
-    .eq('gig_id', input.gigId)
-    .eq('seller_id', input.sellerId)
-    .eq('buyer_id', input.buyerId)
-    .limit(1)
-    .maybeSingle()
-
-  if (findErr) throw findErr
-  if (existing) return existing as ConversationRow
-
-  const { data: created, error: insertErr } = await supabase
-    .from('conversations')
-    .insert([
-      {
-        gig_id: input.gigId,
-        seller_id: input.sellerId,
-        buyer_id: input.buyerId,
-        status: 'open',
-      },
-    ])
-    .select('*')
-    .single()
-
-  if (insertErr) {
-    const { data: after, error: afterErr } = await supabase
-      .from('conversations')
-      .select('*')
-      .eq('gig_id', input.gigId)
-      .eq('seller_id', input.sellerId)
-      .eq('buyer_id', input.buyerId)
-      .limit(1)
-      .maybeSingle()
-    if (afterErr) throw insertErr
-    if (after) return after as ConversationRow
-    throw insertErr
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+    throw new Error(errorData.error || `Failed to create conversation: ${response.status}`)
   }
 
-  return created as ConversationRow
+  const { id } = await response.json()
+
+  // Fetch the full conversation details using the service role API
+  const fetchResponse = await fetch(`/api/conversations/${id}`)
+  if (!fetchResponse.ok) {
+    throw new Error('Failed to fetch conversation details')
+  }
+
+  const conversation = await fetchResponse.json()
+  return conversation as ConversationRow
 }
