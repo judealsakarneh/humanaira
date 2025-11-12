@@ -269,6 +269,7 @@ export default function MessagesPage() {
               loading={loading}
               onSelect={(c: Conversation) => setActiveConv(c)}
               activeId={activeConv?.id ?? null}
+              currentUserId={user?.id ?? null}
             />
           </div>
         </aside>
