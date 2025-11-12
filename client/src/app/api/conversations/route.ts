@@ -28,10 +28,12 @@ export async function POST(req: Request) {
 
     const supabase = createClient(url, key, { auth: { persistSession: false } })
 
-    // Find existing
+    // Find existing conversation between these two users for this gig
+    // In a marketplace, roles are fixed: buyer contacts seller about a specific gig
+    // So we check for exact match: buyer_id, seller_id, and gig_id
     let query = supabase
       .from('conversations')
-      .select('id')
+      .select('*')
       .eq('seller_id', seller_id)
       .eq('buyer_id', buyer_id)
 
@@ -44,7 +46,7 @@ export async function POST(req: Request) {
     }
     if (existing) {
       console.log('[API /conversations] Found existing conversation:', existing.id)
-      return NextResponse.json({ id: existing.id, is_new: false }, { status: 200 })
+      return NextResponse.json({ id: existing.id, conversation: existing, is_new: false }, { status: 200 })
     }
 
     // Create new
@@ -63,15 +65,15 @@ export async function POST(req: Request) {
     const { data: created, error: insertErr } = await supabase
       .from('conversations')
       .insert([insertRow])
-      .select('id')
+      .select('*')
       .single()
 
     if (insertErr) {
       console.error('[API /conversations] Error creating conversation:', insertErr)
-      // Race fallback
+      // Race condition fallback: another request might have created it
       let again = supabase
         .from('conversations')
-        .select('id')
+        .select('*')
         .eq('seller_id', seller_id)
         .eq('buyer_id', buyer_id)
 
@@ -80,13 +82,13 @@ export async function POST(req: Request) {
       const { data: after } = await again.limit(1).maybeSingle()
       if (after) {
         console.log('[API /conversations] Found in race fallback:', after.id)
-        return NextResponse.json({ id: after.id, is_new: false }, { status: 200 })
+        return NextResponse.json({ id: after.id, conversation: after, is_new: false }, { status: 200 })
       }
       return NextResponse.json({ error: insertErr.message }, { status: 500 })
     }
 
     console.log('[API /conversations] Created new conversation:', created.id)
-    return NextResponse.json({ id: created.id, is_new: true }, { status: 200 })
+    return NextResponse.json({ id: created.id, conversation: created, is_new: true }, { status: 200 })
   } catch (e: any) {
     console.error('[API /conversations] POST error', e)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })

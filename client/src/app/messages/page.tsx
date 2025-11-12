@@ -31,24 +31,92 @@ export default function MessagesPage() {
   const [fetchAttempts, setFetchAttempts] = useState(0)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const fetchedConvIds = useRef<Set<string>>(new Set())
+  const [debugLogs, setDebugLogs] = useState<string[]>([])
+  const [envDiagnostics, setEnvDiagnostics] = useState<Record<string, any>>({})
+  
+  // Helper to add debug log
+  const addDebugLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString()
+    const logMessage = `[${timestamp}] ${message}`
+    console.log(logMessage)
+    setDebugLogs(prev => [...prev, logMessage].slice(-20)) // Keep last 20 logs
+  }
+  
+  // Diagnose environment and Supabase setup
+  useEffect(() => {
+    const diagnostics: Record<string, any> = {}
+    
+    // Check environment variables
+    diagnostics.supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'MISSING'
+    diagnostics.hasAnonKey = !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    diagnostics.anonKeyPrefix = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20) || 'MISSING'
+    
+    // Check Supabase client
+    diagnostics.supabaseClientExists = !!supabase
+    
+    // Check session storage
+    try {
+      const sessionKey = Object.keys(typeof window !== 'undefined' ? window.localStorage : {}).find(k => k.includes('supabase'))
+      diagnostics.hasSessionInStorage = !!sessionKey
+      diagnostics.sessionStorageKey = sessionKey || 'NONE'
+    } catch (e) {
+      diagnostics.sessionStorageError = String(e)
+    }
+    
+    // Check cookies
+    if (typeof document !== 'undefined') {
+      diagnostics.hasCookies = document.cookie.length > 0
+      diagnostics.cookieCount = document.cookie.split(';').length
+      const supabaseCookies = document.cookie.split(';').filter(c => c.includes('supabase')).length
+      diagnostics.supabaseCookieCount = supabaseCookies
+    }
+    
+    setEnvDiagnostics(diagnostics)
+    
+    // Log all diagnostics
+    Object.entries(diagnostics).forEach(([key, value]) => {
+      addDebugLog(`🔧 ${key}: ${JSON.stringify(value)}`)
+    })
+  }, [])
 
   // load current user
   useEffect(() => {
     let mounted = true
-    console.log('Loading user authentication...')
+    addDebugLog('🔄 Loading user authentication...')
     ;(async () => {
       try {
-        const { data, error } = await supabase.auth.getUser()
-        console.log('Auth getUser result:', { data, error })
+        // First try to get session
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
         if (!mounted) return
-        if (error) {
-          console.error('Error loading user:', error)
+        
+        addDebugLog(`📋 Session check: ${sessionError ? `Error: ${sessionError.message}` : sessionData.session ? 'Session exists' : 'No session'}`)
+        
+        if (sessionData.session) {
+          addDebugLog(`✅ Session found - User: ${sessionData.session.user.id}`)
+          addDebugLog(`📅 Session expires: ${new Date(sessionData.session.expires_at! * 1000).toLocaleString()}`)
         }
+        
+        // Then get user
+        const { data, error } = await supabase.auth.getUser()
+        if (!mounted) return
+        
+        if (error) {
+          addDebugLog(`❌ Error loading user: ${error.message}`)
+          addDebugLog(`❌ Error name: ${error.name}`)
+          addDebugLog(`❌ Error status: ${error.status}`)
+        }
+        
         const loadedUser = data?.user ?? null
-        console.log('User loaded:', loadedUser ? loadedUser.id : 'NO USER')
+        addDebugLog(`${loadedUser ? '✅' : '❌'} User loaded: ${loadedUser ? loadedUser.id : 'NO USER'}`)
+        
+        if (loadedUser) {
+          addDebugLog(`👤 User email: ${loadedUser.email}`)
+          addDebugLog(`👤 User created: ${new Date(loadedUser.created_at!).toLocaleString()}`)
+        }
+        
         setUser(loadedUser)
       } catch (err) {
-        console.error('Exception loading user:', err)
+        addDebugLog(`❌ Exception loading user: ${err}`)
         if (mounted) setUser(null)
       }
     })()
@@ -166,27 +234,44 @@ export default function MessagesPage() {
 
     const load = async () => {
       try {
-        console.log('[Messages Page] Fetching conversation list via API for user:', user.id)
+        addDebugLog(`🔄 Fetching conversations for user: ${user.id}`)
         
         // Use API endpoint to fetch conversations (bypasses RLS)
-        const response = await fetch(`/api/conversations/list?userId=${user.id}`)
+        const apiUrl = `/api/conversations/list?userId=${user.id}`
+        addDebugLog(`📡 Calling API: ${apiUrl}`)
+        const response = await fetch(apiUrl)
+        
+        addDebugLog(`📥 API response status: ${response.status}`)
         
         if (!response.ok) {
+          const errorText = await response.text()
+          addDebugLog(`❌ API error: ${response.status} - ${errorText}`)
           throw new Error(`API returned ${response.status}: ${response.statusText}`)
         }
         
-        const { conversations: rows } = await response.json()
+        const jsonData = await response.json()
+        addDebugLog(`📦 API returned data: ${JSON.stringify(jsonData).substring(0, 200)}...`)
+        
+        const { conversations: rows } = jsonData
         
         if (!mounted) return
+        
+        addDebugLog(`✅ Found ${rows?.length || 0} conversations`)
+        
         setConversations(rows || [])
         setLoading(false)
 
-        console.log('[Messages Page] Loaded conversations from API:', rows?.length || 0)
+        if (rows && rows.length > 0) {
+          addDebugLog(`✅ Conversations loaded successfully`)
+        } else {
+          addDebugLog(`⚠️ No conversations found in database`)
+        }
         
         // Note: We DON'T auto-set activeConv here - that's handled by the priority fetch effect
         // This prevents race conditions between the two effects
       } catch (err) {
-        console.error('[Messages Page] Failed to load conversations:', err)
+        const errorMsg = err instanceof Error ? err.message : String(err)
+        addDebugLog(`❌ Failed to load conversations: ${errorMsg}`)
         if (mounted) setLoading(false)
       }
     }
@@ -246,6 +331,88 @@ export default function MessagesPage() {
     // Added top padding so the page content sits below any fixed header/navbar.
     // Adjust pt-24 / md:pt-28 values to match your site's header height if needed.
     <main className="min-h-screen bg-[#070D1C] text-slate-100 p-6 md:p-10 pt-24 md:pt-28">
+      {/* DEBUG PANEL - Visible on mobile with detailed diagnostics */}
+      <div className="max-w-6xl mx-auto mb-6 bg-slate-900 border border-yellow-500/50 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-bold text-yellow-400">🔍 Debug Panel (Developer Console)</h3>
+          <button 
+            onClick={() => setDebugLogs([])}
+            className="text-xs px-2 py-1 bg-slate-800 rounded text-slate-300"
+          >
+            Clear
+          </button>
+        </div>
+        
+        {/* Environment Diagnostics */}
+        <div className="mb-3 p-3 bg-slate-800/50 rounded border border-slate-700">
+          <h4 className="text-xs font-bold text-yellow-300 mb-2">Environment & Configuration</h4>
+          <div className="space-y-1">
+            <p className="text-xs font-mono text-slate-300">
+              Supabase URL: <span className={envDiagnostics.supabaseUrl !== 'MISSING' ? 'text-green-400' : 'text-red-400'}>
+                {envDiagnostics.supabaseUrl === 'MISSING' ? '❌ MISSING' : '✅ ' + envDiagnostics.supabaseUrl}
+              </span>
+            </p>
+            <p className="text-xs font-mono text-slate-300">
+              Anon Key: <span className={envDiagnostics.hasAnonKey ? 'text-green-400' : 'text-red-400'}>
+                {envDiagnostics.hasAnonKey ? `✅ ${envDiagnostics.anonKeyPrefix}...` : '❌ MISSING'}
+              </span>
+            </p>
+            <p className="text-xs font-mono text-slate-300">
+              Supabase Client: <span className={envDiagnostics.supabaseClientExists ? 'text-green-400' : 'text-red-400'}>
+                {envDiagnostics.supabaseClientExists ? '✅ Created' : '❌ Not created'}
+              </span>
+            </p>
+            <p className="text-xs font-mono text-slate-300">
+              Session in Storage: <span className={envDiagnostics.hasSessionInStorage ? 'text-green-400' : 'text-yellow-400'}>
+                {envDiagnostics.hasSessionInStorage ? '✅ Yes' : '⚠️ No'}
+              </span>
+            </p>
+            <p className="text-xs font-mono text-slate-300">
+              Cookies: <span className="text-blue-400">
+                {envDiagnostics.cookieCount || 0} total, {envDiagnostics.supabaseCookieCount || 0} supabase
+              </span>
+            </p>
+          </div>
+        </div>
+        
+        {/* Logs */}
+        <div className="space-y-1 max-h-96 overflow-y-auto">
+          {debugLogs.length === 0 ? (
+            <p className="text-xs text-slate-400">Waiting for logs...</p>
+          ) : (
+            debugLogs.map((log, idx) => (
+              <div key={idx} className="text-xs font-mono bg-slate-800/50 p-2 rounded border border-slate-700 break-all">
+                {log}
+              </div>
+            ))
+          )}
+        </div>
+        
+        {/* Status Summary */}
+        <div className="mt-3 pt-3 border-t border-slate-700">
+          <p className="text-xs text-slate-400 mb-1">
+            <span className="font-bold">User Status:</span> {user ? `✅ Logged in as ${user.email || user.id}` : '❌ Not logged in'}
+          </p>
+          <p className="text-xs text-slate-400 mb-1">
+            <span className="font-bold">Conversations:</span> {conversations.length} found
+          </p>
+          <p className="text-xs text-slate-400 mb-1">
+            <span className="font-bold">Loading:</span> {loading ? '🔄 Yes' : '✅ No'}
+          </p>
+          {fetchError && (
+            <p className="text-xs text-red-400 mt-2">
+              <span className="font-bold">Fetch Error:</span> {fetchError}
+            </p>
+          )}
+        </div>
+        
+        {/* Instructions */}
+        <div className="mt-3 pt-3 border-t border-slate-700 text-xs text-slate-400">
+          <p className="font-bold mb-1">📱 Copy these logs and send to developer:</p>
+          <p>Tap and hold on each log entry above to copy text</p>
+        </div>
+      </div>
+      
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
         <aside className="lg:col-span-4 bg-[#0D1328] border border-slate-700/60 rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
@@ -269,6 +436,7 @@ export default function MessagesPage() {
               loading={loading}
               onSelect={(c: Conversation) => setActiveConv(c)}
               activeId={activeConv?.id ?? null}
+              currentUserId={user?.id ?? null}
             />
           </div>
         </aside>
