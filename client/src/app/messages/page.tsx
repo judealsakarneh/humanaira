@@ -171,17 +171,28 @@ export default function MessagesPage() {
         // Use API endpoint to fetch conversations (bypasses RLS)
         const response = await fetch(`/api/conversations/list?userId=${user.id}`)
         
+        console.log('[Messages Page] API response status:', response.status)
+        
         if (!response.ok) {
+          const errorText = await response.text()
+          console.error('[Messages Page] API error response:', errorText)
           throw new Error(`API returned ${response.status}: ${response.statusText}`)
         }
         
-        const { conversations: rows } = await response.json()
+        const jsonData = await response.json()
+        console.log('[Messages Page] API response data:', jsonData)
+        
+        const { conversations: rows } = jsonData
         
         if (!mounted) return
+        
+        console.log('[Messages Page] Setting conversations:', rows?.length || 0, 'conversations')
+        console.log('[Messages Page] Conversations data:', rows)
+        
         setConversations(rows || [])
         setLoading(false)
 
-        console.log('[Messages Page] Loaded conversations from API:', rows?.length || 0)
+        console.log('[Messages Page] Successfully loaded conversations from API:', rows?.length || 0)
         
         // Note: We DON'T auto-set activeConv here - that's handled by the priority fetch effect
         // This prevents race conditions between the two effects
