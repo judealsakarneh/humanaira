@@ -6,7 +6,19 @@ import { isLive } from '../../../lib/stripeEnv'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+let stripe: Stripe | null = null
+
+const getStripe = () => {
+  if (!stripe) {
+    const secretKey = process.env.STRIPE_SECRET_KEY
+    if (!secretKey) {
+      throw new Error('Payments not configured')
+    }
+    stripe = new Stripe(secretKey)
+  }
+
+  return stripe
+}
 
 export async function POST() {
   try {
@@ -29,7 +41,7 @@ export async function POST() {
     let accountId = (profile as any)[columnName] as string | null
 
     if (!accountId) {
-      const account = await stripe.accounts.create({
+      const account = await getStripe().accounts.create({
         type: 'express',
         email: profile.email || undefined,
       })
@@ -44,7 +56,7 @@ export async function POST() {
       process.env.NEXT_PUBLIC_APP_URL ||
       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
-    const link = await stripe.accountLinks.create({
+    const link = await getStripe().accountLinks.create({
       account: accountId!,
       refresh_url: `${baseUrl}/dashboard/billing?refresh=1`,
       return_url: `${baseUrl}/dashboard/billing?connected=1`,

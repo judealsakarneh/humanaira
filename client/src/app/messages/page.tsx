@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
 import ConversationList from '../../components/messages/ConversationList'
@@ -37,6 +37,7 @@ export default function MessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConv, setActiveConv] = useState<Conversation | null>(null)
   const [loading, setLoading] = useState(true)
+  const requestedConvFetch = useRef<{ id: string | null; fetching: boolean }>({ id: null, fetching: false })
 
   // load current user
   useEffect(() => {
@@ -99,15 +100,20 @@ export default function MessagesPage() {
         { event: '*', schema: 'public', table: 'conversations', filter: `seller_id=eq.${user.id}` },
         (payload: any) => {
           const newRow = payload.new as Conversation
+          let enrichedRow: Conversation | null = null
           setConversations((prev) => {
             const exists = prev.find((p) => p.id === newRow.id)
             const enriched: Conversation =
               exists && !newRow.gig ? { ...newRow, gig: exists.gig } : newRow
+            enrichedRow = enriched
             if (exists) {
               return prev.map((p) => (p.id === enriched.id ? enriched : p))
             }
             return [enriched, ...prev]
           })
+          if (requestedConvId && newRow.id === requestedConvId && enrichedRow) {
+            setActiveConv(enrichedRow)
+          }
         }
       )
       .on(
@@ -115,15 +121,20 @@ export default function MessagesPage() {
         { event: '*', schema: 'public', table: 'conversations', filter: `buyer_id=eq.${user.id}` },
         (payload: any) => {
           const newRow = payload.new as Conversation
+          let enrichedRow: Conversation | null = null
           setConversations((prev) => {
             const exists = prev.find((p) => p.id === newRow.id)
             const enriched: Conversation =
               exists && !newRow.gig ? { ...newRow, gig: exists.gig } : newRow
+            enrichedRow = enriched
             if (exists) {
               return prev.map((p) => (p.id === enriched.id ? enriched : p))
             }
             return [enriched, ...prev]
           })
+          if (requestedConvId && newRow.id === requestedConvId && enrichedRow) {
+            setActiveConv(enrichedRow)
+          }
         }
       )
       .subscribe()
@@ -140,6 +151,64 @@ export default function MessagesPage() {
     const found = conversations.find((c) => c.id === requestedConvId)
     if (found) setActiveConv(found)
   }, [requestedConvId, conversations])
+
+  // Fallback: if we were sent to /messages?conv=<id> but the conversation is
+  // not yet in the list (for example right after creation), fetch it directly.
+  useEffect(() => {
+    if (!requestedConvId || !user) {
+      requestedConvFetch.current = { id: null, fetching: false }
+      return
+    }
+
+    if (requestedConvFetch.current.id !== requestedConvId) {
+      requestedConvFetch.current = { id: requestedConvId, fetching: false }
+    }
+
+    const existing = conversations.find((c) => c.id === requestedConvId)
+    if (existing) {
+      setActiveConv(existing)
+      return
+    }
+
+    if (requestedConvFetch.current.fetching) return
+
+    let cancelled = false
+    requestedConvFetch.current.fetching = true
+
+    ;(async () => {
+      try {
+        const { data, error } = await supabase
+          .from('conversations')
+          .select('*, gig:gigs(id,title,slug,cover_image_url,price_cents)')
+          .eq('id', requestedConvId)
+          .maybeSingle()
+
+        if (cancelled) return
+        if (error) {
+          console.error('Failed to fetch requested conversation', error)
+          return
+        }
+
+        if (data) {
+          const conv = data as Conversation
+          setConversations((prev) => {
+            if (prev.find((p) => p.id === conv.id)) return prev
+            return [conv, ...prev]
+          })
+          setActiveConv(conv)
+        }
+      } finally {
+        if (!cancelled) {
+          requestedConvFetch.current.fetching = false
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+      requestedConvFetch.current.fetching = false
+    }
+  }, [requestedConvId, user, conversations, supabase])
 
   // navigate to messages page from other UI areas
   const openMessages = (conv?: Conversation) => {
