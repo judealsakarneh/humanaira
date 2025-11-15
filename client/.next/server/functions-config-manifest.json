@@ -3,14 +3,14 @@
   "functions": {
     "/api/checkout": {},
     "/api/conversations/create-from-order": {},
-    "/api/conversations": {},
-    "/api/payments/create-session": {},
     "/api/payouts/request": {},
-    "/api/profile/payout-settings": {},
+    "/api/payments/create-session": {},
     "/api/report-service": {},
     "/api/stripe/connect/start": {},
+    "/api/profile/payout-settings": {},
     "/api/stripe/create-session": {},
-    "/api/subscribe": {},
-    "/api/stripe/webhook": {}
+    "/api/stripe/webhook": {},
+    "/api/conversations": {},
+    "/api/subscribe": {}
   }
 }
