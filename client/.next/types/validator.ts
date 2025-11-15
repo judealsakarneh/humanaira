@@ -263,6 +263,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/terms">
 }
 
+// Validate ../../src/app/api/chat/token/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/chat/token/route.js")
+  handler satisfies RouteHandlerConfig<"/api/chat/token">
+}
+
 // Validate ../../src/app/api/checkout/addon/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/checkout/addon/route.js")
