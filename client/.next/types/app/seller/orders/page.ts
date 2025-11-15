@@ -1,4 +1,4 @@
-// File: C:\Users\JUDE\Desktop\ZENTASK-AI\client\src\app\seller\orders\page.tsx
+// File: /home/runner/work/humanaira/humanaira/client/src/app/seller/orders/page.tsx
 import * as entry from '../../../../../src/app/seller/orders/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
