@@ -613,8 +613,8 @@ export default function ServiceDetailsPage() {
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
         addDebugLog('error', '[Services] API error', errorData)
-        // fallback: go to seller profile
-        router.push(profileHref)
+        alert(`Failed to create conversation: ${errorData.error || 'Unknown error'}\n\nDetails: ${errorData.details || 'Check debug panel'}\n\nHint: ${errorData.hint || 'Contact support'}`)
+        // Don't navigate away - let user see the error in debug panel
         return
       }
 
@@ -625,7 +625,7 @@ export default function ServiceDetailsPage() {
       
       if (!dbConversationId) {
         addDebugLog('error', '[Services] Missing dbConversationId in response', body)
-        router.push(profileHref)
+        alert('Failed to get conversation ID from server. Check debug panel for details.')
         return
       }
 
@@ -634,9 +634,8 @@ export default function ServiceDetailsPage() {
       addDebugLog('info', '[Services] Navigating to messages', { url: targetUrl })
       router.push(targetUrl)
     } catch (err: any) {
-      addDebugLog('error', '[Services] startChat failed', { error: err.message })
-      // fallback
-      router.push(profileHref)
+      addDebugLog('error', '[Services] startChat failed', { error: err.message, stack: err.stack })
+      alert(`Error starting chat: ${err.message}\n\nCheck debug panel for more details.`)
     } finally {
       setStartingChat(false)
     }

@@ -82,6 +82,8 @@ export async function POST(req: NextRequest) {
 
     // Store/update mapping in database
     // Check if conversation already exists
+    console.log('[API] Querying for existing conversation:', { sellerId, buyerId, gigId })
+    
     let query = supabase
       .from('conversations')
       .select('id, twilio_conversation_sid')
@@ -97,9 +99,14 @@ export async function POST(req: NextRequest) {
     const { data: existing, error: findError } = await query.limit(1).maybeSingle()
 
     if (findError) {
-      console.error('Error finding conversation:', findError)
+      console.error('[API] Error finding conversation:', findError)
+      console.error('[API] Full error details:', JSON.stringify(findError, null, 2))
       return NextResponse.json(
-        { error: 'Database error' },
+        { 
+          error: 'Database error',
+          details: findError.message,
+          hint: findError.hint || 'Check if conversations table has required columns: seller_id, buyer_id, gig_id, twilio_conversation_sid'
+        },
         { status: 500 }
       )
     }
@@ -137,6 +144,7 @@ export async function POST(req: NextRequest) {
 
       if (insertError) {
         console.error('[API] Insert error:', insertError)
+        console.error('[API] Full insert error:', JSON.stringify(insertError, null, 2))
         // Race condition - try to fetch again
         const { data: after } = await query.limit(1).maybeSingle()
         if (after) {
@@ -145,7 +153,11 @@ export async function POST(req: NextRequest) {
         } else {
           console.error('Error creating conversation:', insertError)
           return NextResponse.json(
-            { error: 'Failed to create conversation', details: insertError.message },
+            { 
+              error: 'Failed to create conversation', 
+              details: insertError.message,
+              hint: insertError.hint || 'Check if conversations table exists and has columns: seller_id, buyer_id, gig_id, twilio_conversation_sid, status'
+            },
             { status: 500 }
           )
         }
