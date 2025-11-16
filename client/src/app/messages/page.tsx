@@ -83,7 +83,9 @@ export default function MessagesPage() {
         if (!mounted) return
         addDebugLog('success', `[Messages] Loaded ${rows?.length || 0} conversations`, {
           requestedConvId,
-          conversationIds: rows?.map(c => c.id) || []
+          conversationIds: rows?.map(c => c.id) || [],
+          query: orFilter,
+          error: res.error
         })
         setConversations(rows || [])
         setLoading(false)
@@ -100,6 +102,8 @@ export default function MessagesPage() {
               availableIds: rows.map(r => r.id)
             })
           }
+        } else if (requestedConvId && (!rows || rows.length === 0)) {
+          addDebugLog('info', '[Messages] No conversations loaded yet, will try direct fetch', { requestedConvId })
         }
       } catch (err) {
         console.error('Failed to load conversations', err)
@@ -164,11 +168,22 @@ export default function MessagesPage() {
 
   // If the requested conv id arrives after conversations are loaded, auto-select it
   useEffect(() => {
-    if (!requestedConvId || conversations.length === 0) return
+    if (!requestedConvId || conversations.length === 0) {
+      addDebugLog('info', '[Messages] Auto-select check skipped', { 
+        hasRequestedConvId: !!requestedConvId,
+        conversationCount: conversations.length
+      })
+      return
+    }
     const found = conversations.find((c) => c.id === requestedConvId)
     if (found) {
       addDebugLog('success', '[Messages] Auto-selecting conversation from loaded list', { id: found.id })
       setActiveConv(found)
+    } else {
+      addDebugLog('info', '[Messages] Requested conversation still not in list after load', {
+        requestedConvId,
+        conversationIds: conversations.map(c => c.id)
+      })
     }
   }, [requestedConvId, conversations])
 
@@ -176,6 +191,10 @@ export default function MessagesPage() {
   // not yet in the list (for example right after creation), fetch it directly.
   useEffect(() => {
     if (!requestedConvId || !user) {
+      addDebugLog('info', '[Messages] Direct fetch check - skipped', { 
+        hasRequestedConvId: !!requestedConvId,
+        hasUser: !!user
+      })
       requestedConvFetch.current = { id: null, fetching: false }
       return
     }
@@ -186,11 +205,15 @@ export default function MessagesPage() {
 
     const existing = conversations.find((c) => c.id === requestedConvId)
     if (existing) {
+      addDebugLog('success', '[Messages] Conversation already in list, setting active', { id: existing.id })
       setActiveConv(existing)
       return
     }
 
-    if (requestedConvFetch.current.fetching) return
+    if (requestedConvFetch.current.fetching) {
+      addDebugLog('info', '[Messages] Direct fetch already in progress', { id: requestedConvId })
+      return
+    }
 
     let cancelled = false
     requestedConvFetch.current.fetching = true
