@@ -263,6 +263,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/terms">
 }
 
+// Validate ../../src/app/api/chat/conversations/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/chat/conversations/route.js")
+  handler satisfies RouteHandlerConfig<"/api/chat/conversations">
+}
+
 // Validate ../../src/app/api/chat/token/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/chat/token/route.js")
@@ -381,6 +387,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   const handler = {} as typeof import("../../src/app/api/subscribe/route.js")
   handler satisfies RouteHandlerConfig<"/api/subscribe">
+}
+
+// Validate ../../src/app/api/webhooks/twilio/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/webhooks/twilio/route.js")
+  handler satisfies RouteHandlerConfig<"/api/webhooks/twilio">
 }
 
 

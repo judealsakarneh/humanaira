@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
 import ConversationList from '../../components/messages/ConversationList'
 import ChatWindow from '../../components/messages/ChatWindow'
+import TwilioChatWindow from '../../components/messages/TwilioChatWindow'
 
 type GigSummary = {
   id: string
@@ -21,6 +22,7 @@ type Conversation = {
   buyer_id: string
   last_message?: string | null
   status?: string
+  twilio_conversation_sid?: string | null
   metadata?: Record<string, any>
   created_at?: string
   updated_at?: string
@@ -253,7 +255,12 @@ export default function MessagesPage() {
 
         <section className="lg:col-span-8 bg-[#0D1328] border border-slate-700/60 rounded-2xl p-4 min-h-[480px]">
           {activeConv ? (
-            <ChatWindow conversation={activeConv} />
+            // Use TwilioChatWindow if conversation has Twilio SID, otherwise fall back to old ChatWindow
+            activeConv.twilio_conversation_sid ? (
+              <TwilioChatWindow conversation={activeConv} />
+            ) : (
+              <ChatWindow conversation={activeConv} />
+            )
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-slate-400">
               <div className="text-xl font-semibold mb-2">No conversation selected</div>

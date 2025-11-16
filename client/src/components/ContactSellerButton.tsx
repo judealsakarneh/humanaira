@@ -2,7 +2,6 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '../app/api/lib/supabaseBrowser'
-import { sendMessage } from '../lib/messaging'
 
 type Gig = {
   id: string
@@ -19,59 +18,42 @@ export default function ContactSellerButton({ gig, className }: { gig: Gig; clas
   async function handleContact() {
     try {
       setLoading(true)
-      const { data } = await supabase.auth.getUser()
-      const user = data?.user
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
+      
       if (!user) {
         // not signed in — redirect to account/login
         router.push('/account')
         return
       }
 
-      const res = await fetch('/api/conversations', {
+      // Call the new Twilio conversation endpoint
+      const res = await fetch('/api/chat/conversations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
-          buyer_id: user.id,
-          seller_id: gig.seller_id,
-          gig_id: gig.id,
+          sellerId: gig.seller_id,
+          gigId: gig.id,
         }),
       })
 
       if (!res.ok) {
-        throw new Error('Could not start conversation')
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Could not start conversation')
       }
 
       const body = await res.json()
-      const conversationId = body?.id as string | undefined
-      const wasCreated = Boolean(body?.created)
+      const { dbConversationId, conversationSid } = body
 
-      if (!conversationId) {
-        throw new Error('Missing conversation identifier')
+      if (!dbConversationId || !conversationSid) {
+        throw new Error('Missing conversation data')
       }
 
-      if (wasCreated && gig.title) {
-        try {
-          const origin = typeof window !== 'undefined' ? window.location.origin : ''
-          const serviceUrl = gig.slug ? `${origin}/services/${gig.slug}` : ''
-          const introLines = [
-            `Hi there,`,
-            '',
-            `I'm interested in your service "${gig.title}" and would love to chat about the details.`,
-          ]
-          if (serviceUrl) {
-            introLines.push('', `Service link: ${serviceUrl}`)
-          }
-          await sendMessage({
-            conversationId,
-            text: introLines.join('\n'),
-            attachments: [],
-          })
-        } catch (messageErr) {
-          console.error('Failed to send intro message', messageErr)
-        }
-      }
-
-      router.push(`/messages?conv=${conversationId}`)
+      // Navigate to messages page with the conversation
+      router.push(`/messages?conv=${dbConversationId}`)
     } catch (err) {
       console.error('Contact seller failed', err)
       alert('Could not open chat. Please try again.')
