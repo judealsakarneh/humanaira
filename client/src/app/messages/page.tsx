@@ -47,10 +47,25 @@ export default function MessagesPage() {
   // load current user
   useEffect(() => {
     let mounted = true
+    addDebugLog('info', '[Messages] Fetching user from Supabase...')
     ;(async () => {
-      const { data } = await supabase.auth.getUser()
-      if (!mounted) return
-      setUser(data?.user ?? null)
+      try {
+        const { data, error } = await supabase.auth.getUser()
+        if (!mounted) return
+        if (error) {
+          addDebugLog('error', '[Messages] Error getting user', { error: error.message })
+          setUser(null)
+          return
+        }
+        addDebugLog('success', '[Messages] User loaded', { 
+          userId: data?.user?.id,
+          hasUser: !!data?.user
+        })
+        setUser(data?.user ?? null)
+      } catch (err: any) {
+        addDebugLog('error', '[Messages] Exception getting user', { error: err.message })
+        if (mounted) setUser(null)
+      }
     })()
     return () => {
       mounted = false
@@ -190,10 +205,18 @@ export default function MessagesPage() {
   // Fallback: if we were sent to /messages?conv=<id> but the conversation is
   // not yet in the list (for example right after creation), fetch it directly.
   useEffect(() => {
+    addDebugLog('info', '[Messages] Direct fetch useEffect triggered', { 
+      requestedConvId,
+      hasUser: !!user,
+      userId: user?.id,
+      conversationCount: conversations.length
+    })
+    
     if (!requestedConvId || !user) {
       addDebugLog('info', '[Messages] Direct fetch check - skipped', { 
         hasRequestedConvId: !!requestedConvId,
-        hasUser: !!user
+        hasUser: !!user,
+        reason: !requestedConvId ? 'no requested conv ID' : 'no user loaded yet'
       })
       requestedConvFetch.current = { id: null, fetching: false }
       return
