@@ -5,6 +5,8 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
 import ConversationList from '../../components/messages/ConversationList'
 import ChatWindow from '../../components/messages/ChatWindow'
+import TwilioChatWindow from '../../components/messages/TwilioChatWindow'
+import DebugPanel, { addDebugLog } from '../../components/DebugPanel'
 
 type GigSummary = {
   id: string
@@ -21,6 +23,7 @@ type Conversation = {
   buyer_id: string
   last_message?: string | null
   status?: string
+  twilio_conversation_sid?: string | null
   metadata?: Record<string, any>
   created_at?: string
   updated_at?: string
@@ -33,6 +36,8 @@ export default function MessagesPage() {
   const router = useRouter()
   const requestedConvId = search?.get('conv') ?? null
 
+  addDebugLog('info', '[Messages] Page loaded', { requestedConvId })
+
   const [user, setUser] = useState<any | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConv, setActiveConv] = useState<Conversation | null>(null)
@@ -42,10 +47,25 @@ export default function MessagesPage() {
   // load current user
   useEffect(() => {
     let mounted = true
+    addDebugLog('info', '[Messages] Fetching user from Supabase...')
     ;(async () => {
-      const { data } = await supabase.auth.getUser()
-      if (!mounted) return
-      setUser(data?.user ?? null)
+      try {
+        const { data, error } = await supabase.auth.getUser()
+        if (!mounted) return
+        if (error) {
+          addDebugLog('error', '[Messages] Error getting user', { error: error.message })
+          setUser(null)
+          return
+        }
+        addDebugLog('success', '[Messages] User loaded', { 
+          userId: data?.user?.id,
+          hasUser: !!data?.user
+        })
+        setUser(data?.user ?? null)
+      } catch (err: any) {
+        addDebugLog('error', '[Messages] Exception getting user', { error: err.message })
+        if (mounted) setUser(null)
+      }
     })()
     return () => {
       mounted = false
@@ -76,13 +96,29 @@ export default function MessagesPage() {
 
         const rows = (res.data as unknown) as Conversation[] | null
         if (!mounted) return
+        addDebugLog('success', `[Messages] Loaded ${rows?.length || 0} conversations`, {
+          requestedConvId,
+          conversationIds: rows?.map(c => c.id) || [],
+          query: orFilter,
+          error: res.error
+        })
         setConversations(rows || [])
         setLoading(false)
 
         // Auto-open conversation if conv query param provided
         if (requestedConvId && rows && rows.length > 0) {
           const found = rows.find((r) => r.id === requestedConvId)
-          if (found) setActiveConv(found)
+          if (found) {
+            addDebugLog('success', '[Messages] Found requested conversation in initial load', { id: found.id })
+            setActiveConv(found)
+          } else {
+            addDebugLog('error', '[Messages] Requested conversation NOT found in loaded conversations', {
+              requestedConvId,
+              availableIds: rows.map(r => r.id)
+            })
+          }
+        } else if (requestedConvId && (!rows || rows.length === 0)) {
+          addDebugLog('info', '[Messages] No conversations loaded yet, will try direct fetch', { requestedConvId })
         }
       } catch (err) {
         console.error('Failed to load conversations', err)
@@ -147,15 +183,41 @@ export default function MessagesPage() {
 
   // If the requested conv id arrives after conversations are loaded, auto-select it
   useEffect(() => {
-    if (!requestedConvId || conversations.length === 0) return
+    if (!requestedConvId || conversations.length === 0) {
+      addDebugLog('info', '[Messages] Auto-select check skipped', { 
+        hasRequestedConvId: !!requestedConvId,
+        conversationCount: conversations.length
+      })
+      return
+    }
     const found = conversations.find((c) => c.id === requestedConvId)
-    if (found) setActiveConv(found)
+    if (found) {
+      addDebugLog('success', '[Messages] Auto-selecting conversation from loaded list', { id: found.id })
+      setActiveConv(found)
+    } else {
+      addDebugLog('info', '[Messages] Requested conversation still not in list after load', {
+        requestedConvId,
+        conversationIds: conversations.map(c => c.id)
+      })
+    }
   }, [requestedConvId, conversations])
 
   // Fallback: if we were sent to /messages?conv=<id> but the conversation is
   // not yet in the list (for example right after creation), fetch it directly.
   useEffect(() => {
+    addDebugLog('info', '[Messages] Direct fetch useEffect triggered', { 
+      requestedConvId,
+      hasUser: !!user,
+      userId: user?.id,
+      conversationCount: conversations.length
+    })
+    
     if (!requestedConvId || !user) {
+      addDebugLog('info', '[Messages] Direct fetch check - skipped', { 
+        hasRequestedConvId: !!requestedConvId,
+        hasUser: !!user,
+        reason: !requestedConvId ? 'no requested conv ID' : 'no user loaded yet'
+      })
       requestedConvFetch.current = { id: null, fetching: false }
       return
     }
@@ -166,17 +228,22 @@ export default function MessagesPage() {
 
     const existing = conversations.find((c) => c.id === requestedConvId)
     if (existing) {
+      addDebugLog('success', '[Messages] Conversation already in list, setting active', { id: existing.id })
       setActiveConv(existing)
       return
     }
 
-    if (requestedConvFetch.current.fetching) return
+    if (requestedConvFetch.current.fetching) {
+      addDebugLog('info', '[Messages] Direct fetch already in progress', { id: requestedConvId })
+      return
+    }
 
     let cancelled = false
     requestedConvFetch.current.fetching = true
 
     ;(async () => {
       try {
+        addDebugLog('info', '[Messages] Fetching conversation directly from DB', { id: requestedConvId })
         const { data, error } = await supabase
           .from('conversations')
           .select('*, gig:gigs(id,title,slug,cover_image_url,price_cents)')
@@ -185,17 +252,23 @@ export default function MessagesPage() {
 
         if (cancelled) return
         if (error) {
-          console.error('Failed to fetch requested conversation', error)
+          addDebugLog('error', '[Messages] DB error fetching conversation', { error: error.message })
           return
         }
 
         if (data) {
+          addDebugLog('success', '[Messages] Found conversation in DB', { id: data.id })
           const conv = data as Conversation
           setConversations((prev) => {
             if (prev.find((p) => p.id === conv.id)) return prev
             return [conv, ...prev]
           })
           setActiveConv(conv)
+        } else {
+          addDebugLog('error', '[Messages] Conversation NOT found in database', { 
+            requestedConvId,
+            hint: 'The conversation may not exist or user may not have access'
+          })
         }
       } finally {
         if (!cancelled) {
@@ -221,10 +294,12 @@ export default function MessagesPage() {
   }
 
   return (
-    // Added top padding so the page content sits below any fixed header/navbar.
-    // Adjust pt-24 / md:pt-28 values to match your site's header height if needed.
-    <main className="min-h-screen bg-[#070D1C] text-slate-100 p-6 md:p-10 pt-24 md:pt-28">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <>
+      <DebugPanel />
+      {/* Added top padding so the page content sits below any fixed header/navbar.
+          Adjust pt-24 / md:pt-28 values to match your site's header height if needed. */}
+      <main className="min-h-screen bg-[#070D1C] text-slate-100 p-6 md:p-10 pt-24 md:pt-28 pb-[40vh]">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
         <aside className="lg:col-span-4 bg-[#0D1328] border border-slate-700/60 rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
@@ -253,7 +328,12 @@ export default function MessagesPage() {
 
         <section className="lg:col-span-8 bg-[#0D1328] border border-slate-700/60 rounded-2xl p-4 min-h-[480px]">
           {activeConv ? (
-            <ChatWindow conversation={activeConv} />
+            // Use TwilioChatWindow if conversation has Twilio SID, otherwise fall back to old ChatWindow
+            activeConv.twilio_conversation_sid ? (
+              <TwilioChatWindow conversation={activeConv} />
+            ) : (
+              <ChatWindow conversation={activeConv} />
+            )
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-slate-400">
               <div className="text-xl font-semibold mb-2">No conversation selected</div>
@@ -263,5 +343,6 @@ export default function MessagesPage() {
         </section>
       </div>
     </main>
+    </>
   )
 }

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from './api/lib/supabaseBrowser'
+import HumanairaChat from '../components/HumanairaChat'
 
 /**
  * Simple intersection observer hook for reveal-on-scroll
@@ -1048,6 +1049,51 @@ function Hero() {
 }
 
 /* ---------------------------------------
+   TWILIO CHAT DEMO SECTION
+--------------------------------------- */
+function TwilioChatDemo() {
+  // TODO: Replace this with a real conversation SID from your Twilio dashboard
+  // For now, using null to show the "no conversation" state
+  // To test with a real conversation:
+  // 1. Create a conversation in Twilio Console or via the getOrCreateConversation function
+  // 2. Replace null with the actual conversation SID like "CHxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  const [conversationSid] = useState<string | null>(null)
+
+  return (
+    <section className="relative w-full py-24 bg-gray-950">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight" style={{ fontFamily: 'Poppins, Inter, sans-serif' }}>
+            Twilio Conversations Demo
+          </h2>
+          <p className="text-xl text-slate-300 max-w-2xl mx-auto">
+            Real-time messaging powered by Twilio Conversations.
+            <br />
+            <span className="text-sm text-slate-400 mt-2 block">
+              (To test: create a conversation and add its SID below)
+            </span>
+          </p>
+        </div>
+
+        <HumanairaChat conversationSid={conversationSid} />
+
+        <div className="mt-8 text-center text-slate-400 text-sm max-w-2xl mx-auto">
+          <p className="mb-2">
+            <strong className="text-[#35BFFF]">Next steps:</strong>
+          </p>
+          <ul className="text-left space-y-1 inline-block">
+            <li>• Create a conversation using the <code className="bg-gray-800 px-2 py-1 rounded">getOrCreateConversation</code> function</li>
+            <li>• Replace the <code className="bg-gray-800 px-2 py-1 rounded">conversationSid</code> above with your real conversation SID</li>
+            <li>• Connect with Supabase authenticated user IDs instead of random identities</li>
+            <li>• Integrate with your marketplace order system</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ---------------------------------------
    MAIN HOME PAGE
 --------------------------------------- */
 export default function HomePage() {
@@ -1077,6 +1123,8 @@ export default function HomePage() {
         <HowItWorks />
         <SectionDivider />
         <WhyHumanaira />
+        <SectionDivider />
+        <TwilioChatDemo />
         <SectionDivider />
         <ReadyToMakeTheChangeCTA />
         <SectionDivider />
