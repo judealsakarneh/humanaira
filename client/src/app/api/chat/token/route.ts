@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Twilio from 'twilio'
+import { createClient } from '@supabase/supabase-js'
 
 // Import AccessToken and ChatGrant (for Conversations)
 const AccessToken = Twilio.jwt.AccessToken
@@ -9,14 +10,50 @@ const ChatGrant = AccessToken.ChatGrant
  * Backend endpoint to generate Twilio Access Tokens for Conversations
  * 
  * This endpoint:
- * - Reads Twilio environment variables securely
- * - Generates a Twilio Access Token using ChatGrant (for Conversations API)
- * - For now, uses a temporary random identity (will be replaced with Supabase auth later)
+ * - Authenticates the user via Supabase session
+ * - Generates a Twilio Access Token using the user's Supabase ID as identity
+ * - Uses ChatGrant for Conversations API access
  * - Returns { token, identity } to the client
  */
 export async function GET(req: NextRequest) {
   try {
-    // Read environment variables
+    // Initialize Supabase client
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase configuration')
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      )
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: { persistSession: false }
+    })
+
+    // Get authenticated user from Authorization header
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json(
+        { error: 'Missing authorization header' },
+        { status: 401 }
+      )
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+
+    if (authError || !user) {
+      console.error('Authentication failed:', authError)
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    // Read Twilio environment variables
     const accountSid = process.env.TWILIO_ACCOUNT_SID
     const apiKeySid = process.env.TWILIO_API_KEY_SID
     const apiKeySecret = process.env.TWILIO_API_KEY_SECRET
@@ -31,12 +68,11 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // Generate a temporary identity
-    // TODO: Replace with Supabase authenticated user ID when integrating with real auth
-    const identity = `user_${Math.random().toString(36).slice(2, 10)}`
+    // Use Supabase user ID as Twilio identity
+    const identity = user.id
 
     // Create access token
-    const token = new AccessToken(accountSid, apiKeySid, apiKeySecret, {
+    const accessToken = new AccessToken(accountSid, apiKeySid, apiKeySecret, {
       identity,
       // Token expires in 1 hour
       ttl: 3600,
@@ -46,11 +82,11 @@ export async function GET(req: NextRequest) {
     const chatGrant = new ChatGrant({
       serviceSid: conversationsServiceSid,
     })
-    token.addGrant(chatGrant)
+    accessToken.addGrant(chatGrant)
 
     // Return token and identity
     return NextResponse.json({
-      token: token.toJwt(),
+      token: accessToken.toJwt(),
       identity,
     })
   } catch (error) {

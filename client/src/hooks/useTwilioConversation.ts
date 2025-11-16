@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Client as ConversationsClient, Conversation, Message } from '@twilio/conversations'
+import { createSupabaseBrowser } from '../app/api/lib/supabaseBrowser'
 
 /**
  * Client-side React hook for Twilio Conversations
  * 
  * This hook:
- * - Fetches a Twilio access token from the backend
+ * - Fetches a Twilio access token from the backend (authenticated)
  * - Initializes the Twilio Conversations JS client
  * - Joins a conversation using the provided conversationSid
  * - Returns messages, sendMessage function, and state
@@ -32,6 +33,7 @@ export function useTwilioConversation({ conversationSid }: UseTwilioConversation
   
   const clientRef = useRef<ConversationsClient | null>(null)
   const conversationRef = useRef<Conversation | null>(null)
+  const supabase = createSupabaseBrowser()
 
   // Initialize Twilio client and join conversation
   useEffect(() => {
@@ -49,10 +51,22 @@ export function useTwilioConversation({ conversationSid }: UseTwilioConversation
         setLoading(true)
         setError(null)
 
-        // Fetch token from backend
-        const response = await fetch('/api/chat/token')
+        // Get Supabase session token
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.access_token) {
+          throw new Error('Not authenticated')
+        }
+
+        // Fetch token from backend with auth header
+        const response = await fetch('/api/chat/token', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        })
+        
         if (!response.ok) {
-          throw new Error('Failed to fetch token')
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.error || 'Failed to fetch token')
         }
 
         const data = await response.json()
@@ -131,7 +145,7 @@ export function useTwilioConversation({ conversationSid }: UseTwilioConversation
         client.shutdown()
       }
     }
-  }, [conversationSid])
+  }, [conversationSid, supabase])
 
   // Send a message
   const sendMessage = useCallback(
