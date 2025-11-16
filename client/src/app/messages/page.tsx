@@ -35,6 +35,8 @@ export default function MessagesPage() {
   const router = useRouter()
   const requestedConvId = search?.get('conv') ?? null
 
+  console.log('[MessagesPage] Requested conversation ID:', requestedConvId)
+
   const [user, setUser] = useState<any | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConv, setActiveConv] = useState<Conversation | null>(null)
@@ -78,12 +80,14 @@ export default function MessagesPage() {
 
         const rows = (res.data as unknown) as Conversation[] | null
         if (!mounted) return
+        console.log('[MessagesPage] Loaded conversations:', rows?.length || 0, 'Requested:', requestedConvId)
         setConversations(rows || [])
         setLoading(false)
 
         // Auto-open conversation if conv query param provided
         if (requestedConvId && rows && rows.length > 0) {
           const found = rows.find((r) => r.id === requestedConvId)
+          console.log('[MessagesPage] Found requested conversation in initial load:', !!found)
           if (found) setActiveConv(found)
         }
       } catch (err) {
@@ -151,6 +155,7 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!requestedConvId || conversations.length === 0) return
     const found = conversations.find((c) => c.id === requestedConvId)
+    console.log('[MessagesPage] Auto-selecting from loaded conversations:', !!found)
     if (found) setActiveConv(found)
   }, [requestedConvId, conversations])
 
@@ -179,6 +184,7 @@ export default function MessagesPage() {
 
     ;(async () => {
       try {
+        console.log('[MessagesPage] Fetching conversation directly:', requestedConvId)
         const { data, error } = await supabase
           .from('conversations')
           .select('*, gig:gigs(id,title,slug,cover_image_url,price_cents)')
@@ -192,12 +198,15 @@ export default function MessagesPage() {
         }
 
         if (data) {
+          console.log('[MessagesPage] Fetched conversation:', data)
           const conv = data as Conversation
           setConversations((prev) => {
             if (prev.find((p) => p.id === conv.id)) return prev
             return [conv, ...prev]
           })
           setActiveConv(conv)
+        } else {
+          console.log('[MessagesPage] Conversation not found:', requestedConvId)
         }
       } finally {
         if (!cancelled) {

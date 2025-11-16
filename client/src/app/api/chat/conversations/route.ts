@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    let dbConversationId: string
+    let dbConversationId: string | undefined
 
     if (existing) {
       // Update Twilio SID if not set
@@ -119,8 +119,10 @@ export async function POST(req: NextRequest) {
         }
       }
       dbConversationId = existing.id
+      console.log('[API] Using existing conversation:', dbConversationId)
     } else {
       // Create new conversation record
+      console.log('[API] Creating new conversation record')
       const { data: created, error: insertError } = await supabase
         .from('conversations')
         .insert([{
@@ -134,22 +136,34 @@ export async function POST(req: NextRequest) {
         .single()
 
       if (insertError) {
+        console.error('[API] Insert error:', insertError)
         // Race condition - try to fetch again
         const { data: after } = await query.limit(1).maybeSingle()
         if (after) {
           dbConversationId = after.id
+          console.log('[API] Found conversation after race condition:', dbConversationId)
         } else {
           console.error('Error creating conversation:', insertError)
           return NextResponse.json(
-            { error: 'Failed to create conversation' },
+            { error: 'Failed to create conversation', details: insertError.message },
             { status: 500 }
           )
         }
       } else {
-        dbConversationId = created.id
+        dbConversationId = created?.id
+        console.log('[API] Created new conversation:', dbConversationId, created)
       }
     }
 
+    if (!dbConversationId) {
+      console.error('[API] No conversation ID after processing')
+      return NextResponse.json(
+        { error: 'Failed to get conversation ID' },
+        { status: 500 }
+      )
+    }
+
+    console.log('[API] Returning conversation:', { dbConversationId, conversationSid: twilioResult.conversationSid })
     return NextResponse.json({
       conversationSid: twilioResult.conversationSid,
       dbConversationId,

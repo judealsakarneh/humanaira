@@ -27,6 +27,8 @@ export default function ContactSellerButton({ gig, className }: { gig: Gig; clas
         return
       }
 
+      console.log('Creating conversation for:', { userId: user.id, sellerId: gig.seller_id, gigId: gig.id })
+
       // Call the new Twilio conversation endpoint
       const res = await fetch('/api/chat/conversations', {
         method: 'POST',
@@ -40,18 +42,24 @@ export default function ContactSellerButton({ gig, className }: { gig: Gig; clas
         }),
       })
 
+      console.log('Response status:', res.status)
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
+        console.error('API error:', errorData)
         throw new Error(errorData.error || 'Could not start conversation')
       }
 
       const body = await res.json()
+      console.log('Response body:', body)
       const { dbConversationId, conversationSid } = body
 
       if (!dbConversationId || !conversationSid) {
+        console.error('Missing data in response:', body)
         throw new Error('Missing conversation data')
       }
 
+      console.log('Navigating to /messages?conv=' + dbConversationId)
       // Navigate to messages page with the conversation
       router.push(`/messages?conv=${dbConversationId}`)
     } catch (err) {
