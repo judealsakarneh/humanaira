@@ -6,6 +6,7 @@ import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
 import ConversationList from '../../components/messages/ConversationList'
 import ChatWindow from '../../components/messages/ChatWindow'
 import TwilioChatWindow from '../../components/messages/TwilioChatWindow'
+import DebugPanel, { addDebugLog } from '../../components/DebugPanel'
 
 type GigSummary = {
   id: string
@@ -35,7 +36,7 @@ export default function MessagesPage() {
   const router = useRouter()
   const requestedConvId = search?.get('conv') ?? null
 
-  console.log('[MessagesPage] Requested conversation ID:', requestedConvId)
+  addDebugLog('info', '[Messages] Page loaded', { requestedConvId })
 
   const [user, setUser] = useState<any | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -80,15 +81,25 @@ export default function MessagesPage() {
 
         const rows = (res.data as unknown) as Conversation[] | null
         if (!mounted) return
-        console.log('[MessagesPage] Loaded conversations:', rows?.length || 0, 'Requested:', requestedConvId)
+        addDebugLog('success', `[Messages] Loaded ${rows?.length || 0} conversations`, {
+          requestedConvId,
+          conversationIds: rows?.map(c => c.id) || []
+        })
         setConversations(rows || [])
         setLoading(false)
 
         // Auto-open conversation if conv query param provided
         if (requestedConvId && rows && rows.length > 0) {
           const found = rows.find((r) => r.id === requestedConvId)
-          console.log('[MessagesPage] Found requested conversation in initial load:', !!found)
-          if (found) setActiveConv(found)
+          if (found) {
+            addDebugLog('success', '[Messages] Found requested conversation in initial load', { id: found.id })
+            setActiveConv(found)
+          } else {
+            addDebugLog('error', '[Messages] Requested conversation NOT found in loaded conversations', {
+              requestedConvId,
+              availableIds: rows.map(r => r.id)
+            })
+          }
         }
       } catch (err) {
         console.error('Failed to load conversations', err)
@@ -155,8 +166,10 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!requestedConvId || conversations.length === 0) return
     const found = conversations.find((c) => c.id === requestedConvId)
-    console.log('[MessagesPage] Auto-selecting from loaded conversations:', !!found)
-    if (found) setActiveConv(found)
+    if (found) {
+      addDebugLog('success', '[Messages] Auto-selecting conversation from loaded list', { id: found.id })
+      setActiveConv(found)
+    }
   }, [requestedConvId, conversations])
 
   // Fallback: if we were sent to /messages?conv=<id> but the conversation is
@@ -184,7 +197,7 @@ export default function MessagesPage() {
 
     ;(async () => {
       try {
-        console.log('[MessagesPage] Fetching conversation directly:', requestedConvId)
+        addDebugLog('info', '[Messages] Fetching conversation directly from DB', { id: requestedConvId })
         const { data, error } = await supabase
           .from('conversations')
           .select('*, gig:gigs(id,title,slug,cover_image_url,price_cents)')
@@ -193,12 +206,12 @@ export default function MessagesPage() {
 
         if (cancelled) return
         if (error) {
-          console.error('Failed to fetch requested conversation', error)
+          addDebugLog('error', '[Messages] DB error fetching conversation', { error: error.message })
           return
         }
 
         if (data) {
-          console.log('[MessagesPage] Fetched conversation:', data)
+          addDebugLog('success', '[Messages] Found conversation in DB', { id: data.id })
           const conv = data as Conversation
           setConversations((prev) => {
             if (prev.find((p) => p.id === conv.id)) return prev
@@ -206,7 +219,10 @@ export default function MessagesPage() {
           })
           setActiveConv(conv)
         } else {
-          console.log('[MessagesPage] Conversation not found:', requestedConvId)
+          addDebugLog('error', '[Messages] Conversation NOT found in database', { 
+            requestedConvId,
+            hint: 'The conversation may not exist or user may not have access'
+          })
         }
       } finally {
         if (!cancelled) {
@@ -232,10 +248,12 @@ export default function MessagesPage() {
   }
 
   return (
-    // Added top padding so the page content sits below any fixed header/navbar.
-    // Adjust pt-24 / md:pt-28 values to match your site's header height if needed.
-    <main className="min-h-screen bg-[#070D1C] text-slate-100 p-6 md:p-10 pt-24 md:pt-28">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <>
+      <DebugPanel />
+      {/* Added top padding so the page content sits below any fixed header/navbar.
+          Adjust pt-24 / md:pt-28 values to match your site's header height if needed. */}
+      <main className="min-h-screen bg-[#070D1C] text-slate-100 p-6 md:p-10 pt-24 md:pt-28 pb-[40vh]">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
         <aside className="lg:col-span-4 bg-[#0D1328] border border-slate-700/60 rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
@@ -279,5 +297,6 @@ export default function MessagesPage() {
         </section>
       </div>
     </main>
+    </>
   )
 }

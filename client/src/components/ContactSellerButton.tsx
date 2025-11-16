@@ -2,6 +2,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '../app/api/lib/supabaseBrowser'
+import { addDebugLog } from './DebugPanel'
 
 type Gig = {
   id: string
@@ -18,18 +19,21 @@ export default function ContactSellerButton({ gig, className }: { gig: Gig; clas
   async function handleContact() {
     try {
       setLoading(true)
+      addDebugLog('info', 'Contact Seller clicked', { gigId: gig.id, sellerId: gig.seller_id })
+      
       const { data: { session } } = await supabase.auth.getSession()
       const user = session?.user
       
       if (!user) {
-        // not signed in — redirect to account/login
+        addDebugLog('error', 'User not logged in - redirecting to /account')
         router.push('/account')
         return
       }
 
-      console.log('Creating conversation for:', { userId: user.id, sellerId: gig.seller_id, gigId: gig.id })
+      addDebugLog('success', 'User authenticated', { userId: user.id })
 
       // Call the new Twilio conversation endpoint
+      addDebugLog('info', 'Calling /api/chat/conversations...')
       const res = await fetch('/api/chat/conversations', {
         method: 'POST',
         headers: { 
@@ -42,29 +46,30 @@ export default function ContactSellerButton({ gig, className }: { gig: Gig; clas
         }),
       })
 
-      console.log('Response status:', res.status)
+      addDebugLog('info', `API Response: ${res.status} ${res.statusText}`)
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
-        console.error('API error:', errorData)
+        addDebugLog('error', 'API returned error', errorData)
         throw new Error(errorData.error || 'Could not start conversation')
       }
 
       const body = await res.json()
-      console.log('Response body:', body)
+      addDebugLog('success', 'Conversation created/retrieved', body)
+      
       const { dbConversationId, conversationSid } = body
 
       if (!dbConversationId || !conversationSid) {
-        console.error('Missing data in response:', body)
+        addDebugLog('error', 'Missing conversation IDs in response', body)
         throw new Error('Missing conversation data')
       }
 
-      console.log('Navigating to /messages?conv=' + dbConversationId)
-      // Navigate to messages page with the conversation
-      router.push(`/messages?conv=${dbConversationId}`)
-    } catch (err) {
-      console.error('Contact seller failed', err)
-      alert('Could not open chat. Please try again.')
+      const targetUrl = `/messages?conv=${dbConversationId}`
+      addDebugLog('info', 'Navigating to messages page', { url: targetUrl, convId: dbConversationId })
+      router.push(targetUrl)
+    } catch (err: any) {
+      addDebugLog('error', 'Contact Seller failed', { error: err.message, stack: err.stack })
+      alert(`Error: ${err.message}\n\nCheck the debug panel at the bottom of the screen for details.`)
     } finally {
       setLoading(false)
     }

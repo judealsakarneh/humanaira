@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
 import HumanairaLoader from '../../../components/HumanairaLoader'
 import { sendMessage } from '../../../lib/messaging'
+import DebugPanel, { addDebugLog } from '../../../components/DebugPanel'
 
 /* ---------------- Avatar ---------------- */
 function Avatar({
@@ -571,78 +572,75 @@ export default function ServiceDetailsPage() {
   const startChat = useCallback(async () => {
     // This will:
     // 1) Ensure the user is logged in via Supabase auth
-    // 2) Call our server API to get or create a conversation
-    // 3) Redirect to /messages/[conversationId]
+    // 2) Call our server API to get or create a Twilio conversation
+    // 3) Redirect to /messages?conv=[conversationId]
     if (!seller || !gig) return
 
     try {
       setStartingChat(true)
+      addDebugLog('info', '[Services] Starting chat', { sellerId: seller.id, gigId: gig.id })
+      
       const supabase = createSupabaseBrowser()
-      const { data: authRes } = await supabase.auth.getUser()
-      const buyerId = authRes?.user?.id
+      const { data: authRes } = await supabase.auth.getSession()
+      const buyerId = authRes?.session?.user?.id
 
       if (!buyerId) {
+        addDebugLog('error', '[Services] User not logged in - redirecting to login')
         // not logged in — redirect to login with return URL
         const returnTo = typeof window !== 'undefined' ? window.location.pathname : '/'
         router.push(`/login?redirect=${encodeURIComponent(returnTo)}`)
         return
       }
 
-      // Call server API to create-or-get conversation
-      const res = await fetch('/api/conversations', {
+      addDebugLog('success', '[Services] User authenticated', { buyerId })
+
+      // Call NEW Twilio conversation endpoint
+      addDebugLog('info', '[Services] Calling /api/chat/conversations...')
+      const res = await fetch('/api/chat/conversations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authRes.session.access_token}`
+        },
         body: JSON.stringify({
-          buyer_id: buyerId,
-          seller_id: seller.id,
-          gig_id: gig.id ?? null,
+          sellerId: seller.id,
+          gigId: gig.id ?? null,
         }),
       })
 
+      addDebugLog('info', `[Services] API response: ${res.status}`)
+
       if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        addDebugLog('error', '[Services] API error', errorData)
         // fallback: go to seller profile
         router.push(profileHref)
         return
       }
 
       const body = await res.json()
-      const conversationId = body?.id as string | undefined
-      const wasCreated = Boolean(body?.created)
-      if (conversationId) {
-        if (wasCreated && gig?.title) {
-          try {
-            const nameForGreeting =
-              displayName && displayName !== 'Freelancer' ? displayName : 'there'
-            const origin = typeof window !== 'undefined' ? window.location.origin : ''
-            const serviceUrl = gig.slug ? `${origin}/services/${gig.slug}` : ''
-            const introLines = [
-              `Hi ${nameForGreeting},`,
-              '',
-              `I'm interested in your service "${gig.title}" and would love to discuss the details.`,
-            ]
-            if (serviceUrl) {
-              introLines.push('', `Service link: ${serviceUrl}`)
-            }
-            await sendMessage({
-              conversationId,
-              text: introLines.join('\n'),
-              attachments: [],
-            })
-          } catch (messageErr) {
-            console.error('Failed to send intro message', messageErr)
-          }
-        }
-        router.push(`/messages?conv=${encodeURIComponent(conversationId)}`)
-      } else {
+      addDebugLog('success', '[Services] Conversation created/retrieved', body)
+      
+      const { dbConversationId, conversationSid } = body
+      
+      if (!dbConversationId) {
+        addDebugLog('error', '[Services] Missing dbConversationId in response', body)
         router.push(profileHref)
+        return
       }
-    } catch (err) {
-      console.error('startChat error', err)
+
+      // Navigate to messages with conversation ID
+      const targetUrl = `/messages?conv=${dbConversationId}`
+      addDebugLog('info', '[Services] Navigating to messages', { url: targetUrl })
+      router.push(targetUrl)
+    } catch (err: any) {
+      addDebugLog('error', '[Services] startChat failed', { error: err.message })
+      // fallback
       router.push(profileHref)
     } finally {
       setStartingChat(false)
     }
-  }, [seller, gig, router, profileHref, displayName])
+  }, [seller, gig, router, profileHref])
 
   /* ---------------- Render States ---------------- */
   if (loading) {
@@ -665,7 +663,9 @@ export default function ServiceDetailsPage() {
 
   /* ---------------- Main UI ---------------- */
   return (
-    <main className="relative min-h-screen bg-[#070D1C] text-slate-100 overflow-x-hidden pt-24 md:pt-28">
+    <>
+      <DebugPanel />
+      <main className="relative min-h-screen bg-[#070D1C] text-slate-100 overflow-x-hidden pt-24 md:pt-28 pb-[40vh]">
       {/* Background accents wrapped to avoid horizontal scroll */}
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-sky-500/20 rounded-full blur-[120px]" />
@@ -1043,5 +1043,6 @@ export default function ServiceDetailsPage() {
         </div>
       )}
     </main>
+    </>
   )
 }
