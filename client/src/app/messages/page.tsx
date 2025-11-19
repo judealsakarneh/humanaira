@@ -46,6 +46,19 @@ export default function MessagesPage() {
     ;(async () => {
       addDebugLog('Loading user...')
       
+      // Check localStorage for session
+      try {
+        const storageKey = `sb-${process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0]}-auth-token`
+        const storedSession = localStorage.getItem(storageKey)
+        addDebugLog(`localStorage session exists: ${!!storedSession}`)
+        if (storedSession) {
+          const parsed = JSON.parse(storedSession)
+          addDebugLog(`localStorage has access_token: ${!!parsed?.access_token}`)
+        }
+      } catch (e) {
+        addDebugLog(`localStorage check error: ${e}`)
+      }
+      
       // Try getUser first
       const { data: userData, error: userError } = await supabase.auth.getUser()
       addDebugLog(`getUser result: ${userData?.user?.id ?? 'null'}, error: ${userError?.message ?? 'none'}`)
@@ -53,6 +66,10 @@ export default function MessagesPage() {
       // Also check session
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
       addDebugLog(`getSession result: ${sessionData?.session?.user?.id ?? 'null'}, error: ${sessionError?.message ?? 'none'}`)
+      if (sessionData?.session) {
+        addDebugLog(`Session access_token exists: ${!!sessionData.session.access_token}`)
+        addDebugLog(`Session expires_at: ${new Date(sessionData.session.expires_at * 1000).toLocaleString()}`)
+      }
       
       if (!mounted) return
       
@@ -62,9 +79,10 @@ export default function MessagesPage() {
       addDebugLog(`Final user set: ${actualUser?.id ?? 'none'}`)
       
       if (!actualUser) {
-        addDebugLog('WARNING: No authenticated user found. Please log in.')
+        addDebugLog('⚠️ WARNING: No authenticated user found.')
+        addDebugLog('💡 Suggestion: Try logging out and logging back in.')
       } else {
-        addDebugLog(`User email: ${actualUser.email}`)
+        addDebugLog(`✓ User authenticated: ${actualUser.email}`)
       }
     })()
     return () => {
@@ -337,6 +355,23 @@ export default function MessagesPage() {
                   className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-semibold transition shadow-lg shadow-green-600/30"
                 >
                   Check Auth
+                </button>
+                <button
+                  onClick={async () => {
+                    addDebugLog('Attempting to refresh session...')
+                    const { data, error } = await supabase.auth.refreshSession()
+                    if (error) {
+                      addDebugLog(`ERROR refreshing session: ${error.message}`)
+                    } else if (data?.session?.user) {
+                      addDebugLog(`✓ Session refreshed successfully for: ${data.session.user.email}`)
+                      setUser(data.session.user)
+                    } else {
+                      addDebugLog('No session to refresh. Please log in.')
+                    }
+                  }}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition shadow-lg shadow-purple-600/30"
+                >
+                  Refresh Session
                 </button>
                 <button
                   onClick={() => window.location.reload()}

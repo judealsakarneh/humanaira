@@ -1,20 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServer } from '../../lib/supabaseServer'
+import { createSupabaseServer } from '../lib/createSupabaseServer'
 
 const twilio = require('twilio')
 
 export async function GET(request: NextRequest) {
   try {
     console.log('[Twilio API] Token request received')
-    const supabase = createSupabaseServer()
+    const supabase = await createSupabaseServer()
+    
+    // Try both getUser and getSession for better diagnostics
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    console.log('[Twilio API] getUser result:', user?.id ?? 'null', authError?.message ?? 'no error')
+    
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+    console.log('[Twilio API] getSession result:', sessionData?.session?.user?.id ?? 'null', sessionError?.message ?? 'no error')
+    
+    const actualUser = sessionData?.session?.user ?? user
 
-    if (authError || !user) {
-      console.log('[Twilio API] Unauthorized - no user')
+    if (!actualUser) {
+      console.log('[Twilio API] Unauthorized - no user found via getUser or getSession')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('[Twilio API] User authenticated:', user.id)
+    console.log('[Twilio API] User authenticated:', actualUser.id, actualUser.email)
 
     const accountSid = process.env.TWILIO_ACCOUNT_SID
     const apiKey = process.env.TWILIO_API_KEY
@@ -32,7 +40,7 @@ export async function GET(request: NextRequest) {
       console.warn('[Twilio API] Twilio credentials not configured - using fallback mode')
       return NextResponse.json({ 
         token: null, 
-        identity: user.id,
+        identity: actualUser.id,
         fallbackMode: true 
       })
     }
@@ -42,7 +50,7 @@ export async function GET(request: NextRequest) {
     const ChatGrant = AccessToken.ChatGrant
 
     const token = new AccessToken(accountSid, apiKey, apiSecret, {
-      identity: user.id,
+      identity: actualUser.id,
       ttl: 3600, // 1 hour
     })
 
@@ -52,10 +60,10 @@ export async function GET(request: NextRequest) {
 
     token.addGrant(chatGrant)
 
-    console.log('[Twilio API] ✓ Token generated successfully')
+    console.log('[Twilio API] ✓ Token generated successfully for user:', actualUser.email)
     return NextResponse.json({
       token: token.toJwt(),
-      identity: user.id,
+      identity: actualUser.id,
       fallbackMode: false,
     })
   } catch (error: any) {
