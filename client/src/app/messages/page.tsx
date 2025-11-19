@@ -45,10 +45,27 @@ export default function MessagesPage() {
     let mounted = true
     ;(async () => {
       addDebugLog('Loading user...')
-      const { data } = await supabase.auth.getUser()
+      
+      // Try getUser first
+      const { data: userData, error: userError } = await supabase.auth.getUser()
+      addDebugLog(`getUser result: ${userData?.user?.id ?? 'null'}, error: ${userError?.message ?? 'none'}`)
+      
+      // Also check session
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+      addDebugLog(`getSession result: ${sessionData?.session?.user?.id ?? 'null'}, error: ${sessionError?.message ?? 'none'}`)
+      
       if (!mounted) return
-      setUser(data?.user ?? null)
-      addDebugLog(`User loaded: ${data?.user?.id ?? 'none'}`)
+      
+      // Prefer session user if available
+      const actualUser = sessionData?.session?.user ?? userData?.user ?? null
+      setUser(actualUser)
+      addDebugLog(`Final user set: ${actualUser?.id ?? 'none'}`)
+      
+      if (!actualUser) {
+        addDebugLog('WARNING: No authenticated user found. Please log in.')
+      } else {
+        addDebugLog(`User email: ${actualUser.email}`)
+      }
     })()
     return () => {
       mounted = false
@@ -252,6 +269,17 @@ export default function MessagesPage() {
                       <span className="text-slate-400">User ID:</span>
                       <span className="text-white font-mono text-xs">{user?.id?.slice(0, 8) || 'None'}...</span>
                     </div>
+                    {user?.email && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Email:</span>
+                        <span className="text-white text-xs">{user.email}</span>
+                      </div>
+                    )}
+                    {!user && (
+                      <div className="mt-2 p-2 bg-yellow-900/30 border border-yellow-700 rounded text-yellow-300 text-xs">
+                        ⚠️ No authenticated user detected. Please ensure you're logged in.
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-slate-400">Total Conversations:</span>
                       <span className="text-white font-semibold">{conversations.length}</span>
@@ -293,7 +321,23 @@ export default function MessagesPage() {
               </div>
 
               {/* Quick Actions */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={async () => {
+                    addDebugLog('Checking auth session manually...')
+                    const { data: sessionData } = await supabase.auth.getSession()
+                    addDebugLog(`Session check: ${sessionData?.session?.user?.id ?? 'no session'}`)
+                    if (sessionData?.session?.user) {
+                      setUser(sessionData.session.user)
+                      addDebugLog('User state updated from session')
+                    } else {
+                      addDebugLog('ERROR: No valid session found. Please log in.')
+                    }
+                  }}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-semibold transition shadow-lg shadow-green-600/30"
+                >
+                  Check Auth
+                </button>
                 <button
                   onClick={() => window.location.reload()}
                   className="px-4 py-2 bg-[#35BFFF] hover:bg-[#2fb2ff] text-white rounded-lg text-sm font-semibold transition shadow-lg shadow-[#35BFFF]/30"
