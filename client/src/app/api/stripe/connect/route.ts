@@ -2,9 +2,16 @@ import Stripe from 'stripe'
 import { NextResponse } from 'next/server'
 import { createSupabaseServer } from '../../lib/supabaseServer'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 export async function POST() {
+  // Initialize Stripe inside the function to avoid build-time errors
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 })
+  }
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+
   const supabase = createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
