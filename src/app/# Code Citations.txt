@@ -1,0 +1,9 @@
+# Code Citations
+
+## License: unknown
+https://github.com/zLandgraf/pz-site/tree/d858964836e4979ab30a8d1b393d1bd12ca2d4c7/src/app/layout.tsx
+
+```
+width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2
+```
+
