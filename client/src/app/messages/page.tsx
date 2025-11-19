@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
+import { useTwilioChat } from '../../contexts/TwilioChatContext'
 import ConversationList from '../../components/messages/ConversationList'
 import ChatWindow from '../../components/messages/ChatWindow'
 
@@ -23,19 +24,31 @@ export default function MessagesPage() {
   const search = useSearchParams()
   const router = useRouter()
   const requestedConvId = search?.get('conv') ?? search?.get('cid') ?? null
+  const { client: twilioClient, fallbackMode, loading: twilioLoading, error: twilioError } = useTwilioChat()
 
   const [user, setUser] = useState<any | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConv, setActiveConv] = useState<Conversation | null>(null)
   const [loading, setLoading] = useState(true)
+  const [debugOpen, setDebugOpen] = useState(false)
+  const [debugLogs, setDebugLogs] = useState<string[]>([])
+
+  // Helper to add debug logs
+  const addDebugLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString()
+    setDebugLogs((prev) => [...prev, `[${timestamp}] ${message}`])
+    console.log(`[DEBUG] ${message}`)
+  }
 
   // load current user
   useEffect(() => {
     let mounted = true
     ;(async () => {
+      addDebugLog('Loading user...')
       const { data } = await supabase.auth.getUser()
       if (!mounted) return
       setUser(data?.user ?? null)
+      addDebugLog(`User loaded: ${data?.user?.id ?? 'none'}`)
     })()
     return () => {
       mounted = false
@@ -53,6 +66,8 @@ export default function MessagesPage() {
 
     let mounted = true
     setLoading(true)
+    addDebugLog(`Loading conversations for user: ${user.id}`)
+    addDebugLog(`Requested conversation ID: ${requestedConvId || 'none'}`)
 
     const load = async () => {
       try {
@@ -68,13 +83,16 @@ export default function MessagesPage() {
         if (!mounted) return
         setConversations(rows || [])
         setLoading(false)
+        addDebugLog(`Loaded ${rows?.length || 0} conversations`)
 
         // Auto-open conversation if conv query param provided
         if (requestedConvId) {
           const found = rows?.find((r) => r.id === requestedConvId)
           if (found) {
             setActiveConv(found)
+            addDebugLog(`Auto-selected conversation: ${found.id}`)
           } else {
+            addDebugLog(`Conversation ${requestedConvId} not in list, fetching directly...`)
             // If conversation not found in initial load, try fetching it directly
             const { data: directConv } = await supabase
               .from('conversations')
@@ -86,11 +104,15 @@ export default function MessagesPage() {
               // Add it to the list and select it
               setConversations((prev) => [directConv as Conversation, ...prev])
               setActiveConv(directConv as Conversation)
+              addDebugLog(`Fetched and selected conversation: ${directConv.id}`)
+            } else {
+              addDebugLog(`ERROR: Could not fetch conversation ${requestedConvId}`)
             }
           }
         }
       } catch (err) {
         console.error('Failed to load conversations', err)
+        addDebugLog(`ERROR loading conversations: ${err}`)
         if (mounted) setLoading(false)
       }
     }
@@ -140,7 +162,10 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!requestedConvId || conversations.length === 0) return
     const found = conversations.find((c) => c.id === requestedConvId)
-    if (found) setActiveConv(found)
+    if (found) {
+      setActiveConv(found)
+      addDebugLog(`Late auto-selection: ${found.id}`)
+    }
   }, [requestedConvId, conversations])
 
   // navigate to messages page from other UI areas
@@ -164,6 +189,141 @@ export default function MessagesPage() {
       </div>
 
       <div className="max-w-7xl mx-auto">
+        {/* Debug Panel */}
+        <div className="mb-6 bg-gradient-to-r from-slate-900/90 to-slate-800/90 backdrop-blur-sm border-2 border-[#35BFFF]/30 rounded-xl overflow-hidden shadow-xl">
+          <button
+            onClick={() => setDebugOpen(!debugOpen)}
+            className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-800/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-3 h-3 rounded-full ${fallbackMode ? 'bg-yellow-500' : twilioClient ? 'bg-green-500' : 'bg-red-500'} shadow-lg ${fallbackMode ? 'shadow-yellow-500/50' : twilioClient ? 'shadow-green-500/50' : 'shadow-red-500/50'} animate-pulse`} />
+              <span className="font-bold text-white text-lg">Debug Panel</span>
+              <span className={`text-xs px-2 py-1 rounded-full font-semibold ${fallbackMode ? 'bg-yellow-500/20 text-yellow-300' : twilioClient ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
+                {twilioLoading ? 'Initializing...' : fallbackMode ? 'Fallback Mode' : twilioClient ? 'Twilio Connected' : 'Disconnected'}
+              </span>
+            </div>
+            <svg
+              className={`w-6 h-6 text-[#35BFFF] transform transition-transform ${debugOpen ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          {debugOpen && (
+            <div className="px-6 pb-6 space-y-4 border-t border-[#35BFFF]/20 pt-4">
+              {/* Connection Status */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
+                  <h3 className="text-sm font-bold text-[#35BFFF] mb-2">Connection Status</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Twilio Client:</span>
+                      <span className={twilioClient ? 'text-green-400 font-semibold' : 'text-red-400'}>
+                        {twilioClient ? '✓ Connected' : '✗ Not Connected'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Fallback Mode:</span>
+                      <span className={fallbackMode ? 'text-yellow-400 font-semibold' : 'text-slate-500'}>
+                        {fallbackMode ? '✓ Active' : '✗ Inactive'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Loading:</span>
+                      <span className={twilioLoading ? 'text-yellow-400' : 'text-slate-500'}>
+                        {twilioLoading ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                    {twilioError && (
+                      <div className="mt-2 p-2 bg-red-900/30 border border-red-700 rounded text-red-300 text-xs">
+                        Error: {twilioError}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
+                  <h3 className="text-sm font-bold text-[#35BFFF] mb-2">Conversation State</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">User ID:</span>
+                      <span className="text-white font-mono text-xs">{user?.id?.slice(0, 8) || 'None'}...</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Total Conversations:</span>
+                      <span className="text-white font-semibold">{conversations.length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Active Conv ID:</span>
+                      <span className="text-white font-mono text-xs">{activeConv?.id?.slice(0, 8) || 'None'}...</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Requested Conv:</span>
+                      <span className="text-white font-mono text-xs">{requestedConvId?.slice(0, 8) || 'None'}...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Debug Logs */}
+              <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-bold text-[#35BFFF]">Event Log</h3>
+                  <button
+                    onClick={() => setDebugLogs([])}
+                    className="text-xs px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 transition"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <div className="bg-black/50 rounded p-3 max-h-48 overflow-y-auto font-mono text-xs space-y-1 custom-scrollbar">
+                  {debugLogs.length === 0 ? (
+                    <div className="text-slate-500 italic">No events yet...</div>
+                  ) : (
+                    debugLogs.map((log, idx) => (
+                      <div key={idx} className={`${log.includes('ERROR') ? 'text-red-400' : log.includes('Auto-selected') || log.includes('Fetched') ? 'text-green-400' : 'text-slate-300'}`}>
+                        {log}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-2 bg-[#35BFFF] hover:bg-[#2fb2ff] text-white rounded-lg text-sm font-semibold transition shadow-lg shadow-[#35BFFF]/30"
+                >
+                  Reload Page
+                </button>
+                <button
+                  onClick={() => {
+                    addDebugLog('Manual refresh triggered')
+                    window.location.href = window.location.href
+                  }}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-semibold transition"
+                >
+                  Force Refresh
+                </button>
+                <button
+                  onClick={() => {
+                    const logs = debugLogs.join('\n')
+                    navigator.clipboard.writeText(logs)
+                    alert('Debug logs copied to clipboard!')
+                  }}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-semibold transition"
+                >
+                  Copy Logs
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-2 tracking-tight flex items-center gap-3">

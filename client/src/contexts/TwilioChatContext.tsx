@@ -35,24 +35,30 @@ export function TwilioChatProvider({ children }: { children: React.ReactNode }) 
     try {
       setLoading(true)
       setError(null)
+      console.log('[Twilio] Starting initialization...')
 
       // Check if user is authenticated
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
+        console.log('[Twilio] No authenticated user, skipping initialization')
         setLoading(false)
         return
       }
 
+      console.log('[Twilio] User authenticated:', user.id)
+
       // Get Twilio access token from API
+      console.log('[Twilio] Fetching access token...')
       const response = await fetch('/api/twilio/token')
       if (!response.ok) {
         throw new Error('Failed to fetch Twilio token')
       }
 
       const data = await response.json()
+      console.log('[Twilio] Token response:', { fallbackMode: data.fallbackMode, hasToken: !!data.token })
       
       if (data.fallbackMode) {
-        console.log('Twilio not configured - using fallback Supabase mode')
+        console.log('[Twilio] Twilio not configured - using fallback Supabase mode')
         setFallbackMode(true)
         setLoading(false)
         return
@@ -63,33 +69,34 @@ export function TwilioChatProvider({ children }: { children: React.ReactNode }) 
       }
 
       // Initialize Twilio Conversations client
+      console.log('[Twilio] Initializing Twilio Conversations client...')
       const twilioClient = new TwilioClient(data.token)
       
       twilioClient.on('initialized', () => {
-        console.log('Twilio client initialized')
+        console.log('[Twilio] ✓ Client initialized successfully')
         setClient(twilioClient)
         setLoading(false)
       })
 
       twilioClient.on('initFailed', (err: any) => {
-        console.error('Twilio client init failed:', err)
+        console.error('[Twilio] ✗ Client init failed:', err)
         setError('Failed to initialize chat')
         setFallbackMode(true)
         setLoading(false)
       })
 
       twilioClient.on('tokenAboutToExpire', async () => {
-        console.log('Token about to expire, refreshing...')
+        console.log('[Twilio] Token about to expire, refreshing...')
         await refreshToken()
       })
 
       twilioClient.on('tokenExpired', async () => {
-        console.log('Token expired, refreshing...')
+        console.log('[Twilio] Token expired, refreshing...')
         await refreshToken()
       })
 
     } catch (err: any) {
-      console.error('Error initializing Twilio:', err)
+      console.error('[Twilio] Error initializing Twilio:', err)
       setError(err.message || 'Failed to initialize chat')
       setFallbackMode(true)
       setLoading(false)
