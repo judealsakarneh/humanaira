@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from './api/lib/supabaseBrowser'
+import AISearchModal from '../components/AISearchModal'
 
 /**
  * Simple intersection observer hook for reveal-on-scroll
@@ -967,6 +968,7 @@ function GlobalStyles() {
 --------------------------------------- */
 function Hero() {
   const [search, setSearch] = useState('')
+  const [aiSearchOpen, setAiSearchOpen] = useState(false)
   const router = useRouter()
 
   function handleSearch(e: React.FormEvent) {
@@ -1009,8 +1011,7 @@ function Hero() {
 
         <form
           onSubmit={handleSearch}
-          className="w-full max-w-xl mx-auto flex items-center justify-center bg-gray-800/60 backdrop-blur-sm rounded-xl border border-[rgba(53,191,255,0.28)] p-2"
-          style={{ marginBottom: '1.75rem' }}
+          className="w-full max-w-xl mx-auto flex items-center justify-center bg-gray-800/60 backdrop-blur-sm rounded-xl border border-[rgba(53,191,255,0.28)] p-2 mb-4"
         >
           <input
             type="text"
@@ -1028,6 +1029,20 @@ function Hero() {
           </button>
         </form>
 
+        {/* AI Search Button */}
+        <div className="mb-8">
+          <button
+            onClick={() => setAiSearchOpen(true)}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#35BFFF] to-[#2A9FE6] text-white font-semibold hover:shadow-xl hover:shadow-[#35BFFF]/50 transition-all transform hover:scale-105"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Find Service Using AI
+            <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">NEW</span>
+          </button>
+        </div>
+
         <div className="flex flex-wrap gap-4 justify-center items-center font-medium">
           <Link
             href="/browse"
@@ -1043,6 +1058,9 @@ function Hero() {
           </Link>
         </div>
       </div>
+      
+      {/* AI Search Modal */}
+      <AISearchModal isOpen={aiSearchOpen} onClose={() => setAiSearchOpen(false)} />
     </section>
   )
 }
