@@ -47,7 +47,7 @@ export default function ContactSellerButton({ gig, className }: { gig: Gig; clas
     <button
       onClick={handleContact}
       disabled={loading}
-      className={`px-4 py-2 rounded-lg bg-sky-600 text-white hover:bg-sky-500 transition ${className || ''}`}
+      className={`px-4 py-2 rounded-lg bg-[#35BFFF] text-white hover:bg-[#2fb2ff] transition ${className || ''}`}
       aria-disabled={loading}
     >
       {loading ? 'Opening chat…' : 'Contact seller'}

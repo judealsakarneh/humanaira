@@ -1,11 +1,10 @@
 'use client'
 import { useState, useMemo } from 'react'
 import toast from 'react-hot-toast'
-// NOTE: Ensure these imports are correct in your project structure
 import { createSupabaseBrowser } from '../api/lib/supabaseBrowser' 
 import Link from 'next/link'
 
-// Inline SVG Icon Components (Lucide style) for a modern look
+// SVG Icon Components
 const MailIcon = (props: any) => (
   <svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.83 1.83 0 0 1-2.06 0L2 7"/></svg>
 );
@@ -16,9 +15,7 @@ const UserIcon = (props: any) => (
   <svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
 );
 
-
 function isPasswordValid(password: string) {
-  // At least 8 chars, one letter, one number
   return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(password)
 }
 
@@ -45,20 +42,18 @@ export default function LoginPage() {
     }
     setLoading(true)
     
-    // Auth logic preserved
     if (mode === 'signin') {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) toast.error(error.message)
       else {
         toast.success('Signed in successfully! Redirecting...')
-        // NOTE: Use a slight delay for toast visibility before redirect
         setTimeout(() => window.location.href = '/', 500)
       }
     } else if (mode === 'signup') {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: name } } // Changed 'name' to 'full_name' for common practice
+        options: { data: { full_name: name } }
       })
       if (error) toast.error(error.message)
       else {
@@ -72,7 +67,6 @@ export default function LoginPage() {
   const handleForgot = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    // Forgot password logic preserved
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin + '/reset-password'
     })
@@ -81,7 +75,6 @@ export default function LoginPage() {
     setLoading(false)
   }
 
-  // Determine button label based on mode and loading state
   const buttonLabel = useMemo(() => {
     if (loading) return 'Processing...'
     if (mode === 'signin') return 'Sign In Securely'
@@ -89,7 +82,6 @@ export default function LoginPage() {
     return 'Send Reset Link'
   }, [loading, mode]);
 
-  // Handle mode change reset
   const changeMode = (newMode: typeof mode) => {
     setMode(newMode);
     setName('');
@@ -100,40 +92,48 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-950 text-gray-100 font-inter relative overflow-hidden p-4">
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#070D1C] via-[#0A0F1E] to-[#050A14] text-gray-100 font-inter relative overflow-hidden p-4">
       {/* Dynamic Animated Background Gradients */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-sky-700 opacity-10 blur-3xl animate-blob-one" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-indigo-700 opacity-10 blur-3xl animate-blob-two" />
-        <div className="absolute top-1/2 left-1/2 w-64 h-64 rounded-full bg-blue-700 opacity-10 blur-3xl animate-blob-three" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-[#35BFFF]/10 blur-[120px] animate-pulse" style={{ animationDuration: '4s' }} />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-[#2A9FE6]/10 blur-[120px] animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 w-64 h-64 rounded-full bg-[#35BFFF]/5 blur-[100px] animate-pulse" style={{ animationDuration: '5s', animationDelay: '0.5s' }} />
       </div>
 
-      {/* Main Form Container - Glassy Card */}
-      <div className="max-w-md w-full bg-slate-900/70 backdrop-blur-md rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border border-slate-700/50 px-6 py-10 sm:p-10 relative z-10 transform transition-all duration-300">
+      {/* Main Form Container - Premium Glassy Card */}
+      <div className="max-w-md w-full bg-gradient-to-br from-[#0D1328]/90 to-[#0A0F1E]/90 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-[#35BFFF]/30 px-8 py-12 relative z-10 transform transition-all duration-300">
+        
+        {/* Glow effect */}
+        <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#35BFFF]/5 to-transparent pointer-events-none" />
         
         {/* Header and Branding */}
-        <div className="mb-8 flex flex-col items-center">
-          <h1 className="text-3xl font-extrabold text-white mb-1 text-center tracking-tight">
+        <div className="mb-10 flex flex-col items-center relative">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#35BFFF] to-[#2A9FE6] flex items-center justify-center mb-4 shadow-lg shadow-[#35BFFF]/50">
+            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h1 className="text-4xl font-extrabold text-white mb-2 text-center tracking-tight bg-gradient-to-r from-white to-[#93C5FD] bg-clip-text text-transparent">
             {mode === 'signin'
               ? 'Welcome Back'
               : mode === 'signup'
-              ? 'Join humanaira'
-              : 'Trouble Logging In?'}
+              ? 'Join Humanaira'
+              : 'Reset Password'}
           </h1>
-          <p className="text-slate-400 text-sm text-center">
-            {mode === 'signin' ? 'Sign in to access your AI freelance marketplace.' :
-             mode === 'signup' ? 'Create your account in seconds.' : 
-             'Enter your email to receive a password reset link.'}
+          <p className="text-slate-400 text-sm text-center max-w-xs">
+            {mode === 'signin' ? 'Access your AI freelance marketplace' :
+             mode === 'signup' ? 'Create your account and start selling AI services' : 
+             'Enter your email to receive a password reset link'}
           </p>
         </div>
 
         {/* FORGOT PASSWORD FORM */}
         {mode === 'forgot' ? (
-          <form onSubmit={handleForgot} className="space-y-6">
-            <div className="relative">
-              <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <form onSubmit={handleForgot} className="space-y-6 relative">
+            <div className="relative group">
+              <MailIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#35BFFF] transition-colors" />
               <input
-                className="pl-10 pr-4 py-3 border border-slate-700 rounded-xl w-full bg-slate-800 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
+                className="pl-12 pr-4 py-4 border-2 border-[#35BFFF]/20 rounded-xl w-full bg-[#0B1024] text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#35BFFF]/50 focus:border-[#35BFFF] transition-all"
                 placeholder="Enter your email"
                 type="email"
                 value={email}
@@ -146,14 +146,14 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-3 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 text-white font-bold text-lg shadow-lg shadow-sky-900/50 transition transform hover:scale-[1.01] active:scale-[0.99] ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`w-full py-4 rounded-xl bg-gradient-to-r from-[#35BFFF] to-[#2A9FE6] text-white font-bold text-lg shadow-xl shadow-[#35BFFF]/30 transition-all transform hover:scale-[1.02] hover:shadow-2xl hover:shadow-[#35BFFF]/40 active:scale-[0.98] ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {buttonLabel}
             </button>
             
             <div className="mt-6 text-center text-sm">
               <button
-                className="text-sky-400 hover:text-sky-300 transition"
+                className="text-[#35BFFF] hover:text-[#2A9FE6] transition font-medium"
                 onClick={() => changeMode('signin')}
                 type="button"
               >
@@ -163,13 +163,13 @@ export default function LoginPage() {
           </form>
         ) : (
           /* SIGN IN / SIGN UP FORM */
-          <form onSubmit={handleAuth} className="space-y-6">
+          <form onSubmit={handleAuth} className="space-y-5 relative">
             
             {mode === 'signup' && (
-              <div className="relative">
-                <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <div className="relative group">
+                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#35BFFF] transition-colors" />
                 <input
-                  className="pl-10 pr-4 py-3 border border-slate-700 rounded-xl w-full bg-slate-800 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
+                  className="pl-12 pr-4 py-4 border-2 border-[#35BFFF]/20 rounded-xl w-full bg-[#0B1024] text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#35BFFF]/50 focus:border-[#35BFFF] transition-all"
                   placeholder="Your Full Name"
                   type="text"
                   value={name}
@@ -180,10 +180,10 @@ export default function LoginPage() {
               </div>
             )}
             
-            <div className="relative">
-              <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <div className="relative group">
+              <MailIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#35BFFF] transition-colors" />
               <input
-                className="pl-10 pr-4 py-3 border border-slate-700 rounded-xl w-full bg-slate-800 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
+                className="pl-12 pr-4 py-4 border-2 border-[#35BFFF]/20 rounded-xl w-full bg-[#0B1024] text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#35BFFF]/50 focus:border-[#35BFFF] transition-all"
                 placeholder="Email Address"
                 type="email"
                 value={email}
@@ -193,144 +193,85 @@ export default function LoginPage() {
               />
             </div>
             
-            <div className="relative">
-              <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <div className="relative group">
+              <LockIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#35BFFF] transition-colors" />
               <input
-                className="pl-10 pr-4 py-3 border border-slate-700 rounded-xl w-full bg-slate-800 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
+                className="pl-12 pr-4 py-4 border-2 border-[#35BFFF]/20 rounded-xl w-full bg-[#0B1024] text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#35BFFF]/50 focus:border-[#35BFFF] transition-all"
                 placeholder="Password"
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
               />
             </div>
-
+            
             {mode === 'signup' && (
-              <>
-                <div className="relative">
-                  <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input
-                    className="pl-10 pr-4 py-3 border border-slate-700 rounded-xl w-full bg-slate-800 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
-                    placeholder="Confirm Password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    required
-                    autoComplete="new-password"
-                  />
-                </div>
-                <div className="text-xs text-slate-400 pt-1">
-                  Password requires 8+ characters, including one letter and one number.
-                </div>
-              </>
+              <div className="relative group">
+                <LockIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[#35BFFF] transition-colors" />
+                <input
+                  className="pl-12 pr-4 py-4 border-2 border-[#35BFFF]/20 rounded-xl w-full bg-[#0B1024] text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#35BFFF]/50 focus:border-[#35BFFF] transition-all"
+                  placeholder="Confirm Password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                />
+              </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-3 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 text-white font-bold text-lg shadow-lg shadow-sky-900/50 transition transform hover:scale-[1.01] active:scale-[0.99] ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-            >
-              {buttonLabel}
-            </button>
-            
             {mode === 'signin' && (
-              <div className="text-right text-sm pt-1">
+              <div className="flex justify-end">
                 <button
-                  className="text-sky-400 hover:text-sky-300 transition"
                   onClick={() => changeMode('forgot')}
                   type="button"
+                  className="text-sm text-[#35BFFF] hover:text-[#2A9FE6] transition font-medium"
                 >
                   Forgot password?
                 </button>
               </div>
             )}
+            
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-4 rounded-xl bg-gradient-to-r from-[#35BFFF] to-[#2A9FE6] text-white font-bold text-lg shadow-xl shadow-[#35BFFF]/30 transition-all transform hover:scale-[1.02] hover:shadow-2xl hover:shadow-[#35BFFF]/40 active:scale-[0.98] ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            >
+              {buttonLabel}
+            </button>
+            
+            {mode === 'signup' && (
+              <p className="text-xs text-slate-500 text-center">
+                Password must be at least 8 characters with a letter and a number
+              </p>
+            )}
           </form>
         )}
-
-        {/* Footer Toggle and Home Link */}
-        <div className="mt-8 pt-6 border-t border-slate-800 text-center text-sm relative z-10">
-          {mode === 'signin' ? (
-            <p className="text-slate-400">
-              Don't have an account?{' '}
+        
+        {/* Mode Switcher */}
+        {mode !== 'forgot' && (
+          <div className="mt-8 text-center border-t border-[#35BFFF]/20 pt-6">
+            <p className="text-slate-400 text-sm">
+              {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
               <button
-                className="text-sky-400 hover:text-sky-300 font-semibold transition"
-                onClick={() => changeMode('signup')}
+                onClick={() => changeMode(mode === 'signin' ? 'signup' : 'signin')}
                 type="button"
+                className="text-[#35BFFF] hover:text-[#2A9FE6] transition font-bold ml-1"
               >
-                Sign up now
+                {mode === 'signin' ? 'Sign Up' : 'Sign In'}
               </button>
             </p>
-          ) : mode === 'signup' ? (
-            <p className="text-slate-400">
-              Already have an account?{' '}
-              <button
-                className="text-sky-400 hover:text-sky-300 font-semibold transition"
-                onClick={() => changeMode('signin')}
-                type="button"
-              >
-                Sign in
-              </button>
-            </p>
-          ) : null}
-          
-          <div className="mt-4">
-            <Link href="/" className="text-slate-500 hover:text-slate-400 text-xs transition">
-              ← Back to Homepage
-            </Link>
           </div>
+        )}
+
+        {/* Back to Home Link */}
+        <div className="mt-6 text-center">
+          <Link href="/" className="text-sm text-slate-500 hover:text-[#35BFFF] transition">
+            ← Back to Home
+          </Link>
         </div>
       </div>
-      
-      {/* CSS for custom background animations */}
-      <style jsx global>{`
-        /* Blob Animation Keyframes */
-        @keyframes blob-one {
-          0%, 100% {
-            transform: translate(0, 0) scale(1);
-          }
-          33% {
-            transform: translate(30px, -50px) scale(1.1);
-          }
-          66% {
-            transform: translate(-20px, 20px) scale(0.9);
-          }
-        }
-        @keyframes blob-two {
-          0%, 100% {
-            transform: translate(0, 0) scale(1);
-          }
-          40% {
-            transform: translate(-30px, 40px) scale(1.2);
-          }
-          80% {
-            transform: translate(10px, -30px) scale(0.8);
-          }
-        }
-        @keyframes blob-three {
-          0%, 100% {
-            transform: translate(0, 0) scale(1);
-          }
-          50% {
-            transform: translate(0px, 0px) scale(1.3);
-          }
-        }
-        
-        .animate-blob-one {
-          animation: blob-one 15s infinite alternate ease-in-out;
-        }
-        .animate-blob-two {
-          animation: blob-two 18s infinite alternate-reverse ease-in-out;
-        }
-        .animate-blob-three {
-          animation: blob-three 12s infinite linear;
-        }
-
-        /* Input field focus glow */
-        input:focus {
-          box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.5); /* ring-sky-500 equivalent */
-        }
-      `}</style>
     </main>
   )
 }
