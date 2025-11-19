@@ -22,7 +22,7 @@ export default function MessagesPage() {
   const supabase = createSupabaseBrowser()
   const search = useSearchParams()
   const router = useRouter()
-  const requestedConvId = search?.get('conv') ?? null
+  const requestedConvId = search?.get('conv') ?? search?.get('cid') ?? null
 
   const [user, setUser] = useState<any | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
