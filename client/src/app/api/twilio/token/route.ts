@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServer } from '../lib/createSupabaseServer'
+import { createSupabaseServer } from '../../lib/createSupabaseServer'
 
 const twilio = require('twilio')
 
