@@ -70,8 +70,8 @@ export default function MessagesPage() {
         setLoading(false)
 
         // Auto-open conversation if conv query param provided
-        if (requestedConvId && rows && rows.length > 0) {
-          const found = rows.find((r) => r.id === requestedConvId)
+        if (requestedConvId) {
+          const found = rows?.find((r) => r.id === requestedConvId)
           if (found) {
             setActiveConv(found)
           } else {
