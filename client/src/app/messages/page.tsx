@@ -72,7 +72,22 @@ export default function MessagesPage() {
         // Auto-open conversation if conv query param provided
         if (requestedConvId && rows && rows.length > 0) {
           const found = rows.find((r) => r.id === requestedConvId)
-          if (found) setActiveConv(found)
+          if (found) {
+            setActiveConv(found)
+          } else {
+            // If conversation not found in initial load, try fetching it directly
+            const { data: directConv } = await supabase
+              .from('conversations')
+              .select('*')
+              .eq('id', requestedConvId)
+              .single()
+            
+            if (directConv && mounted) {
+              // Add it to the list and select it
+              setConversations((prev) => [directConv as Conversation, ...prev])
+              setActiveConv(directConv as Conversation)
+            }
+          }
         }
       } catch (err) {
         console.error('Failed to load conversations', err)
@@ -172,14 +187,6 @@ export default function MessagesPage() {
                   Conversations
                 </h2>
                 <p className="text-sm text-slate-400">Recent chats</p>
-              </div>
-              <div>
-                <button
-                  onClick={() => openMessages()}
-                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#35BFFF] to-[#2A9FE6] text-white text-sm font-semibold hover:shadow-lg hover:shadow-[#35BFFF]/50 transition-all transform hover:scale-105"
-                >
-                  + New
-                </button>
               </div>
             </div>
 

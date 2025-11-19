@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
 
 type GigRow = {
@@ -127,6 +128,9 @@ function GigCard({ gig }: { gig: GigRow }) {
 
 export default function BrowsePage() {
   const supabase = useMemo(() => createSupabaseBrowser(), [])
+  const searchParams = useSearchParams()
+  const urlQuery = searchParams?.get('q') ?? ''
+  
   const [gigs, setGigs] = useState<GigRow[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -145,6 +149,13 @@ export default function BrowsePage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [tagsLoading, setTagsLoading] = useState(false)
   const [catsOpenMobile, setCatsOpenMobile] = useState(false)
+
+  // Set query from URL on mount
+  useEffect(() => {
+    if (urlQuery) {
+      setQuery(urlQuery)
+    }
+  }, [urlQuery])
 
   // Load categories once
   useEffect(() => {
