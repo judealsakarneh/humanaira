@@ -32,6 +32,9 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true)
   const [debugOpen, setDebugOpen] = useState(false)
   const [debugLogs, setDebugLogs] = useState<string[]>([])
+  const [consoleLogs, setConsoleLogs] = useState<any[]>([])
+  const [networkLogs, setNetworkLogs] = useState<any[]>([])
+  const [storageInfo, setStorageInfo] = useState<any>({})
 
   // Helper to add debug logs
   const addDebugLog = (message: string) => {
@@ -40,11 +43,122 @@ export default function MessagesPage() {
     console.log(`[DEBUG] ${message}`)
   }
 
+  // Capture console logs
+  useEffect(() => {
+    const originalLog = console.log
+    const originalError = console.error
+    const originalWarn = console.warn
+    
+    console.log = (...args: any[]) => {
+      setConsoleLogs((prev) => [...prev.slice(-49), { type: 'log', message: args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' '), timestamp: new Date().toISOString() }])
+      originalLog.apply(console, args)
+    }
+    
+    console.error = (...args: any[]) => {
+      setConsoleLogs((prev) => [...prev.slice(-49), { type: 'error', message: args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' '), timestamp: new Date().toISOString() }])
+      originalError.apply(console, args)
+    }
+    
+    console.warn = (...args: any[]) => {
+      setConsoleLogs((prev) => [...prev.slice(-49), { type: 'warn', message: args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' '), timestamp: new Date().toISOString() }])
+      originalWarn.apply(console, args)
+    }
+    
+    return () => {
+      console.log = originalLog
+      console.error = originalError
+      console.warn = originalWarn
+    }
+  }, [])
+
+  // Collect storage and environment info
+  const collectDiagnostics = () => {
+    const diagnostics: any = {
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+      url: window.location.href,
+      cookies: {},
+      localStorage: {},
+      sessionStorage: {},
+      env: {},
+      supabase: {}
+    }
+
+    // Collect cookies
+    try {
+      const cookies = document.cookie.split(';')
+      cookies.forEach(cookie => {
+        const [key, value] = cookie.trim().split('=')
+        if (key) diagnostics.cookies[key] = value?.substring(0, 50) + '...'
+      })
+    } catch (e) {
+      diagnostics.cookies = { error: String(e) }
+    }
+
+    // Collect localStorage
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key) {
+          const value = localStorage.getItem(key)
+          if (key.includes('sb-') || key.includes('supabase')) {
+            try {
+              const parsed = JSON.parse(value || '{}')
+              diagnostics.localStorage[key] = {
+                hasAccessToken: !!parsed?.access_token,
+                hasRefreshToken: !!parsed?.refresh_token,
+                expiresAt: parsed?.expires_at ? new Date(parsed.expires_at * 1000).toISOString() : 'none',
+                userId: parsed?.user?.id || 'none'
+              }
+            } catch {
+              diagnostics.localStorage[key] = 'parse error'
+            }
+          }
+        }
+      }
+    } catch (e) {
+      diagnostics.localStorage = { error: String(e) }
+    }
+
+    // Collect sessionStorage
+    try {
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i)
+        if (key && (key.includes('sb-') || key.includes('supabase'))) {
+          diagnostics.sessionStorage[key] = sessionStorage.getItem(key)?.substring(0, 100) + '...'
+        }
+      }
+    } catch (e) {
+      diagnostics.sessionStorage = { error: String(e) }
+    }
+
+    // Collect environment info
+    diagnostics.env = {
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'not set',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'set (hidden)' : 'not set',
+      NODE_ENV: process.env.NODE_ENV || 'not set'
+    }
+
+    // Supabase client state
+    diagnostics.supabase = {
+      clientExists: !!supabase,
+      authExists: !!supabase?.auth
+    }
+
+    setStorageInfo(diagnostics)
+    return diagnostics
+  }
+
   // load current user
   useEffect(() => {
     let mounted = true
     ;(async () => {
       addDebugLog('Loading user...')
+      
+      // Collect full diagnostics on load
+      const diag = collectDiagnostics()
+      addDebugLog(`Browser: ${navigator.userAgent.substring(0, 50)}...`)
+      addDebugLog(`Environment URL: ${diag.env.NEXT_PUBLIC_SUPABASE_URL}`)
       
       // Check localStorage for session
       try {
@@ -54,18 +168,44 @@ export default function MessagesPage() {
         if (storedSession) {
           const parsed = JSON.parse(storedSession)
           addDebugLog(`localStorage has access_token: ${!!parsed?.access_token}`)
+          addDebugLog(`localStorage has refresh_token: ${!!parsed?.refresh_token}`)
+          if (parsed?.expires_at) {
+            const expiryDate = new Date(parsed.expires_at * 1000)
+            const now = new Date()
+            const isExpired = expiryDate < now
+            addDebugLog(`Session expires at: ${expiryDate.toLocaleString()}`)
+            addDebugLog(`Session expired: ${isExpired}`)
+          }
         }
       } catch (e) {
         addDebugLog(`localStorage check error: ${e}`)
       }
       
+      // Check cookies
+      try {
+        const cookies = document.cookie.split(';').filter(c => c.includes('sb-'))
+        addDebugLog(`Supabase cookies found: ${cookies.length}`)
+        cookies.forEach(cookie => {
+          const [key] = cookie.trim().split('=')
+          addDebugLog(`Cookie: ${key}`)
+        })
+      } catch (e) {
+        addDebugLog(`Cookie check error: ${e}`)
+      }
+      
       // Try getUser first
       const { data: userData, error: userError } = await supabase.auth.getUser()
       addDebugLog(`getUser result: ${userData?.user?.id ?? 'null'}, error: ${userError?.message ?? 'none'}`)
+      if (userError) {
+        addDebugLog(`getUser error details: ${JSON.stringify(userError)}`)
+      }
       
       // Also check session
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
       addDebugLog(`getSession result: ${sessionData?.session?.user?.id ?? 'null'}, error: ${sessionError?.message ?? 'none'}`)
+      if (sessionError) {
+        addDebugLog(`getSession error details: ${JSON.stringify(sessionError)}`)
+      }
       if (sessionData?.session) {
         addDebugLog(`Session access_token exists: ${!!sessionData.session.access_token}`)
         addDebugLog(`Session expires_at: ${new Date(sessionData.session.expires_at * 1000).toLocaleString()}`)
@@ -81,6 +221,8 @@ export default function MessagesPage() {
       if (!actualUser) {
         addDebugLog('⚠️ WARNING: No authenticated user found.')
         addDebugLog('💡 Suggestion: Try logging out and logging back in.')
+        addDebugLog('💡 Or check if you are on the correct domain/URL.')
+        addDebugLog('💡 Check browser console for Supabase errors.')
       } else {
         addDebugLog(`✓ User authenticated: ${actualUser.email}`)
       }
@@ -338,6 +480,61 @@ export default function MessagesPage() {
                 </div>
               </div>
 
+              {/* Advanced Diagnostics */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Console Logs */}
+                <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
+                  <h3 className="text-sm font-bold text-[#35BFFF] mb-2">Console Logs (Last 50)</h3>
+                  <div className="bg-black/50 rounded p-3 max-h-48 overflow-y-auto font-mono text-xs space-y-1 custom-scrollbar">
+                    {consoleLogs.length === 0 ? (
+                      <div className="text-slate-500 italic">No console logs captured yet...</div>
+                    ) : (
+                      consoleLogs.map((log, idx) => (
+                        <div key={idx} className={`${log.type === 'error' ? 'text-red-400' : log.type === 'warn' ? 'text-yellow-400' : 'text-slate-300'}`}>
+                          [{new Date(log.timestamp).toLocaleTimeString()}] {log.type.toUpperCase()}: {log.message}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Storage Info */}
+                <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-bold text-[#35BFFF]">Storage & Environment</h3>
+                    <button
+                      onClick={collectDiagnostics}
+                      className="text-xs px-2 py-1 bg-[#35BFFF] hover:bg-[#2fb2ff] rounded text-white transition"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                  <div className="bg-black/50 rounded p-3 max-h-48 overflow-y-auto font-mono text-xs space-y-2 custom-scrollbar">
+                    {Object.keys(storageInfo).length === 0 ? (
+                      <div className="text-slate-500 italic">Click "Refresh" to collect diagnostics...</div>
+                    ) : (
+                      <>
+                        <div className="text-green-400">📍 URL: {storageInfo.url}</div>
+                        <div className="text-blue-400 border-t border-slate-700 pt-2">🌐 Environment:</div>
+                        {storageInfo.env && Object.entries(storageInfo.env).map(([key, value]: [string, any]) => (
+                          <div key={key} className="pl-4 text-slate-300">{key}: {value}</div>
+                        ))}
+                        <div className="text-blue-400 border-t border-slate-700 pt-2">💾 LocalStorage (Supabase keys):</div>
+                        {storageInfo.localStorage && Object.entries(storageInfo.localStorage).map(([key, value]: [string, any]) => (
+                          <div key={key} className="pl-4 text-slate-300">
+                            {key.substring(0, 30)}...: {typeof value === 'object' ? JSON.stringify(value) : value}
+                          </div>
+                        ))}
+                        <div className="text-blue-400 border-t border-slate-700 pt-2">🍪 Cookies (count): {Object.keys(storageInfo.cookies || {}).length}</div>
+                        {storageInfo.cookies && Object.keys(storageInfo.cookies).filter(k => k.includes('sb-')).map((key: string) => (
+                          <div key={key} className="pl-4 text-slate-300">{key}: {storageInfo.cookies[key]}</div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* Quick Actions */}
               <div className="flex gap-2 flex-wrap">
                 <button
@@ -374,6 +571,15 @@ export default function MessagesPage() {
                   Refresh Session
                 </button>
                 <button
+                  onClick={() => {
+                    collectDiagnostics()
+                    addDebugLog('✓ Diagnostics collected and displayed above')
+                  }}
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-sm font-semibold transition shadow-lg shadow-orange-600/30"
+                >
+                  Collect Diagnostics
+                </button>
+                <button
                   onClick={() => window.location.reload()}
                   className="px-4 py-2 bg-[#35BFFF] hover:bg-[#2fb2ff] text-white rounded-lg text-sm font-semibold transition shadow-lg shadow-[#35BFFF]/30"
                 >
@@ -381,22 +587,22 @@ export default function MessagesPage() {
                 </button>
                 <button
                   onClick={() => {
-                    addDebugLog('Manual refresh triggered')
-                    window.location.href = window.location.href
+                    const fullReport = {
+                      debugLogs,
+                      consoleLogs,
+                      storageInfo,
+                      user: user ? { id: user.id, email: user.email } : null,
+                      conversations: conversations.length,
+                      activeConv: activeConv?.id || null,
+                      twilioState: { connected: !!twilioClient, fallback: fallbackMode, loading: twilioLoading, error: twilioError }
+                    }
+                    const report = JSON.stringify(fullReport, null, 2)
+                    navigator.clipboard.writeText(report)
+                    alert('Complete diagnostic report copied to clipboard!')
                   }}
                   className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-semibold transition"
                 >
-                  Force Refresh
-                </button>
-                <button
-                  onClick={() => {
-                    const logs = debugLogs.join('\n')
-                    navigator.clipboard.writeText(logs)
-                    alert('Debug logs copied to clipboard!')
-                  }}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-semibold transition"
-                >
-                  Copy Logs
+                  Copy Full Report
                 </button>
               </div>
             </div>
