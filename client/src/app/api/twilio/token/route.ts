@@ -6,7 +6,18 @@ const twilio = require('twilio')
 export async function GET(request: NextRequest) {
   try {
     console.log('[Twilio API] Token request received')
-    const supabase = await createSupabaseServer()
+    
+    // Create supabase client with runtime env check
+    let supabase
+    try {
+      supabase = await createSupabaseServer()
+    } catch (envError: any) {
+      console.error('[Twilio API] Environment error:', envError.message)
+      return NextResponse.json(
+        { error: 'Server configuration error', details: envError.message },
+        { status: 500 }
+      )
+    }
     
     // Try both getUser and getSession for better diagnostics
     const { data: { user }, error: authError } = await supabase.auth.getUser()
