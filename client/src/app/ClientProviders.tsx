@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { SessionContextProvider } from '@supabase/auth-helpers-react'
 import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+import { TwilioChatProvider } from '../contexts/TwilioChatContext'
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
   const [supabaseClient, setSupabaseClient] = useState<any | null>(null)
@@ -21,7 +22,11 @@ export default function ClientProviders({ children }: { children: React.ReactNod
   // Render children until supabase client is ready to avoid hydration mismatch
   if (!supabaseClient) return <>{children}</>
 
-  return <SessionContextProvider supabaseClient={supabaseClient}>
-    {children}
-  </SessionContextProvider>
+  return (
+    <SessionContextProvider supabaseClient={supabaseClient}>
+      <TwilioChatProvider>
+        {children}
+      </TwilioChatProvider>
+    </SessionContextProvider>
+  )
 }
