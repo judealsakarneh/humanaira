@@ -1,0 +1,8 @@
+{
+  "/api/conversations/route": "app/api/conversations/route.js",
+  "/page": "app/page.js",
+  "/services/[slug]/page": "app/services/[slug]/page.js",
+  "/profile/[id]/page": "app/profile/[id]/page.js",
+  "/messages/page": "app/messages/page.js",
+  "/browse/page": "app/browse/page.js"
+}
