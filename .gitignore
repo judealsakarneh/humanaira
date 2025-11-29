@@ -25,3 +25,5 @@ yarn-error.log*
 
 client/.next
 client/.env.local
+.vercel
+.env*.local
