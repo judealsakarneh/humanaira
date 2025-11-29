@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "zentask-ai-client",
   "version": "0.1.0",
   "private": true,
@@ -47,5 +48,12 @@
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",
     "typescript": "^5.9.2"
+=======
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "multer": "^2.0.2",
+    "stripe": "^18.5.0"
+>>>>>>> d7d839b989bf65b4ba3803e9d70cb3301694f752
   }
 }

@@ -1,0 +1,66 @@
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+export async function POST(req: Request) {
+  try {
+    const { buyer_id, seller_id, gig_id } = await req.json().catch(() => ({}))
+    if (!buyer_id || !seller_id) {
+      return NextResponse.json({ error: 'buyer_id and seller_id required' }, { status: 400 })
+    }
+    if (buyer_id === seller_id) {
+      return NextResponse.json({ error: 'Cannot chat with yourself' }, { status: 400 })
+    }
+
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!url || !key) {
+      return NextResponse.json({ error: 'Server env not configured' }, { status: 500 })
+    }
+
+    const supabase = createClient(url, key, { auth: { persistSession: false } })
+
+    // Find existing
+    let query = supabase
+      .from('conversations')
+      .select('id')
+      .eq('seller_id', seller_id)
+      .eq('buyer_id', buyer_id)
+
+    query = gig_id == null ? query.is('gig_id', null) : query.eq('gig_id', gig_id)
+
+    const { data: existing, error: findErr } = await query.limit(1).maybeSingle()
+    if (findErr) return NextResponse.json({ error: findErr.message }, { status: 500 })
+    if (existing) return NextResponse.json({ id: existing.id }, { status: 200 })
+
+    // Create new
+    const insertRow = { seller_id, buyer_id, gig_id: gig_id ?? null, status: 'open' }
+    const { data: created, error: insertErr } = await supabase
+      .from('conversations')
+      .insert([insertRow])
+      .select('id')
+      .single()
+
+    if (insertErr) {
+      // Race fallback
+      let again = supabase
+        .from('conversations')
+        .select('id')
+        .eq('seller_id', seller_id)
+        .eq('buyer_id', buyer_id)
+
+      again = gig_id == null ? again.is('gig_id', null) : again.eq('gig_id', gig_id)
+
+      const { data: after } = await again.limit(1).maybeSingle()
+      if (after) return NextResponse.json({ id: after.id }, { status: 200 })
+      return NextResponse.json({ error: insertErr.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ id: created.id }, { status: 200 })
+  } catch (e: any) {
+    console.error('conversations POST error', e)
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+  }
+}
