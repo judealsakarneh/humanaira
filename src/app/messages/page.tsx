@@ -1,221 +1,192 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { createSupabaseBrowser } from '../../api/lib/supabaseBrowser'
-import ConversationList from '../../components/messages/ConversationList'
-import ChatWindow from '../../components/messages/ChatWindow'
-import { Client as TwilioClient } from '@twilio/conversations'
+import { useEffect, useState } from "react";
+import { StreamChat } from "stream-chat";
+import {
+  Chat,
+  Channel,
+  ChannelList,
+  Window,
+  MessageList,
+  MessageInput,
+  Thread,
+  TypingIndicator,
+  MessageSimple,
+  Avatar,
+} from "stream-chat-react";
 
-type Conversation = {
-  id: string
-  gig_id?: string | null
-  seller_id: string
-  buyer_id: string
-  last_message?: string | null
-  status?: string
-  metadata?: Record<string, any>
-  created_at?: string
-  updated_at?: string
-  twilio_sid?: string // Add this field for Twilio integration
-}
+import { useSearchParams } from "next/navigation";
+import "stream-chat-react/dist/css/v2/index.css";
+import { createSupabaseBrowser } from "../api/lib/supabaseBrowser";
+
+type ChatClient = ReturnType<typeof StreamChat.getInstance>;
+
+/* -----------------------------------------
+   ⭐ Custom Message with Online Indicator
+------------------------------------------*/
+const CustomMessage = (props: any) => {
+  return (
+    <div className="flex items-start gap-3">
+      {props.avatar && (
+        <div className="relative">
+          <Avatar {...props.avatar.props} />
+          {/* Online Badge */}
+          <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-green-400 rounded-full shadow-[0_0_6px_rgba(0,255,100,0.9)]"></span>
+        </div>
+      )}
+      <div className="flex-1">
+        <MessageSimple {...props} />
+      </div>
+    </div>
+  );
+};
 
 export default function MessagesPage() {
-  const supabase = createSupabaseBrowser()
-  const search = useSearchParams()
-  const router = useRouter()
-  const requestedConvId = search?.get('conv') ?? null
+  const [client, setClient] = useState<ChatClient | null>(null);
+  const [activeChannel, setActiveChannel] = useState<any>(null);
+  const [userLoaded, setUserLoaded] = useState(false);
 
-  const [user, setUser] = useState<any | null>(null)
-  const [conversations, setConversations] = useState<Conversation[]>([])
-  const [activeConv, setActiveConv] = useState<Conversation | null>(null)
-  const [loading, setLoading] = useState(true)
+  const supabase = createSupabaseBrowser();
+  const searchParams = useSearchParams();
+  const deepLinkChannel = searchParams.get("channel");
 
-  // Twilio state
-  const [twilioClient, setTwilioClient] = useState<TwilioClient | null>(null)
-  const [twilioMessages, setTwilioMessages] = useState<any[]>([])
-
-  // load current user
   useEffect(() => {
-    let mounted = true
-    ;(async () => {
-      const { data } = await supabase.auth.getUser()
-      if (!mounted) return
-      setUser(data?.user ?? null)
-    })()
-    return () => {
-      mounted = false
-    }
-  }, [supabase])
+    let mounted = true;
+    let instance: ChatClient | null = null;
 
-  // load conversations once we have user
-  useEffect(() => {
-    if (!user) {
-      setConversations([])
-      setActiveConv(null)
-      setLoading(false)
-      return
-    }
+    const init = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    let mounted = true
-    setLoading(true)
+      if (!user) return setUserLoaded(true);
 
-    const load = async () => {
-      try {
-        // Query both where seller_id = user.id OR buyer_id = user.id
-        const orFilter = `seller_id.eq.${user.id},buyer_id.eq.${user.id}`
-        const res = await supabase
-          .from('conversations')
-          .select('*')
-          .or(orFilter)
-          .order('updated_at', { ascending: false })
+      const STREAM_KEY = process.env.NEXT_PUBLIC_STREAM_KEY!;
+      instance = StreamChat.getInstance(STREAM_KEY);
 
-        const rows = (res.data as unknown) as Conversation[] | null
-        if (!mounted) return
-        setConversations(rows || [])
-        setLoading(false)
+      // Fetch secure token from backend
+      const res = await fetch("/api/chat/token");
+      const { token, user: streamUser } = await res.json();
 
-        // Auto-open conversation if conv query param provided
-        if (requestedConvId && rows && rows.length > 0) {
-          const found = rows.find((r) => r.id === requestedConvId)
-          if (found) setActiveConv(found)
-        }
-      } catch (err) {
-        console.error('Failed to load conversations', err)
-        if (mounted) setLoading(false)
+      await instance.connectUser(streamUser, token);
+
+      if (!mounted) return;
+
+      setClient(instance);
+      setUserLoaded(true);
+
+      // Auto open channel via deep link: /messages?channel=XXXX
+      if (deepLinkChannel) {
+        const channel = instance.channel("humanaira_conversation", deepLinkChannel);
+        await channel.watch();
+        setActiveChannel(channel);
       }
-    }
 
-    load()
+      // Listen when user selects a channel from sidebar
+      instance.on("channel.selected" as any, async (event: any) => {
+        const channel = event?.channel;
+        if (!channel) return;
 
-    // Realtime subscription: listen for INSERT/UPDATE on conversations where user is participant
-    const channel = supabase
-      .channel(`public:conversations:user=${user.id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'conversations', filter: `seller_id=eq.${user.id}` },
-        (payload: any) => {
-          const newRow = payload.new as Conversation
-          setConversations((prev) => {
-            const exists = prev.find((p) => p.id === newRow.id)
-            if (exists) {
-              return prev.map((p) => (p.id === newRow.id ? newRow : p))
-            }
-            return [newRow, ...prev]
-          })
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'conversations', filter: `buyer_id=eq.${user.id}` },
-        (payload: any) => {
-          const newRow = payload.new as Conversation
-          setConversations((prev) => {
-            const exists = prev.find((p) => p.id === newRow.id)
-            if (exists) {
-              return prev.map((p) => (p.id === newRow.id ? newRow : p))
-            }
-            return [newRow, ...prev]
-          })
-        }
-      )
-      .subscribe()
+        await channel.watch();
+        setActiveChannel(channel);
+
+        // Update URL without reloading
+        window.history.replaceState({}, "", `/messages?channel=${channel.id}`);
+      });
+    };
+
+    init();
 
     return () => {
-      supabase.removeChannel(channel)
-      mounted = false
-    }
-  }, [supabase, user, requestedConvId])
+      mounted = false;
+      instance?.disconnectUser().catch(() => {});
+    };
+  }, [deepLinkChannel]);
 
-  // If the requested conv id arrives after conversations are loaded, auto-select it
-  useEffect(() => {
-    if (!requestedConvId || conversations.length === 0) return
-    const found = conversations.find((c) => c.id === requestedConvId)
-    if (found) setActiveConv(found)
-  }, [requestedConvId, conversations])
+  /* ---------------- UI States ---------------- */
+  if (!userLoaded)
+    return (
+      <div className="flex items-center justify-center h-screen text-white text-lg">
+        Connecting…
+      </div>
+    );
 
-  // Twilio: Load messages for active conversation
-  useEffect(() => {
-    async function setupTwilio() {
-      if (!activeConv?.twilio_sid || !user?.id) return
-      // Get token from your API
-      const res = await fetch('/api/twilio/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity: user.id }),
-      })
-      const { token } = await res.json()
-      const client = await TwilioClient.create(token)
-      setTwilioClient(client)
+  if (!client)
+    return (
+      <div className="flex items-center justify-center h-screen text-white text-lg">
+        Please log in to view messages.
+      </div>
+    );
 
-      // Get conversation
-      const conversation = await client.getConversationBySid(activeConv.twilio_sid)
-      conversation.getMessages().then(page => setTwilioMessages(page.items))
-
-      // Listen for new messages
-      conversation.on('messageAdded', msg => {
-        setTwilioMessages(prev => [...prev, msg])
-      })
-    }
-    setTwilioMessages([]) // Clear messages when switching
-    if (activeConv?.twilio_sid && user?.id) setupTwilio()
-  }, [activeConv?.twilio_sid, user?.id])
-
-  // navigate to messages page from other UI areas
-  const openMessages = (conv?: Conversation) => {
-    if (conv) {
-      router.push(`/messages?conv=${conv.id}`)
-      setActiveConv(conv)
-    } else {
-      router.push('/messages')
-    }
-  }
+  /* Channel filters */
+  const filters = { members: { $in: [client.userID!] } };
+  const sort = { last_message_at: -1 as const };
 
   return (
-    <main className="min-h-screen bg-[#070D1C] text-slate-100 p-6 md:p-10 pt-24 md:pt-28">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <aside className="lg:col-span-4 bg-[#0D1328] border border-slate-700/60 rounded-2xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h2 className="text-lg font-bold">Messages</h2>
-              <p className="text-sm text-slate-400">Conversations with buyers & freelancers</p>
-            </div>
-            <div>
-              <button
-                onClick={() => openMessages()}
-                className="px-3 py-1 rounded bg-slate-800 text-slate-200 text-sm"
+    <div className="h-screen bg-[#020617] text-white">
+      <Chat client={client} theme="str-chat__theme-dark">
+        <div className="flex h-full">
+
+          {/* Sidebar - Glass UI */}
+          <aside className="w-[26%] bg-[#050A12]/70 backdrop-blur-2xl border-r border-[#1f2a3b] shadow-[0_0_35px_rgba(53,191,255,0.15)]">
+            <ChannelList 
+              filters={filters} 
+              sort={sort} 
+              options={{ presence: true }} 
+            />
+          </aside>
+
+          {/* Main Chat Window */}
+          <main className="flex flex-col flex-1 bg-[#040b1a]">
+            {activeChannel ? (
+              <Channel 
+                channel={activeChannel} 
+                TypingIndicator={TypingIndicator} 
+                Message={CustomMessage}
               >
-                New
-              </button>
-            </div>
-          </div>
+                <Window>
+                  <MessageList />
+                  <div className="border-t border-[#1e293b] p-3">
+                    <MessageInput 
+                      additionalTextareaProps={{ placeholder: "Write a message…" }}
+                    />
+                  </div>
+                </Window>
+                <Thread />
+              </Channel>
+            ) : (
+              <div className="flex items-center justify-center text-gray-500 text-lg">
+                Select a conversation or start a new one ✨
+              </div>
+            )}
+          </main>
 
-          <div className="mt-2">
-            <ConversationList
-              conversations={conversations}
-              loading={loading}
-              onSelect={(c: Conversation) => setActiveConv(c)}
-              activeId={activeConv?.id ?? null}
-            />
-          </div>
-        </aside>
+        </div>
+      </Chat>
 
-        <section className="lg:col-span-8 bg-[#0D1328] border border-slate-700/60 rounded-2xl p-4 min-h-[480px]">
-          {activeConv ? (
-            <ChatWindow
-              conversation={activeConv}
-              twilioMessages={twilioMessages}
-              twilioClient={twilioClient}
-              userId={user?.id}
-            />
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-slate-400">
-              <div className="text-xl font-semibold mb-2">No conversation selected</div>
-              <div className="text-sm">Open a conversation from the left, or contact a seller from a service page.</div>
-            </div>
-          )}
-        </section>
-      </div>
-    </main>
-  )
+      {/* Global UI Styling */}
+      <style jsx global>{`
+        .str-chat__message--me .str-chat__message-bubble {
+          background: linear-gradient(135deg, #35bfff, #008cff);
+          border-radius: 16px 16px 4px 16px;
+          color: white !important;
+          box-shadow: 0 0 12px rgba(53, 191, 255, 0.45);
+        }
+
+        .str-chat__message--other .str-chat__message-bubble {
+          background: rgba(255, 255, 255, 0.06);
+          border-radius: 16px 16px 16px 4px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(10px);
+          color: white;
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-thumb {
+          background: #35bfff;
+          border-radius: 6px;
+        }
+      `}</style>
+    </div>
+  );
 }
