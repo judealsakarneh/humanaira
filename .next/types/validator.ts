@@ -263,6 +263,18 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/terms">
 }
 
+// Validate ../../src/app/api/chat/createChannel/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/chat/createChannel/route.js")
+  handler satisfies RouteHandlerConfig<"/api/chat/createChannel">
+}
+
+// Validate ../../src/app/api/chat/token/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/chat/token/route.js")
+  handler satisfies RouteHandlerConfig<"/api/chat/token">
+}
+
 // Validate ../../src/app/api/checkout/addon/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/checkout/addon/route.js")
@@ -345,6 +357,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   const handler = {} as typeof import("../../src/app/api/reviews/route.js")
   handler satisfies RouteHandlerConfig<"/api/reviews">
+}
+
+// Validate ../../src/app/api/stream-token/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/stream-token/route.js")
+  handler satisfies RouteHandlerConfig<"/api/stream-token">
 }
 
 // Validate ../../src/app/api/stripe/connect/route.ts
