@@ -2,20 +2,38 @@
 import { useEffect, useState } from 'react'
 import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
 import Link from 'next/link'
-import { useSession } from '@supabase/auth-helpers-react'
+import { User } from '@supabase/supabase-js'
 
 const HeartIcon = () => <span className="text-pink-400">❤️</span>
 const LoaderIcon = () => <div className="animate-spin h-6 w-6 border-4 border-t-4 border-sky-500 border-t-transparent rounded-full"></div>
 const EmptyIcon = () => <span className="text-4xl">✨</span>
 
 export default function SavedGigsPage() {
-  const session = useSession()
+  const [user, setUser] = useState<User | null | undefined>(undefined)
   const [saved, setSaved] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const supabase = createSupabaseBrowser()
+    
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null)
+    })
+
+    // Listen for auth changes
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null)
+    })
+
+    return () => {
+      listener?.subscription.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
     async function fetchSaved() {
-      if (!session?.user) {
+      if (!user) {
         setSaved([])
         setLoading(false)
         return
@@ -25,19 +43,19 @@ export default function SavedGigsPage() {
       const { data } = await supabase
         .from('saved_gigs')
         .select('id, gig_id, created_at, gigs(*)')
-        .eq('user_id', session.user.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
       setSaved(data || [])
       setLoading(false)
     }
-    // Only fetch if session is loaded (not undefined)
-    if (session !== undefined) {
+    // Only fetch if user state is loaded (not undefined)
+    if (user !== undefined) {
       fetchSaved()
     }
-  }, [session])
+  }, [user])
 
-  // 1. Show loader until session is loaded
-  if (session === undefined) {
+  // 1. Show loader until user is loaded
+  if (user === undefined) {
     return (
       <main className="min-h-screen bg-[#030712] flex items-center justify-center font-inter p-4">
         <div className="flex items-center space-x-3 text-xl font-medium text-sky-400">
