@@ -9,11 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.7",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.45.6",
     "next": "14.2.3",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "stream-chat": "^11.21.2",
+    "stream-chat": "^8.40.0",
     "stream-chat-react": "^11.23.1",
     "axios": "^1.6.8",
     "clsx": "^2.1.0",
