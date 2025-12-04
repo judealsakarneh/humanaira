@@ -9,22 +9,24 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/auth-helpers-react": "^0.15.0",
+    "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.39.7",
-    "next": "14.2.3",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "stream-chat": "^8.40.0",
-    "stream-chat-react": "^11.24.1",
     "axios": "^1.6.8",
     "clsx": "^2.1.0",
-    "dayjs": "^1.11.11"
+    "dayjs": "^1.11.11",
+    "next": "^16.0.7",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "stream-chat": "^8.40.0",
+    "stream-chat-react": "^11.24.1"
   },
   "devDependencies": {
     "@types/node": "20.10.5",
     "@types/react": "18.2.66",
     "@types/react-dom": "18.2.22",
     "eslint": "8.56.0",
-    "eslint-config-next": "14.2.3",
+    "eslint-config-next": "^16.0.7",
     "typescript": "5.3.3"
   }
 }
