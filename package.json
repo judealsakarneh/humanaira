@@ -13,8 +13,8 @@
     "next": "14.2.3",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "stream-chat": "^11.21.2",
-    "stream-chat-react": "^11.23.1",
+    "stream-chat": "^8.40.0",
+    "stream-chat-react": "^11.24.1",
     "axios": "^1.6.8",
     "clsx": "^2.1.0",
     "dayjs": "^1.11.11"

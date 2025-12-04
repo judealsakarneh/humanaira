@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supabase Realtime Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      background: #020617;
+      color: #e2e8f0;
+      padding: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #35bfff;
+      border-bottom: 2px solid #35bfff;
+      padding-bottom: 10px;
+    }
+    .log {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 10px 0;
+      font-size: 13px;
+      line-height: 1.6;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px;
+      border-left: 3px solid #475569;
+      padding-left: 10px;
+    }
+    .log-entry.success { border-left-color: #10b981; color: #6ee7b7; }
+    .log-entry.error { border-left-color: #ef4444; color: #fca5a5; }
+    .log-entry.info { border-left-color: #3b82f6; color: #93c5fd; }
+    .log-entry.warning { border-left-color: #f59e0b; color: #fbbf24; }
+    .log-entry.realtime { border-left-color: #a855f7; color: #d8b4fe; font-weight: bold; }
+    
+    input, button {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      padding: 10px 15px;
+      border-radius: 6px;
+      font-family: inherit;
+      margin: 5px;
+    }
+    button {
+      background: #35bfff;
+      color: #020617;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #2fb2ff;
+      transform: translateY(-1px);
+    }
+    button:disabled {
+      background: #334155;
+      color: #64748b;
+      cursor: not-allowed;
+    }
+    .config-section {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    .config-section label {
+      display: block;
+      margin-bottom: 5px;
+      color: #94a3b8;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .config-section input {
+      width: 100%;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 Supabase Realtime Test</h1>
+  
+  <div class="config-section">
+    <label for="supabaseUrl">Supabase URL</label>
+    <input type="text" id="supabaseUrl" placeholder="https://xxxxx.supabase.co" />
+    
+    <label for="supabaseKey" style="margin-top: 10px;">Supabase Anon Key</label>
+    <input type="password" id="supabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
+    
+    <label for="conversationId" style="margin-top: 10px;">Conversation ID (optional)</label>
+    <input type="text" id="conversationId" placeholder="Leave empty to auto-detect" />
+    
+    <button onclick="startTest()" id="startBtn">Start Test</button>
+    <button onclick="clearLog()">Clear Log</button>
+  </div>
+
+  <div class="log" id="logContainer"></div>
+
+  <script>
+    let supabase = null;
+    let channel = null;
+
+    function log(message, type = 'info') {
+      const logContainer = document.getElementById('logContainer');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      const timestamp = new Date().toLocaleTimeString();
+      entry.textContent = `[${timestamp}] ${message}`;
+      logContainer.appendChild(entry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+      console.log(`[${type.toUpperCase()}]`, message);
+    }
+
+    function clearLog() {
+      document.getElementById('logContainer').innerHTML = '';
+    }
+
+    async function startTest() {
+      clearLog();
+      const startBtn = document.getElementById('startBtn');
+      startBtn.disabled = true;
+
+      try {
+        log('🚀 Starting Supabase Realtime Test...', 'info');
+
+        const supabaseUrl = document.getElementById('supabaseUrl').value;
+        const supabaseKey = document.getElementById('supabaseKey').value;
+        let conversationId = document.getElementById('conversationId').value;
+
+        if (!supabaseUrl || !supabaseKey) {
+          log('❌ Please provide both Supabase URL and Anon Key', 'error');
+          startBtn.disabled = false;
+          return;
+        }
+
+        // Step 1: Initialize Supabase client
+        log('1️⃣ Initializing Supabase client...', 'info');
+        supabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
+          realtime: {
+            params: {
+              eventsPerSecond: 10,
+            },
+          },
+        });
+        log('✅ Supabase client initialized', 'success');
+
+        // Step 2: Check authentication
+        log('2️⃣ Checking authentication...', 'info');
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError || !user) {
+          log(`❌ Not authenticated. Please log in to your app first. Error: ${authError?.message || 'No user'}`, 'error');
+          startBtn.disabled = false;
+          return;
+        }
+        log(`✅ Authenticated as: ${user.email}`, 'success');
+
+        // Step 3: Get conversation ID if not provided
+        if (!conversationId) {
+          log('3️⃣ Fetching conversations...', 'info');
+          const { data: conversations, error: convError } = await supabase
+            .from('conversations')
+            .select('*')
+            .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
+            .limit(1);
+
+          if (convError || !conversations?.length) {
+            log(`❌ No conversations found. Error: ${convError?.message || 'Empty result'}`, 'error');
+            log('💡 Try creating a conversation first or manually enter a conversation ID', 'warning');
+            startBtn.disabled = false;
+            return;
+          }
+
+          conversationId = conversations[0].id;
+          log(`✅ Using conversation: ${conversationId}`, 'success');
+        } else {
+          log(`3️⃣ Using provided conversation: ${conversationId}`, 'info');
+        }
+
+        // Step 4: Set up realtime subscription
+        log('4️⃣ Setting up realtime subscription...', 'info');
+        log(`📡 Subscribing to: conversation_id=eq.${conversationId}`, 'info');
+        
+        channel = supabase
+          .channel(`test-messages-${conversationId}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'messages',
+              filter: `conversation_id=eq.${conversationId}`,
+            },
+            (payload) => {
+              log(`🎉 REALTIME MESSAGE RECEIVED! ${JSON.stringify(payload.new, null, 2)}`, 'realtime');
+            }
+          )
+          .subscribe((status, error) => {
+            if (error) {
+              log(`❌ Subscription error: ${error.message}`, 'error');
+            } else {
+              log(`📡 Subscription status: ${status}`, 'info');
+            }
+          });
+
+        // Wait for subscription to be established
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        log('✅ Subscription established', 'success');
+
+        // Step 5: Insert a test message
+        log('5️⃣ Inserting test message...', 'info');
+        const testText = `🧪 Test message at ${new Date().toISOString()}`;
+        
+        const { data: newMessage, error: insertError } = await supabase
+          .from('messages')
+          .insert([
+            {
+              conversation_id: conversationId,
+              sender_id: user.id,
+              text: testText,
+              attachments: [],
+              is_system: false,
+            },
+          ])
+          .select()
+          .single();
+
+        if (insertError) {
+          log(`❌ Insert failed: ${insertError.message}`, 'error');
+          log(`📋 Error details: ${JSON.stringify(insertError, null, 2)}`, 'error');
+        } else {
+          log(`✅ Message inserted: ${newMessage.id}`, 'success');
+          log(`📝 Message text: "${newMessage.text}"`, 'info');
+        }
+
+        // Step 6: Wait for realtime event
+        log('6️⃣ Waiting 5 seconds for realtime event...', 'info');
+        log('⏳ Look for "🎉 REALTIME MESSAGE RECEIVED" above...', 'warning');
+        
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        log('\n📊 TEST RESULTS:', 'info');
+        log('If you saw "🎉 REALTIME MESSAGE RECEIVED" above, realtime is WORKING! ✅', 'success');
+        log('If NOT, realtime is NOT working. Check:', 'warning');
+        log('  • Supabase Dashboard > Database > Replication (enable for messages table)', 'warning');
+        log('  • Run the SQL fix script: supabase-realtime-fix.sql', 'warning');
+        log('  • Check RLS policies allow the current user to SELECT messages', 'warning');
+        log('  • Verify replica identity is set to FULL', 'warning');
+
+      } catch (err) {
+        log(`❌ Test failed: ${err.message}`, 'error');
+        console.error(err);
+      } finally {
+        startBtn.disabled = false;
+        
+        // Cleanup
+        if (channel) {
+          setTimeout(() => {
+            log('🧹 Cleaning up subscription...', 'info');
+            supabase?.removeChannel(channel);
+            log('✅ Cleanup complete', 'success');
+          }, 1000);
+        }
+      }
+    }
+
+    // Auto-fill from localStorage if available
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedUrl = localStorage.getItem('supabase_url');
+      const savedKey = localStorage.getItem('supabase_key');
+      
+      if (savedUrl) document.getElementById('supabaseUrl').value = savedUrl;
+      if (savedKey) document.getElementById('supabaseKey').value = savedKey;
+      
+      // Save on change
+      document.getElementById('supabaseUrl').addEventListener('change', (e) => {
+        localStorage.setItem('supabase_url', e.target.value);
+      });
+      document.getElementById('supabaseKey').addEventListener('change', (e) => {
+        localStorage.setItem('supabase_key', e.target.value);
+      });
+    });
+  </script>
+</body>
+</html>
