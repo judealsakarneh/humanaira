@@ -1,48 +1,75 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  
-  // Create Supabase client with service role for middleware
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Missing Supabase environment variables');
-    return res;
-  }
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: any) {
+          request.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name: string, options: any) {
+          request.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+        },
+      },
     }
-  });
+  )
 
-  // Get session from cookies
-  const token = req.cookies.get('sb-access-token')?.value;
-  
-  let user = null;
-  if (token) {
-    const { data: { user: authUser } } = await supabase.auth.getUser(token);
-    user = authUser;
-  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   // Protect messaging & orders pages
-  const protectedRoutes = ["/messages", "/orders", "/inbox"];
+  const protectedRoutes = ['/messages', '/orders', '/inbox']
 
-  if (protectedRoutes.some(path => req.nextUrl.pathname.startsWith(path))) {
+  if (protectedRoutes.some((path) => request.nextUrl.pathname.startsWith(path))) {
     if (!user) {
-      return NextResponse.redirect(new URL("/auth/login", req.url));
+      return NextResponse.redirect(new URL('/login', request.url))
     }
   }
 
-  return res;
+  return response
 }
 
 export const config = {
-  matcher: ["/messages/:path*", "/orders/:path*", "/inbox/:path*"],
-};
+  matcher: ['/messages/:path*', '/orders/:path*', '/inbox/:path*'],
+}
