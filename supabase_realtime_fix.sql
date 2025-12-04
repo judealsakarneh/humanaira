@@ -2,7 +2,7 @@
 -- Supabase Real-time Chat Fix
 -- ============================================
 -- Run this SQL in your Supabase SQL Editor
--- Database: ekjxetwphxedvoeywebe
+-- Replace YOUR_PROJECT_ID with your actual Supabase project ID
 
 -- Step 1: Enable realtime on the messages table
 -- ============================================

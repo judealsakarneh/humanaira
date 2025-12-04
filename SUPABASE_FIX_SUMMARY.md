@@ -99,7 +99,7 @@ FOR INSERT WITH CHECK (
 ## Quick Start - Next Steps for User
 
 ### Step 1: Run SQL Script (5 minutes)
-1. Open Supabase Dashboard: https://supabase.com/dashboard/project/ekjxetwphxedvoeywebe
+1. Open Supabase Dashboard (navigate to your project)
 2. Go to SQL Editor
 3. Paste entire content of `supabase_realtime_fix.sql`
 4. Click "Run"
@@ -235,7 +235,7 @@ await supabase.from('messages').insert([{
 
 If issues persist after following all steps:
 1. Check `REALTIME_VERIFICATION_GUIDE.md` for detailed troubleshooting
-2. Verify you're using the correct Supabase project: `ekjxetwphxedvoeywebe`
+2. Verify you're using the correct Supabase project ID
 3. Export console logs and screenshots
 4. Check Supabase project status (not paused)
 5. Verify account has proper permissions

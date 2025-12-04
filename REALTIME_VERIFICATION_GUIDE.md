@@ -1,7 +1,7 @@
 # Supabase Real-time Chat Verification Guide
 
 ## Prerequisites
-- Access to Supabase Dashboard: https://supabase.com/dashboard/project/ekjxetwphxedvoeywebe
+- Access to Supabase Dashboard: https://supabase.com/dashboard/project/YOUR_PROJECT_ID
 - Two browser windows/tabs or two different browsers for testing
 - User accounts in your application
 
@@ -239,4 +239,4 @@ If issues persist after following all steps:
 2. Screenshot of Supabase Publications page
 3. Screenshot of messages table with recent entries
 4. Note which specific step failed
-5. Check if using correct Supabase project (ekjxetwphxedvoeywebe)
+5. Check if using correct Supabase project ID

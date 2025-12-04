@@ -10,6 +10,14 @@ import {
 } from '../../lib/messaging'
 import { Client as TwilioClient } from '@twilio/conversations'
 
+// Subscription status constants
+const SUBSCRIPTION_STATUS = {
+  SUBSCRIBED: 'SUBSCRIBED',
+  CHANNEL_ERROR: 'CHANNEL_ERROR',
+  TIMED_OUT: 'TIMED_OUT',
+  CLOSED: 'CLOSED',
+} as const
+
 type Conversation = {
   id: string
   gig_id?: string | null
@@ -144,11 +152,11 @@ userId: ${userId}
       )
       .subscribe((status) => {
         console.log('[DEBUG] Subscription status:', status)
-        if (status === 'SUBSCRIBED') {
+        if (status === SUBSCRIPTION_STATUS.SUBSCRIBED) {
           console.log('[DEBUG] Successfully subscribed to messages channel')
-        } else if (status === 'CHANNEL_ERROR') {
+        } else if (status === SUBSCRIPTION_STATUS.CHANNEL_ERROR) {
           console.error('[DEBUG] Channel error - check RLS policies and realtime settings')
-        } else if (status === 'TIMED_OUT') {
+        } else if (status === SUBSCRIPTION_STATUS.TIMED_OUT) {
           console.error('[DEBUG] Subscription timed out')
         }
       })
@@ -228,9 +236,9 @@ userId: ${userId}
       )
       .subscribe((status) => {
         console.log('[DEBUG] Payment requests subscription status:', status)
-        if (status === 'SUBSCRIBED') {
+        if (status === SUBSCRIPTION_STATUS.SUBSCRIBED) {
           console.log('[DEBUG] Successfully subscribed to payment requests channel')
-        } else if (status === 'CHANNEL_ERROR') {
+        } else if (status === SUBSCRIPTION_STATUS.CHANNEL_ERROR) {
           console.error('[DEBUG] Payment requests channel error - check RLS policies and realtime settings')
         }
       })
