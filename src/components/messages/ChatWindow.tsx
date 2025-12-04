@@ -18,6 +18,8 @@ const SUBSCRIPTION_STATUS = {
   CLOSED: 'CLOSED',
 } as const
 
+type SubscriptionStatus = typeof SUBSCRIPTION_STATUS[keyof typeof SUBSCRIPTION_STATUS]
+
 type Conversation = {
   id: string
   gig_id?: string | null
