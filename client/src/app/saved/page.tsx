@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
 import Link from 'next/link'
-import { useSession } from '@supabase/auth-helpers-react'
+import { useSession } from '../hooks/useAuth'
 
 const HeartIcon = () => <span className="text-pink-400">❤️</span>
 const LoaderIcon = () => <div className="animate-spin h-6 w-6 border-4 border-t-4 border-sky-500 border-t-transparent rounded-full"></div>

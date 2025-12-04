@@ -1,26 +1,76 @@
-import { NextResponse } from "next/server";
-import { createMiddlewareSupabaseClient } from "@supabase/auth-helpers-nextjs";
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
+import type { CookieOptions } from '@supabase/ssr'
 
-export async function middleware(req) {
-  const res = NextResponse.next();
-  const supabase = createMiddlewareSupabaseClient({ req, res });
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          request.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name: string, options: CookieOptions) {
+          request.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+        },
+      },
+    }
+  )
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser()
 
   // Protect messaging & orders pages
-  const protectedRoutes = ["/messages", "/orders", "/inbox"];
+  const protectedRoutes = ['/messages', '/orders', '/inbox']
 
-  if (protectedRoutes.some(path => req.nextUrl.pathname.startsWith(path))) {
+  if (protectedRoutes.some((path) => request.nextUrl.pathname.startsWith(path))) {
     if (!user) {
-      return NextResponse.redirect(new URL("/auth/login", req.url));
+      return NextResponse.redirect(new URL('/login', request.url))
     }
   }
 
-  return res;
+  return response
 }
 
 export const config = {
-  matcher: ["/messages/:path*", "/orders/:path*", "/inbox/:path*"],
-};
+  matcher: ['/messages/:path*', '/orders/:path*', '/inbox/:path*'],
+}
