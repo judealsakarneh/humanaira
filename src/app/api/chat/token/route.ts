@@ -4,7 +4,7 @@ import { createSupabaseServer } from "@/app/api/lib/supabaseServer";
 
 export async function GET() {
   try {
-    const supabase = createSupabaseServer();
+    const supabase = await createSupabaseServer();
 
     const {
       data: { user },

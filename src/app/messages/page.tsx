@@ -66,7 +66,20 @@ export default function MessagesPage() {
 
       // Fetch secure token from backend
       const res = await fetch("/api/chat/token");
-      const { token, user: streamUser } = await res.json();
+      if (!res.ok) {
+        console.error("Failed to fetch Stream token:", await res.text());
+        return setUserLoaded(true);
+      }
+      
+      const data = await res.json();
+      console.log("Stream token response:", data);
+      
+      if (!data.token || !data.user) {
+        console.error("Invalid Stream token response:", data);
+        return setUserLoaded(true);
+      }
+      
+      const { token, user: streamUser } = data;
 
       await instance.connectUser(streamUser, token);
 

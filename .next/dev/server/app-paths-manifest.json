@@ -1,5 +1,4 @@
 {
   "/api/chat/token/route": "app/api/chat/token/route.js",
-  "/messages/page": "app/messages/page.js",
-  "/page": "app/page.js"
+  "/messages/page": "app/messages/page.js"
 }
