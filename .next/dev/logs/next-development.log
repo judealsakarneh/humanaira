@@ -1,0 +1,552 @@
+[00:00:01.840] Server  WARN     ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[00:00:02.047] Server  LOG      ✓ Ready in 1678ms
+[00:00:37.668] Server  LOG      ○ Compiling / ...
+[00:00:40.236] Server  ERROR    ⨯ ./src/app/globals.css
+Error evaluating Node.js code
+Error: Cannot find module 'tailwindcss'
+Require stack:
+- C:\Users\JUDE\Desktop\ZENTASK-AI\client\.next\dev\build\chunks\[root-of-the-server]__6d51cb5d._.js
+- C:\Users\JUDE\Desktop\ZENTASK-AI\client\.next\dev\build\chunks\[turbopack]_runtime.js
+- C:\Users\JUDE\Desktop\ZENTASK-AI\client\.next\dev\build\postcss.js
+    [at Module._resolveFilename (node:internal/modules/cjs/loader:1410:15)]
+    [at defaultResolveImpl (node:internal/modules/cjs/loader:1051:19)]
+    [at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1056:22)]
+    [at Module._load (node:internal/modules/cjs/loader:1219:37)]
+    [at TracingChannel.traceSync (node:diagnostics_channel:322:14)]
+    [at wrapModuleLoad (node:internal/modules/cjs/loader:238:24)]
+    [at Module.require (node:internal/modules/cjs/loader:1493:12)]
+    [at require (node:internal/modules/helpers:152:16)]
+    [at <anonymous> (turbopack:///[turbopack-node]/transforms/postcss.ts:49:25)]
+    [at <anonymous>]
+
+Import trace:
+  Client Component Browser:
+    ./src/app/globals.css [Client Component Browser]
+    ./src/app/layout.tsx [Server Component]
+
+
+
+./src/app/layout.tsx:2:1
+Module not found: Can't resolve 'react-hot-toast'
+  1 | import './globals.css'
+> 2 | import { Toaster } from 'react-hot-toast'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 | import React from 'react'
+  4 | import { headers } from 'next/headers'
+  5 | import ClientLayout from './ClientLayout'
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+
+./src/app/ClientProviders.tsx:3:1
+Export SessionContextProvider doesn't exist in target module
+  1 | 'use client'
+  2 | import React, { useEffect, useState } from 'react'
+> 3 | import { SessionContextProvider } from '@supabase/auth-helpers-react'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+  5 |
+  6 | export default function ClientProviders({ children }: { children: React.ReactNode }) {
+
+The export SessionContextProvider was not found in module [project]/node_modules/@supabase/auth-helpers-react/dist/module/index.js [app-client] (ecmascript).
+Did you mean to import createBrowserClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/app/ClientProviders.tsx
+    ./src/app/layout.tsx
+
+
+
+./src/app/ClientProviders.tsx:3:1
+Export SessionContextProvider doesn't exist in target module
+  1 | 'use client'
+  2 | import React, { useEffect, useState } from 'react'
+> 3 | import { SessionContextProvider } from '@supabase/auth-helpers-react'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+  5 |
+  6 | export default function ClientProviders({ children }: { children: React.ReactNode }) {
+
+The export SessionContextProvider was not found in module [project]/node_modules/@supabase/auth-helpers-react/dist/module/index.js [app-ssr] (ecmascript).
+Did you mean to import createBrowserClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/app/ClientProviders.tsx
+    ./src/app/layout.tsx
+
+
+
+./src/app/components/NavBar.tsx:5:1
+Export useSession doesn't exist in target module
+  3 | import Link from 'next/link'
+  4 | import UserMenu from './UserMenu'
+> 5 | import { useSession } from '@supabase/auth-helpers-react'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { useEffect, useRef, useState } from 'react'
+  7 | import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+  8 |
+
+The export useSession was not found in module [project]/node_modules/@supabase/auth-helpers-react/dist/module/index.js [app-client] (ecmascript).
+Did you mean to import createBrowserClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/app/components/NavBar.tsx [Client Component Browser]
+    ./src/app/ClientLayout.tsx [Client Component Browser]
+    ./src/app/ClientLayout.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/components/NavBar.tsx [Client Component SSR]
+    ./src/app/ClientLayout.tsx [Client Component SSR]
+    ./src/app/ClientLayout.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+
+
+
+./src/app/components/NavBar.tsx:5:1
+Export useSession doesn't exist in target module
+  3 | import Link from 'next/link'
+  4 | import UserMenu from './UserMenu'
+> 5 | import { useSession } from '@supabase/auth-helpers-react'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { useEffect, useRef, useState } from 'react'
+  7 | import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+  8 |
+
+The export useSession was not found in module [project]/node_modules/@supabase/auth-helpers-react/dist/module/index.js [app-ssr] (ecmascript).
+Did you mean to import createBrowserClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/app/components/NavBar.tsx [Client Component Browser]
+    ./src/app/ClientLayout.tsx [Client Component Browser]
+    ./src/app/ClientLayout.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/components/NavBar.tsx [Client Component SSR]
+    ./src/app/ClientLayout.tsx [Client Component SSR]
+    ./src/app/ClientLayout.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+
+
+[00:00:43.256] Browser ERROR   uncaughtError: Error: ./src/middleware.ts:2:1
+Export createMiddlewareSupabaseClient doesn't exist in target module
+  1 | import { NextResponse } from "next/server";
+> 2 | import { createMiddlewareSupabaseClient } from "@supabase/auth-helpers-nextjs";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 |
+  4 | export async function middleware(req) {
+  5 |   const res = NextResponse.next();
+
+The export createMiddlewareSupabaseClient was not found in module [project]/node_modules/@supabase/auth-helpers-nextjs/dist/module/index.js [middleware-edge] (ecmascript).
+Did you mean to import createServerClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+
+[00:00:44.601] Browser ERROR   ./src/middleware.ts:2:1
+Export createMiddlewareSupabaseClient doesn't exist in target module
+  1 | import { NextResponse } from "next/server";
+> 2 | import { createMiddlewareSupabaseClient } from "@supabase/auth-helpers-nextjs";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 |
+  4 | export async function middleware(req) {
+  5 |   const res = NextResponse.next();
+
+The export createMiddlewareSupabaseClient was not found in module [project]/node_modules/@supabase/auth-helpers-nextjs/dist/module/index.js [middleware-edge] (ecmascript).
+Did you mean to import createServerClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+[00:00:44.601] Browser ERROR   ./src/app/globals.css
+Error evaluating Node.js code
+Error: Cannot find module 'tailwindcss'
+Require stack:
+- C:\Users\JUDE\Desktop\ZENTASK-AI\client\.next\dev\build\chunks\[root-of-the-server]__6d51cb5d._.js
+- C:\Users\JUDE\Desktop\ZENTASK-AI\client\.next\dev\build\chunks\[turbopack]_runtime.js
+- C:\Users\JUDE\Desktop\ZENTASK-AI\client\.next\dev\build\postcss.js
+    [at Module._resolveFilename (node:internal/modules/cjs/loader:1410:15)]
+    [at defaultResolveImpl (node:internal/modules/cjs/loader:1051:19)]
+    [at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1056:22)]
+    [at Module._load (node:internal/modules/cjs/loader:1219:37)]
+    [at TracingChannel.traceSync (node:diagnostics_channel:322:14)]
+    [at wrapModuleLoad (node:internal/modules/cjs/loader:238:24)]
+    [at Module.require (node:internal/modules/cjs/loader:1493:12)]
+    [at require (node:internal/modules/helpers:152:16)]
+    [at <anonymous> (turbopack:///[turbopack-node]/transforms/postcss.ts:49:25)]
+    [at <anonymous>]
+
+Import trace:
+  Client Component Browser:
+    ./src/app/globals.css [Client Component Browser]
+    ./src/app/layout.tsx [Server Component]
+[00:00:44.601] Browser ERROR   ./src/app/layout.tsx:2:1
+Module not found: Can't resolve 'react-hot-toast'
+  1 | import './globals.css'
+> 2 | import { Toaster } from 'react-hot-toast'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 | import React from 'react'
+  4 | import { headers } from 'next/headers'
+  5 | import ClientLayout from './ClientLayout'
+
+https://nextjs.org/docs/messages/module-not-found
+[00:00:44.601] Browser ERROR   ./src/app/ClientProviders.tsx:3:1
+Export SessionContextProvider doesn't exist in target module
+  1 | 'use client'
+  2 | import React, { useEffect, useState } from 'react'
+> 3 | import { SessionContextProvider } from '@supabase/auth-helpers-react'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+  5 |
+  6 | export default function ClientProviders({ children }: { children: React.ReactNode }) {
+
+The export SessionContextProvider was not found in module [project]/node_modules/@supabase/auth-helpers-react/dist/module/index.js [app-client] (ecmascript).
+Did you mean to import createBrowserClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/app/ClientProviders.tsx
+    ./src/app/layout.tsx
+[00:00:44.601] Browser ERROR   ./src/app/ClientProviders.tsx:3:1
+Export SessionContextProvider doesn't exist in target module
+  1 | 'use client'
+  2 | import React, { useEffect, useState } from 'react'
+> 3 | import { SessionContextProvider } from '@supabase/auth-helpers-react'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+  5 |
+  6 | export default function ClientProviders({ children }: { children: React.ReactNode }) {
+
+The export SessionContextProvider was not found in module [project]/node_modules/@supabase/auth-helpers-react/dist/module/index.js [app-ssr] (ecmascript).
+Did you mean to import createBrowserClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/app/ClientProviders.tsx
+    ./src/app/layout.tsx
+[00:00:44.601] Browser ERROR   ./src/app/components/NavBar.tsx:5:1
+Export useSession doesn't exist in target module
+  3 | import Link from 'next/link'
+  4 | import UserMenu from './UserMenu'
+> 5 | import { useSession } from '@supabase/auth-helpers-react'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { useEffect, useRef, useState } from 'react'
+  7 | import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+  8 |
+
+The export useSession was not found in module [project]/node_modules/@supabase/auth-helpers-react/dist/module/index.js [app-client] (ecmascript).
+Did you mean to import createBrowserClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/app/components/NavBar.tsx [Client Component Browser]
+    ./src/app/ClientLayout.tsx [Client Component Browser]
+    ./src/app/ClientLayout.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/components/NavBar.tsx [Client Component SSR]
+    ./src/app/ClientLayout.tsx [Client Component SSR]
+    ./src/app/ClientLayout.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+[00:00:44.601] Browser ERROR   ./src/app/components/NavBar.tsx:5:1
+Export useSession doesn't exist in target module
+  3 | import Link from 'next/link'
+  4 | import UserMenu from './UserMenu'
+> 5 | import { useSession } from '@supabase/auth-helpers-react'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { useEffect, useRef, useState } from 'react'
+  7 | import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+  8 |
+
+The export useSession was not found in module [project]/node_modules/@supabase/auth-helpers-react/dist/module/index.js [app-ssr] (ecmascript).
+Did you mean to import createBrowserClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/app/components/NavBar.tsx [Client Component Browser]
+    ./src/app/ClientLayout.tsx [Client Component Browser]
+    ./src/app/ClientLayout.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/components/NavBar.tsx [Client Component SSR]
+    ./src/app/ClientLayout.tsx [Client Component SSR]
+    ./src/app/ClientLayout.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+[00:00:44.601] Browser ERROR   ./src/middleware.ts:2:1
+Export createMiddlewareSupabaseClient doesn't exist in target module
+  1 | import { NextResponse } from "next/server";
+> 2 | import { createMiddlewareSupabaseClient } from "@supabase/auth-helpers-nextjs";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 |
+  4 | export async function middleware(req) {
+  5 |   const res = NextResponse.next();
+
+The export createMiddlewareSupabaseClient was not found in module [project]/node_modules/@supabase/auth-helpers-nextjs/dist/module/index.js [middleware-edge] (ecmascript).
+Did you mean to import createServerClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+[00:00:44.601] Browser ERROR   ./src/app/globals.css
+Error evaluating Node.js code
+Error: Cannot find module 'tailwindcss'
+Require stack:
+- C:\Users\JUDE\Desktop\ZENTASK-AI\client\.next\dev\build\chunks\[root-of-the-server]__6d51cb5d._.js
+- C:\Users\JUDE\Desktop\ZENTASK-AI\client\.next\dev\build\chunks\[turbopack]_runtime.js
+- C:\Users\JUDE\Desktop\ZENTASK-AI\client\.next\dev\build\postcss.js
+    [at Module._resolveFilename (node:internal/modules/cjs/loader:1410:15)]
+    [at defaultResolveImpl (node:internal/modules/cjs/loader:1051:19)]
+    [at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1056:22)]
+    [at Module._load (node:internal/modules/cjs/loader:1219:37)]
+    [at TracingChannel.traceSync (node:diagnostics_channel:322:14)]
+    [at wrapModuleLoad (node:internal/modules/cjs/loader:238:24)]
+    [at Module.require (node:internal/modules/cjs/loader:1493:12)]
+    [at require (node:internal/modules/helpers:152:16)]
+    [at <anonymous> (turbopack:///[turbopack-node]/transforms/postcss.ts:49:25)]
+    [at <anonymous>]
+
+Import trace:
+  Client Component Browser:
+    ./src/app/globals.css [Client Component Browser]
+    ./src/app/layout.tsx [Server Component]
+[00:00:44.601] Browser ERROR   ./src/app/layout.tsx:2:1
+Module not found: Can't resolve 'react-hot-toast'
+  1 | import './globals.css'
+> 2 | import { Toaster } from 'react-hot-toast'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 | import React from 'react'
+  4 | import { headers } from 'next/headers'
+  5 | import ClientLayout from './ClientLayout'
+
+https://nextjs.org/docs/messages/module-not-found
+[00:00:44.601] Browser ERROR   ./src/app/ClientProviders.tsx:3:1
+Export SessionContextProvider doesn't exist in target module
+  1 | 'use client'
+  2 | import React, { useEffect, useState } from 'react'
+> 3 | import { SessionContextProvider } from '@supabase/auth-helpers-react'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+  5 |
+  6 | export default function ClientProviders({ children }: { children: React.ReactNode }) {
+
+The export SessionContextProvider was not found in module [project]/node_modules/@supabase/auth-helpers-react/dist/module/index.js [app-client] (ecmascript).
+Did you mean to import createBrowserClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/app/ClientProviders.tsx
+    ./src/app/layout.tsx
+[00:00:44.601] Browser ERROR   ./src/app/ClientProviders.tsx:3:1
+Export SessionContextProvider doesn't exist in target module
+  1 | 'use client'
+  2 | import React, { useEffect, useState } from 'react'
+> 3 | import { SessionContextProvider } from '@supabase/auth-helpers-react'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+  5 |
+  6 | export default function ClientProviders({ children }: { children: React.ReactNode }) {
+
+The export SessionContextProvider was not found in module [project]/node_modules/@supabase/auth-helpers-react/dist/module/index.js [app-ssr] (ecmascript).
+Did you mean to import createBrowserClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/app/ClientProviders.tsx
+    ./src/app/layout.tsx
+[00:00:44.601] Browser ERROR   ./src/app/components/NavBar.tsx:5:1
+Export useSession doesn't exist in target module
+  3 | import Link from 'next/link'
+  4 | import UserMenu from './UserMenu'
+> 5 | import { useSession } from '@supabase/auth-helpers-react'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { useEffect, useRef, useState } from 'react'
+  7 | import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+  8 |
+
+The export useSession was not found in module [project]/node_modules/@supabase/auth-helpers-react/dist/module/index.js [app-client] (ecmascript).
+Did you mean to import createBrowserClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/app/components/NavBar.tsx [Client Component Browser]
+    ./src/app/ClientLayout.tsx [Client Component Browser]
+    ./src/app/ClientLayout.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/components/NavBar.tsx [Client Component SSR]
+    ./src/app/ClientLayout.tsx [Client Component SSR]
+    ./src/app/ClientLayout.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+[00:00:44.601] Browser ERROR   ./src/app/components/NavBar.tsx:5:1
+Export useSession doesn't exist in target module
+  3 | import Link from 'next/link'
+  4 | import UserMenu from './UserMenu'
+> 5 | import { useSession } from '@supabase/auth-helpers-react'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { useEffect, useRef, useState } from 'react'
+  7 | import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+  8 |
+
+The export useSession was not found in module [project]/node_modules/@supabase/auth-helpers-react/dist/module/index.js [app-ssr] (ecmascript).
+Did you mean to import createBrowserClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/app/components/NavBar.tsx [Client Component Browser]
+    ./src/app/ClientLayout.tsx [Client Component Browser]
+    ./src/app/ClientLayout.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/components/NavBar.tsx [Client Component SSR]
+    ./src/app/ClientLayout.tsx [Client Component SSR]
+    ./src/app/ClientLayout.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+[00:00:44.601] Browser ERROR   ./src/middleware.ts:2:1
+Export createMiddlewareSupabaseClient doesn't exist in target module
+  1 | import { NextResponse } from "next/server";
+> 2 | import { createMiddlewareSupabaseClient } from "@supabase/auth-helpers-nextjs";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 |
+  4 | export async function middleware(req) {
+  5 |   const res = NextResponse.next();
+
+The export createMiddlewareSupabaseClient was not found in module [project]/node_modules/@supabase/auth-helpers-nextjs/dist/module/index.js [middleware-edge] (ecmascript).
+Did you mean to import createServerClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+[00:00:44.601] Browser ERROR   ./src/app/globals.css
+Error evaluating Node.js code
+Error: Cannot find module 'tailwindcss'
+Require stack:
+- C:\Users\JUDE\Desktop\ZENTASK-AI\client\.next\dev\build\chunks\[root-of-the-server]__6d51cb5d._.js
+- C:\Users\JUDE\Desktop\ZENTASK-AI\client\.next\dev\build\chunks\[turbopack]_runtime.js
+- C:\Users\JUDE\Desktop\ZENTASK-AI\client\.next\dev\build\postcss.js
+    [at Module._resolveFilename (node:internal/modules/cjs/loader:1410:15)]
+    [at defaultResolveImpl (node:internal/modules/cjs/loader:1051:19)]
+    [at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1056:22)]
+    [at Module._load (node:internal/modules/cjs/loader:1219:37)]
+    [at TracingChannel.traceSync (node:diagnostics_channel:322:14)]
+    [at wrapModuleLoad (node:internal/modules/cjs/loader:238:24)]
+    [at Module.require (node:internal/modules/cjs/loader:1493:12)]
+    [at require (node:internal/modules/helpers:152:16)]
+    [at <anonymous> (turbopack:///[turbopack-node]/transforms/postcss.ts:49:25)]
+    [at <anonymous>]
+
+Import trace:
+  Client Component Browser:
+    ./src/app/globals.css [Client Component Browser]
+    ./src/app/layout.tsx [Server Component]
+[00:00:44.601] Browser ERROR   ./src/app/layout.tsx:2:1
+Module not found: Can't resolve 'react-hot-toast'
+  1 | import './globals.css'
+> 2 | import { Toaster } from 'react-hot-toast'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 | import React from 'react'
+  4 | import { headers } from 'next/headers'
+  5 | import ClientLayout from './ClientLayout'
+
+https://nextjs.org/docs/messages/module-not-found
+[00:00:44.601] Browser ERROR   ./src/app/ClientProviders.tsx:3:1
+Export SessionContextProvider doesn't exist in target module
+  1 | 'use client'
+  2 | import React, { useEffect, useState } from 'react'
+> 3 | import { SessionContextProvider } from '@supabase/auth-helpers-react'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+  5 |
+  6 | export default function ClientProviders({ children }: { children: React.ReactNode }) {
+
+The export SessionContextProvider was not found in module [project]/node_modules/@supabase/auth-helpers-react/dist/module/index.js [app-client] (ecmascript).
+Did you mean to import createBrowserClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/app/ClientProviders.tsx
+    ./src/app/layout.tsx
+[00:00:44.601] Browser ERROR   ./src/app/ClientProviders.tsx:3:1
+Export SessionContextProvider doesn't exist in target module
+  1 | 'use client'
+  2 | import React, { useEffect, useState } from 'react'
+> 3 | import { SessionContextProvider } from '@supabase/auth-helpers-react'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+  5 |
+  6 | export default function ClientProviders({ children }: { children: React.ReactNode }) {
+
+The export SessionContextProvider was not found in module [project]/node_modules/@supabase/auth-helpers-react/dist/module/index.js [app-ssr] (ecmascript).
+Did you mean to import createBrowserClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./src/app/ClientProviders.tsx
+    ./src/app/layout.tsx
+[00:00:44.601] Browser ERROR   ./src/app/components/NavBar.tsx:5:1
+Export useSession doesn't exist in target module
+  3 | import Link from 'next/link'
+  4 | import UserMenu from './UserMenu'
+> 5 | import { useSession } from '@supabase/auth-helpers-react'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { useEffect, useRef, useState } from 'react'
+  7 | import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+  8 |
+
+The export useSession was not found in module [project]/node_modules/@supabase/auth-helpers-react/dist/module/index.js [app-client] (ecmascript).
+Did you mean to import createBrowserClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/app/components/NavBar.tsx [Client Component Browser]
+    ./src/app/ClientLayout.tsx [Client Component Browser]
+    ./src/app/ClientLayout.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/components/NavBar.tsx [Client Component SSR]
+    ./src/app/ClientLayout.tsx [Client Component SSR]
+    ./src/app/ClientLayout.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+[00:00:44.601] Browser ERROR   ./src/app/components/NavBar.tsx:5:1
+Export useSession doesn't exist in target module
+  3 | import Link from 'next/link'
+  4 | import UserMenu from './UserMenu'
+> 5 | import { useSession } from '@supabase/auth-helpers-react'
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { useEffect, useRef, useState } from 'react'
+  7 | import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
+  8 |
+
+The export useSession was not found in module [project]/node_modules/@supabase/auth-helpers-react/dist/module/index.js [app-ssr] (ecmascript).
+Did you mean to import createBrowserClient?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./src/app/components/NavBar.tsx [Client Component Browser]
+    ./src/app/ClientLayout.tsx [Client Component Browser]
+    ./src/app/ClientLayout.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/components/NavBar.tsx [Client Component SSR]
+    ./src/app/ClientLayout.tsx [Client Component SSR]
+    ./src/app/ClientLayout.tsx [Server Component]
+    ./src/app/layout.tsx [Server Component]
