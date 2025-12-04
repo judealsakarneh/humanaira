@@ -14,10 +14,11 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const apiKey = process.env.STREAM_API_KEY!;
+    const apiKey = process.env.NEXT_PUBLIC_STREAM_KEY!;
     const secret = process.env.STREAM_SECRET!;
 
     if (!apiKey || !secret) {
+      console.error("Missing Stream vars:", { apiKey: !!apiKey, secret: !!secret });
       return NextResponse.json(
         { error: "Missing Stream environment variables" },
         { status: 500 }
