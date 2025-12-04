@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import UserMenu from './UserMenu'
-import { useSession } from '@supabase/auth-helpers-react'
+import { useSession } from '../hooks/useAuth'
 import { useEffect, useRef, useState } from 'react'
 import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
 

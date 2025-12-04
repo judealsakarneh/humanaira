@@ -1,13 +1,35 @@
 import { NextResponse } from "next/server";
-import { createMiddlewareSupabaseClient } from "@supabase/auth-helpers-nextjs";
+import type { NextRequest } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-export async function middleware(req) {
+export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
-  const supabase = createMiddlewareSupabaseClient({ req, res });
+  
+  // Create Supabase client with service role for middleware
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Missing Supabase environment variables');
+    return res;
+  }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    }
+  });
+
+  // Get session from cookies
+  const token = req.cookies.get('sb-access-token')?.value;
+  
+  let user = null;
+  if (token) {
+    const { data: { user: authUser } } = await supabase.auth.getUser(token);
+    user = authUser;
+  }
 
   // Protect messaging & orders pages
   const protectedRoutes = ["/messages", "/orders", "/inbox"];
