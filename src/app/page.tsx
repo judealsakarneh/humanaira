@@ -1245,6 +1245,12 @@ function FAQSection() {
    Footer
 --------------------------------------- */
 function Footer() {
+  const [year, setYear] = useState<number | null>(null)
+
+  useEffect(() => {
+    setYear(new Date().getFullYear())
+  }, [])
+
   return (
     <footer
       className="w-full border-t border-gray-800/80 pt-16 pb-10 relative"
@@ -1359,7 +1365,7 @@ function Footer() {
       <div className="relative mt-10 border-t border-slate-900/80 bg-transparent">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 text-[0.75rem] text-slate-500 md:px-6 md:text-xs">
           <span>
-            © {new Date().getFullYear()} Humanaira. All rights reserved.
+            © {year || '2025'} Humanaira. All rights reserved.
           </span>
           <span className="text-slate-500/80">
             Built for AI-driven work that actually ships.
