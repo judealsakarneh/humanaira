@@ -149,10 +149,23 @@ export default function ServicePage() {
       }),
     });
 
-    const body = await res.json();
-    const cid = body?.id;
+    if (!res.ok) {
+      const errorBody = await res.text();
+      console.error(`Failed to create conversation (${res.status}):`, errorBody);
+      alert(`Failed to start conversation. Please try again.`);
+      setStartingChat(false);
+      return;
+    }
 
-    if (cid) router.push(`/messages?cid=${cid}`);
+    const body = await res.json();
+    const channelId = body?.id;
+
+    if (channelId) {
+      router.push(`/messages?channel=${channelId}`);
+    } else {
+      console.error('Failed to create conversation: no ID returned', body);
+      alert(`Failed to start conversation. Please try again.`);
+    }
     setStartingChat(false);
   }, [seller, gig, slug]);
 

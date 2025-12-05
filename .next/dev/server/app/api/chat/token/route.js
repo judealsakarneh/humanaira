@@ -8,7 +8,7 @@ R.c("server/chunks/node_modules_stream-chat_dist_index_es_74aa5b78.js")
 R.c("server/chunks/node_modules_tr46_3e4df63f._.js")
 R.c("server/chunks/node_modules_@supabase_auth-js_dist_module_0e404d3a._.js")
 R.c("server/chunks/node_modules_c4ba1162._.js")
-R.c("server/chunks/[root-of-the-server]__cf7ad2c2._.js")
+R.c("server/chunks/[root-of-the-server]__950c8e75._.js")
 R.c("server/chunks/_next-internal_server_app_api_chat_token_route_actions_377320e6.js")
 R.m("[project]/node_modules/next/dist/esm/build/templates/app-route.js { INNER_APP_ROUTE => \"[project]/src/app/api/chat/token/route.ts [app-route] (ecmascript)\" } [app-route] (ecmascript)")
 module.exports=R.m("[project]/node_modules/next/dist/esm/build/templates/app-route.js { INNER_APP_ROUTE => \"[project]/src/app/api/chat/token/route.ts [app-route] (ecmascript)\" } [app-route] (ecmascript)").exports

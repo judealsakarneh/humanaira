@@ -299,9 +299,21 @@ function ServicePage() {
                 gig_id: gig.id
             })
         });
+        if (!res.ok) {
+            const errorBody = await res.text();
+            console.error(`Failed to create conversation (${res.status}):`, errorBody);
+            alert(`Failed to start conversation. Please try again.`);
+            setStartingChat(false);
+            return;
+        }
         const body = await res.json();
-        const cid = body?.id;
-        if (cid) router.push(`/messages?cid=${cid}`);
+        const channelId = body?.id;
+        if (channelId) {
+            router.push(`/messages?channel=${channelId}`);
+        } else {
+            console.error('Failed to create conversation: no ID returned', body);
+            alert(`Failed to start conversation. Please try again.`);
+        }
         setStartingChat(false);
     }, [
         seller,
@@ -314,12 +326,12 @@ function ServicePage() {
             subtitle: "Loading service…"
         }, void 0, false, {
             fileName: "[project]/src/app/services/[slug]/page.tsx",
-            lineNumber: 163,
+            lineNumber: 176,
             columnNumber: 9
         }, this)
     }, void 0, false, {
         fileName: "[project]/src/app/services/[slug]/page.tsx",
-        lineNumber: 162,
+        lineNumber: 175,
         columnNumber: 7
     }, this);
     if (!gig) return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("main", {
@@ -327,7 +339,7 @@ function ServicePage() {
         children: "Service not found."
     }, void 0, false, {
         fileName: "[project]/src/app/services/[slug]/page.tsx",
-        lineNumber: 169,
+        lineNumber: 182,
         columnNumber: 7
     }, this);
     /* ---------------- Render ---------------- */ return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("main", {
@@ -343,7 +355,7 @@ function ServicePage() {
                             children: gig.title
                         }, void 0, false, {
                             fileName: "[project]/src/app/services/[slug]/page.tsx",
-                            lineNumber: 181,
+                            lineNumber: 194,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -354,7 +366,7 @@ function ServicePage() {
                                     className: "w-12 h-12 rounded-full border border-gray-700"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/services/[slug]/page.tsx",
-                                    lineNumber: 184,
+                                    lineNumber: 197,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -364,7 +376,7 @@ function ServicePage() {
                                             children: displayName
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/services/[slug]/page.tsx",
-                                            lineNumber: 189,
+                                            lineNumber: 202,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
@@ -373,19 +385,19 @@ function ServicePage() {
                                             children: "View profile →"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/services/[slug]/page.tsx",
-                                            lineNumber: 190,
+                                            lineNumber: 203,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/services/[slug]/page.tsx",
-                                    lineNumber: 188,
+                                    lineNumber: 201,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/services/[slug]/page.tsx",
-                            lineNumber: 183,
+                            lineNumber: 196,
                             columnNumber: 11
                         }, this),
                         imageUrls[0] && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
@@ -393,7 +405,7 @@ function ServicePage() {
                             className: "rounded-xl w-full mb-6"
                         }, void 0, false, {
                             fileName: "[project]/src/app/services/[slug]/page.tsx",
-                            lineNumber: 197,
+                            lineNumber: 210,
                             columnNumber: 13
                         }, this),
                         videoUrls[0] && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("video", {
@@ -403,12 +415,12 @@ function ServicePage() {
                                 src: videoUrls[0]
                             }, void 0, false, {
                                 fileName: "[project]/src/app/services/[slug]/page.tsx",
-                                lineNumber: 202,
+                                lineNumber: 215,
                                 columnNumber: 15
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/src/app/services/[slug]/page.tsx",
-                            lineNumber: 201,
+                            lineNumber: 214,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -419,7 +431,7 @@ function ServicePage() {
                                     children: "About This Service"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/services/[slug]/page.tsx",
-                                    lineNumber: 207,
+                                    lineNumber: 220,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -427,19 +439,19 @@ function ServicePage() {
                                     children: gig.description
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/services/[slug]/page.tsx",
-                                    lineNumber: 208,
+                                    lineNumber: 221,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/services/[slug]/page.tsx",
-                            lineNumber: 206,
+                            lineNumber: 219,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/app/services/[slug]/page.tsx",
-                    lineNumber: 180,
+                    lineNumber: 193,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("aside", {
@@ -452,7 +464,7 @@ function ServicePage() {
                                 children: "Starting at"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/services/[slug]/page.tsx",
-                                lineNumber: 215,
+                                lineNumber: 228,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -460,7 +472,7 @@ function ServicePage() {
                                 children: startingPrice
                             }, void 0, false, {
                                 fileName: "[project]/src/app/services/[slug]/page.tsx",
-                                lineNumber: 216,
+                                lineNumber: 229,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -469,29 +481,29 @@ function ServicePage() {
                                 children: startingChat ? "Connecting…" : "Contact Seller"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/services/[slug]/page.tsx",
-                                lineNumber: 218,
+                                lineNumber: 231,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/services/[slug]/page.tsx",
-                        lineNumber: 214,
+                        lineNumber: 227,
                         columnNumber: 11
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/src/app/services/[slug]/page.tsx",
-                    lineNumber: 213,
+                    lineNumber: 226,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/app/services/[slug]/page.tsx",
-            lineNumber: 177,
+            lineNumber: 190,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/src/app/services/[slug]/page.tsx",
-        lineNumber: 176,
+        lineNumber: 189,
         columnNumber: 5
     }, this);
 }

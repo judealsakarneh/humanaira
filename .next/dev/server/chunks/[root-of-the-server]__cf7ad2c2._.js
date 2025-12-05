@@ -161,14 +161,14 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$supabase$2
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$headers$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/headers.js [app-route] (ecmascript)");
 ;
 ;
-function createSupabaseServer() {
-    const cookieStore = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$headers$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["cookies"])();
+async function createSupabaseServer() {
+    const cookieStore = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$headers$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["cookies"])();
     return (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$supabase$2f$ssr$2f$dist$2f$module$2f$createServerClient$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["createServerClient"])(("TURBOPACK compile-time value", "https://ekjxetwphxedvoeywebe.supabase.co"), ("TURBOPACK compile-time value", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVranhldHdwaHhlZHZvZXl3ZWJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUzOTI5OTgsImV4cCI6MjA3MDk2ODk5OH0.N6snPBUY7YX5ZVyRTTuPJ_hHJk9-iLwoyzJinZzBCMc"), {
         cookies: {
-            get (name) {
+            async get (name) {
                 return cookieStore.get(name)?.value;
             },
-            set (name, value, options) {
+            async set (name, value, options) {
                 try {
                     cookieStore.set({
                         name,
@@ -179,7 +179,7 @@ function createSupabaseServer() {
                 // Handle cookie setting errors (e.g., in middleware)
                 }
             },
-            remove (name, options) {
+            async remove (name, options) {
                 try {
                     cookieStore.set({
                         name,
@@ -209,7 +209,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$api$2f$lib$2f$
 ;
 async function GET() {
     try {
-        const supabase = (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$api$2f$lib$2f$supabaseServer$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["createSupabaseServer"])();
+        const supabase = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$api$2f$lib$2f$supabaseServer$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["createSupabaseServer"])();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
             return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({

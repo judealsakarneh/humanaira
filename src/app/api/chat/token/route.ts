@@ -1,16 +1,52 @@
 import { NextResponse } from "next/server";
 import { StreamChat } from "stream-chat";
-import { createSupabaseServer } from "@/app/api/lib/supabaseServer";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 export async function GET() {
   try {
-    const supabase = await createSupabaseServer();
+    const cookieStore = await cookies();
+    
+    // Debug: Check if auth cookies exist
+    const allCookies = cookieStore.getAll();
+    const authCookies = allCookies.filter(c => c.name.includes('auth'));
+    console.log('Auth cookies found:', authCookies.map(c => c.name));
+    
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          async get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          async set(name: string, value: string, options: any) {
+            try {
+              cookieStore.set({ name, value, ...options });
+            } catch (error) {
+              // Ignore errors in route handlers
+            }
+          },
+          async remove(name: string, options: any) {
+            try {
+              cookieStore.set({ name, value: "", ...options });
+            } catch (error) {
+              // Ignore errors in route handlers
+            }
+          },
+        },
+      }
+    );
 
     const {
       data: { user },
+      error: authError,
     } = await supabase.auth.getUser();
 
+    console.log('getUser result:', { user: user?.id, error: authError?.message });
+
     if (!user) {
+      console.error('No user found in token endpoint');
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
