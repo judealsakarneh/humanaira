@@ -12,5 +12,5 @@ R.c("server/chunks/ssr/src_app_not-found_tsx_3f23d179._.js")
 R.c("server/chunks/ssr/node_modules_next_dist_client_components_2fffaa3a._.js")
 R.c("server/chunks/ssr/node_modules_next_dist_client_components_builtin_unauthorized_15817684.js")
 R.c("server/chunks/ssr/_next-internal_server_app_seller_gigs_page_actions_8474f4f3.js")
-R.m(63316)
-module.exports=R.m(63316).exports
+R.m(363316)
+module.exports=R.m(363316).exports

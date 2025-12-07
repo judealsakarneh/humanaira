@@ -6,5 +6,5 @@ R.c("server/chunks/[root-of-the-server]__98d6514a._.js")
 R.c("server/chunks/node_modules_@supabase_b7ca2687._.js")
 R.c("server/chunks/[root-of-the-server]__b2da729a._.js")
 R.c("server/chunks/_next-internal_server_app_api_profile_me_route_actions_eecd12bd.js")
-R.m(35184)
-module.exports=R.m(35184).exports
+R.m(535184)
+module.exports=R.m(535184).exports
