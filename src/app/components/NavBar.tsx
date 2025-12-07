@@ -106,16 +106,16 @@ export default function NavBar() {
           position: absolute;
           inset: 0;
           border-radius: 0 0 18px 18px;
-          background: rgba(10, 14, 24, 0.15); /* slight tint for depth */
-          backdrop-filter: blur(28px) saturate(140%);
-          -webkit-backdrop-filter: blur(28px) saturate(140%);
+          background: rgba(10, 14, 24, 0.3); /* stronger tint for depth */
+          backdrop-filter: blur(48px) saturate(160%);
+          -webkit-backdrop-filter: blur(48px) saturate(160%);
           transition: backdrop-filter 240ms ease, background 240ms ease;
         }
 
         nav[data-scrolled='true'] .nav-blur {
-          background: rgba(10, 14, 24, 0.25);
-          backdrop-filter: blur(40px) saturate(150%);
-          -webkit-backdrop-filter: blur(40px) saturate(150%);
+          background: rgba(10, 14, 24, 0.5);
+          backdrop-filter: blur(64px) saturate(180%);
+          -webkit-backdrop-filter: blur(64px) saturate(180%);
         }
 
         .nav-bottom-edge {

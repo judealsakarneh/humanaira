@@ -287,45 +287,66 @@ export default function SellerDashboard() {
   }
 
   return (
-    <main className="relative min-h-screen bg-[#070C1A] text-slate-100 overflow-x-hidden pt-24 md:pt-28">
-      {/* Subtle gradient background accents contained by main (no horizontal scroll) */}
+    <main className="relative min-h-screen bg-gradient-to-br from-[#050812] via-[#0A0F1F] to-[#0D1328] text-slate-100 overflow-x-hidden pt-24 md:pt-28">
+      {/* Enhanced gradient background accents with animation */}
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-sky-500/20 rounded-full blur-[120px]" />
-        <div className="absolute -bottom-32 -right-24 w-[28rem] h-[28rem] bg-indigo-500/20 rounded-full blur-[120px]" />
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-sky-500/25 rounded-full blur-[140px] animate-pulse-slow" />
+        <div className="absolute -bottom-32 -right-24 w-[32rem] h-[32rem] bg-indigo-500/25 rounded-full blur-[140px] animate-pulse-slower" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40rem] h-[40rem] bg-purple-600/10 rounded-full blur-[160px]" />
       </div>
+
+      <style jsx>{`
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 0.25; transform: scale(1); }
+          50% { opacity: 0.35; transform: scale(1.05); }
+        }
+        @keyframes pulse-slower {
+          0%, 100% { opacity: 0.25; transform: scale(1); }
+          50% { opacity: 0.3; transform: scale(1.08); }
+        }
+        .animate-pulse-slow {
+          animation: pulse-slow 8s ease-in-out infinite;
+        }
+        .animate-pulse-slower {
+          animation: pulse-slower 12s ease-in-out infinite;
+        }
+      `}</style>
 
       <div className="mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-10">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">Freelancer Dashboard</h1>
+              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white bg-gradient-to-r from-white via-sky-200 to-indigo-300 bg-clip-text text-transparent">
+                Freelancer Dashboard
+              </h1>
               {payoutMethod && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-200 border border-slate-700">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-sky-500/20 to-indigo-500/20 text-sky-200 border border-sky-500/30 shadow-lg shadow-sky-500/10">
+                  <span className="mr-1.5">💳</span>
                   Payout: {payoutMethod === 'paypal' ? `PayPal` : `Bank`}
                 </span>
               )}
             </div>
-            <p className="text-slate-400">Track performance, manage payouts, and grow your services.</p>
+            <p className="text-slate-400 text-base">Track performance, manage payouts, and grow your services.</p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={openWithdraw}
-              className="px-5 py-2.5 rounded-lg font-semibold bg-indigo-600 text-white hover:bg-indigo-500 transition shadow-lg shadow-indigo-500/20"
+              className="px-5 py-2.5 rounded-lg font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-500 hover:to-purple-500 transition shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 transform hover:scale-105 active:scale-95"
             >
-              Withdraw
+              💰 Withdraw
             </button>
             <Link
               href="/account/settings"
-              className="px-5 py-2.5 rounded-lg font-semibold bg-slate-800 text-white hover:bg-slate-700 transition"
+              className="px-5 py-2.5 rounded-lg font-semibold bg-slate-800/80 text-white hover:bg-slate-700 transition border border-slate-600/50 hover:border-sky-500/50 shadow-lg"
             >
-              Payout Settings
+              ⚙️ Payout Settings
             </Link>
             <Link
               href="/seller/gigs/new"
-              className="px-5 py-2.5 rounded-lg font-semibold bg-slate-800 text-white hover:bg-slate-700 transition"
+              className="px-5 py-2.5 rounded-lg font-semibold bg-gradient-to-r from-sky-600 to-blue-600 text-white hover:from-sky-500 hover:to-blue-500 transition shadow-lg shadow-sky-500/30 hover:shadow-sky-500/50 transform hover:scale-105 active:scale-95"
             >
-              + Post New Gig
+              ✨ Post New Gig
             </Link>
           </div>
         </div>
@@ -345,27 +366,34 @@ export default function SellerDashboard() {
         </section>
 
         {/* Earnings Overview with working chart */}
-        <section className="bg-[#0D1328]/80 border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-10">
-          <div className="flex items-center justify-between mb-4">
+        <section className="bg-gradient-to-br from-[#0D1328]/95 via-[#0F1535]/95 to-[#0D1328]/95 border border-slate-700/60 rounded-3xl p-8 shadow-2xl mb-10 backdrop-blur-sm relative overflow-hidden group">
+          {/* Animated glow effect */}
+          <div className="absolute inset-0 bg-gradient-to-br from-sky-500/5 via-transparent to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          
+          <div className="flex items-center justify-between mb-6 relative z-10">
             <div>
-              <h2 className="text-xl font-bold text-white">Earnings Overview</h2>
-              <p className="text-sm text-slate-400">Revenue over the last 12 weeks</p>
+              <h2 className="text-2xl font-bold text-white bg-gradient-to-r from-white to-sky-200 bg-clip-text text-transparent flex items-center gap-2">
+                📊 Earnings Overview
+              </h2>
+              <p className="text-sm text-slate-400 mt-1">Revenue trajectory over the last 12 weeks</p>
             </div>
-            <div className="text-right">
-              <div className="text-sm text-slate-400">Total (12w)</div>
-              <div className="text-2xl font-extrabold text-sky-400">{fmtMoney(periodTotalCents)}</div>
+            <div className="text-right bg-gradient-to-br from-sky-500/10 to-indigo-500/10 rounded-xl px-5 py-3 border border-sky-500/20">
+              <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Total (12w)</div>
+              <div className="text-3xl font-extrabold bg-gradient-to-r from-sky-400 to-indigo-400 bg-clip-text text-transparent">
+                {fmtMoney(periodTotalCents)}
+              </div>
             </div>
           </div>
 
           <RevenueAreaChart series={weeklySeries} maxVal={seriesMax} />
 
-          <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-slate-300">
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-slate-300 relative z-10">
             {weeklySeries.map((p) => (
               <div
                 key={p.label}
-                className="flex items-center justify-between bg-[#0B1024] border border-slate-700/40 rounded-lg px-3 py-2"
+                className="flex items-center justify-between bg-[#0B1024]/80 border border-slate-700/50 rounded-lg px-3 py-2.5 hover:border-sky-500/40 hover:bg-[#0C1228] transition-all duration-200 backdrop-blur-sm"
               >
-                <span className="text-slate-400">{p.label}</span>
+                <span className="text-slate-400 text-xs">{p.label}</span>
                 <span className="font-semibold text-slate-100">{fmtMoney(p.totalCents)}</span>
               </div>
             ))}
@@ -373,22 +401,28 @@ export default function SellerDashboard() {
         </section>
 
         {/* Gigs Table */}
-        <section className="bg-[#0D1328]/80 border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-10">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-white">Your Gigs</h2>
-            <Link href="/seller/gigs/new" className="text-sky-400 hover:text-sky-300 font-semibold">
-              + Add Gig
+        <section className="bg-gradient-to-br from-[#0D1328]/95 via-[#0F1535]/95 to-[#0D1328]/95 border border-slate-700/60 rounded-3xl p-8 shadow-2xl mb-10 backdrop-blur-sm relative overflow-hidden">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-white bg-gradient-to-r from-white to-sky-200 bg-clip-text text-transparent flex items-center gap-2">
+              🎯 Your Gigs
+            </h2>
+            <Link 
+              href="/seller/gigs/new" 
+              className="text-sky-400 hover:text-sky-300 font-semibold transition-colors flex items-center gap-2 px-4 py-2 rounded-lg border border-sky-500/30 hover:border-sky-500/50 hover:bg-sky-500/10"
+            >
+              <span>✨</span>
+              <span>Add Gig</span>
             </Link>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-xl border border-slate-700/40">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="text-left text-slate-300/90 border-b border-slate-700/50">
-                  <th className="py-2 px-2">Title</th>
-                  <th className="py-2 px-2">Status</th>
-                  <th className="py-2 px-2">Orders</th>
-                  <th className="py-2 px-2">Views</th>
-                  <th className="py-2 px-2"></th>
+                <tr className="text-left text-slate-300 border-b border-slate-700/60 bg-[#0A0F1F]/60">
+                  <th className="py-3 px-4 font-semibold">Title</th>
+                  <th className="py-3 px-4 font-semibold">Status</th>
+                  <th className="py-3 px-4 font-semibold">Orders</th>
+                  <th className="py-3 px-4 font-semibold">Views</th>
+                  <th className="py-3 px-4 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -398,27 +432,27 @@ export default function SellerDashboard() {
                   const perGigOrders = ordersByGig[gig.id] || 0
                   const perGigViews = viewsByGig[gig.id] || 0
                   return (
-                    <tr key={gig.id} className="border-b border-slate-800/40 hover:bg-[#0B1024] transition">
-                      <td className="py-2 px-2 font-semibold text-white">{gig.title}</td>
-                      <td className="py-2 px-2">
+                    <tr key={gig.id} className="border-b border-slate-800/40 hover:bg-[#0B1024]/60 transition-colors">
+                      <td className="py-3 px-4 font-semibold text-white">{gig.title}</td>
+                      <td className="py-3 px-4">
                         <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                          className={`px-3 py-1 rounded-full text-xs font-bold ${
                             isActive
-                              ? 'bg-emerald-900/40 text-emerald-200 border border-emerald-800/60'
-                              : 'bg-amber-900/30 text-amber-200 border border-amber-800/60'
+                              ? 'bg-emerald-900/40 text-emerald-300 border border-emerald-700/60 shadow-emerald-500/20 shadow-sm'
+                              : 'bg-amber-900/30 text-amber-300 border border-amber-700/60'
                           }`}
                         >
                           {statusText}
                         </span>
                       </td>
-                      <td className="py-2 px-2 text-slate-100">{perGigOrders}</td>
-                      <td className="py-2 px-2 text-slate-100">{perGigViews}</td>
-                      <td className="py-2 px-2">
+                      <td className="py-3 px-4 text-slate-100 font-medium">{perGigOrders}</td>
+                      <td className="py-3 px-4 text-slate-100 font-medium">{perGigViews}</td>
+                      <td className="py-3 px-4">
                         <div className="flex gap-3">
-                          <Link href={`/services/${gig.slug ?? gig.id}`} className="text-sky-400 hover:text-sky-300">
+                          <Link href={`/services/${gig.slug ?? gig.id}`} className="text-sky-400 hover:text-sky-300 font-medium transition-colors">
                             View
                           </Link>
-                          <Link href={`/seller/gigs/${gig.slug ?? gig.id}/edit`} className="text-sky-400 hover:text-sky-300">
+                          <Link href={`/seller/gigs/${gig.slug ?? gig.id}/edit`} className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
                             Edit
                           </Link>
                         </div>
@@ -428,8 +462,14 @@ export default function SellerDashboard() {
                 })}
                 {gigs.length === 0 && (
                   <tr>
-                    <td className="py-8 px-2 text-center text-slate-300" colSpan={5}>
-                      You haven’t posted any gigs yet.
+                    <td className="py-12 px-4 text-center text-slate-300" colSpan={5}>
+                      <div className="flex flex-col items-center gap-3">
+                        <span className="text-4xl opacity-40">📦</span>
+                        <p>You haven't posted any gigs yet.</p>
+                        <Link href="/seller/gigs/new" className="mt-2 px-5 py-2 rounded-lg bg-sky-600 text-white font-semibold hover:bg-sky-500 transition">
+                          Create Your First Gig
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -638,29 +678,50 @@ function KPI({
   accent: 'sky' | 'violet' | 'emerald' | 'amber' | 'indigo' | 'fuchsia'
 }) {
   const ring = {
-    sky: 'ring-sky-500/30',
-    violet: 'ring-violet-500/30',
-    emerald: 'ring-emerald-500/30',
-    amber: 'ring-amber-500/30',
-    indigo: 'ring-indigo-500/30',
-    fuchsia: 'ring-fuchsia-500/30',
+    sky: 'ring-sky-500/40',
+    violet: 'ring-violet-500/40',
+    emerald: 'ring-emerald-500/40',
+    amber: 'ring-amber-500/40',
+    indigo: 'ring-indigo-500/40',
+    fuchsia: 'ring-fuchsia-500/40',
   }[accent]
 
   const gradient = {
-    sky: 'from-sky-600/20 to-transparent',
-    violet: 'from-violet-600/20 to-transparent',
-    emerald: 'from-emerald-600/20 to-transparent',
-    amber: 'from-amber-600/20 to-transparent',
-    indigo: 'from-indigo-600/20 to-transparent',
-    fuchsia: 'from-fuchsia-600/20 to-transparent',
+    sky: 'from-sky-600/30 via-sky-500/15 to-transparent',
+    violet: 'from-violet-600/30 via-violet-500/15 to-transparent',
+    emerald: 'from-emerald-600/30 via-emerald-500/15 to-transparent',
+    amber: 'from-amber-600/30 via-amber-500/15 to-transparent',
+    indigo: 'from-indigo-600/30 via-indigo-500/15 to-transparent',
+    fuchsia: 'from-fuchsia-600/30 via-fuchsia-500/15 to-transparent',
+  }[accent]
+
+  const iconGlow = {
+    sky: 'text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.6)]',
+    violet: 'text-violet-400 drop-shadow-[0_0_8px_rgba(167,139,250,0.6)]',
+    emerald: 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]',
+    amber: 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]',
+    indigo: 'text-indigo-400 drop-shadow-[0_0_8px_rgba(129,140,248,0.6)]',
+    fuchsia: 'text-fuchsia-400 drop-shadow-[0_0_8px_rgba(232,121,249,0.6)]',
+  }[accent]
+
+  const icon = {
+    sky: '💵',
+    violet: '⏳',
+    emerald: '💰',
+    amber: '✅',
+    indigo: '🎯',
+    fuchsia: '👁️',
   }[accent]
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl bg-[#0D1328]/80 border border-slate-700/50 p-5 shadow-xl ring-1 ${ring}`}>
-      <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${gradient}`} />
+    <div className={`relative overflow-hidden rounded-2xl bg-[#0D1328]/90 border border-slate-700/60 p-6 shadow-2xl ring-1 ${ring} backdrop-blur-sm transform transition-all duration-300 hover:scale-105 hover:shadow-3xl group`}>
+      <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${gradient} opacity-80 group-hover:opacity-100 transition-opacity`} />
+      <div className="absolute top-3 right-3 text-2xl opacity-40 group-hover:opacity-60 transition-opacity">
+        <span className={iconGlow}>{icon}</span>
+      </div>
       <div className="relative">
-        <div className="text-sm text-slate-400">{title}</div>
-        <div className="mt-1 text-2xl font-extrabold text-white">{value}</div>
+        <div className="text-sm text-slate-400 font-medium tracking-wide uppercase mb-2">{title}</div>
+        <div className="mt-1 text-3xl font-extrabold text-white drop-shadow-[0_2px_8px_rgba(255,255,255,0.15)]">{value}</div>
       </div>
     </div>
   )
