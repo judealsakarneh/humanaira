@@ -314,7 +314,7 @@ export default function UserMenu({ user, avatarUrl, username }: Props) {
             className="w-full text-left flex items-center space-x-3 px-3 py-2 rounded-lg text-blue-100 text-sm font-medium transition duration-150 hover:bg-sky-500/15 hover:text-sky-300"
           >
             <IconPlus />
-            <span>Post a New Gig</span>
+            <span>Post a New Service</span>
           </Link>
 
           <div className="border-t border-slate-700/50 mt-2 pt-1">
