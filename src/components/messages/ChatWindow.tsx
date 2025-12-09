@@ -10,6 +10,16 @@ import {
 } from '../../lib/messaging'
 import { Client as TwilioClient } from '@twilio/conversations'
 
+// Subscription status constants
+const SUBSCRIPTION_STATUS = {
+  SUBSCRIBED: 'SUBSCRIBED',
+  CHANNEL_ERROR: 'CHANNEL_ERROR',
+  TIMED_OUT: 'TIMED_OUT',
+  CLOSED: 'CLOSED',
+} as const
+
+type SubscriptionStatus = typeof SUBSCRIPTION_STATUS[keyof typeof SUBSCRIPTION_STATUS]
+
 type Conversation = {
   id: string
   gig_id?: string | null
@@ -114,24 +124,49 @@ userId: ${userId}
 
     loadMessages()
 
+    // Set up real-time subscription for new messages
     const channel = supabase
-      .channel(`public:messages:conversation=${conversation.id}`)
+      .channel(`messages-${conversation.id}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversation.id}` },
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'messages', 
+          filter: `conversation_id=eq.${conversation.id}` 
+        },
         (payload: any) => {
+          console.log('[DEBUG] Real-time payload received:', payload)
           const newMsg = payload.new as MessageRow
-          setMessages((prev) => [...prev, newMsg])
-          setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }), 100)
-          console.log('[DEBUG] New Supabase message received:', newMsg)
+          if (mounted) {
+            setMessages((prev) => {
+              // Prevent duplicates
+              if (prev.some(m => m.id === newMsg.id)) {
+                console.log('[DEBUG] Duplicate message, skipping:', newMsg.id)
+                return prev
+              }
+              console.log('[DEBUG] Adding new message to state:', newMsg)
+              return [...prev, newMsg]
+            })
+            setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }), 100)
+          }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('[DEBUG] Subscription status:', status)
+        if (status === SUBSCRIPTION_STATUS.SUBSCRIBED) {
+          console.log('[DEBUG] Successfully subscribed to messages channel')
+        } else if (status === SUBSCRIPTION_STATUS.CHANNEL_ERROR) {
+          console.error('[DEBUG] Channel error - check RLS policies and realtime settings')
+        } else if (status === SUBSCRIPTION_STATUS.TIMED_OUT) {
+          console.error('[DEBUG] Subscription timed out')
+        }
+      })
 
     return () => {
+      console.log('[DEBUG] Unsubscribing from messages channel')
       supabase.removeChannel(channel)
       mounted = false
-      console.log('[DEBUG] Unmounted Supabase messages subscription')
     }
   }, [supabase, conversation, twilioMessages.length])
 
@@ -158,32 +193,62 @@ userId: ${userId}
 
     loadRequests()
 
+    // Set up real-time subscription for payment requests
     const channel = supabase
-      .channel(`public:payment_requests:conversation=${conversation.id}`)
+      .channel(`payment-requests-${conversation.id}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'payment_requests', filter: `conversation_id=eq.${conversation.id}` },
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'payment_requests', 
+          filter: `conversation_id=eq.${conversation.id}` 
+        },
         (payload: any) => {
+          console.log('[DEBUG] Real-time payment request INSERT:', payload)
           const newRow = payload.new as PaymentRequestRow
-          setPaymentRequests((prev) => [...prev, newRow])
-          console.log('[DEBUG] New payment request received:', newRow)
+          if (mounted) {
+            setPaymentRequests((prev) => {
+              // Prevent duplicates
+              if (prev.some(r => r.id === newRow.id)) {
+                console.log('[DEBUG] Duplicate payment request, skipping:', newRow.id)
+                return prev
+              }
+              console.log('[DEBUG] Adding new payment request to state:', newRow)
+              return [...prev, newRow]
+            })
+          }
         }
       )
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'payment_requests', filter: `conversation_id=eq.${conversation.id}` },
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'payment_requests', 
+          filter: `conversation_id=eq.${conversation.id}` 
+        },
         (payload: any) => {
+          console.log('[DEBUG] Real-time payment request UPDATE:', payload)
           const updated = payload.new as PaymentRequestRow
-          setPaymentRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
-          console.log('[DEBUG] Payment request updated:', updated)
+          if (mounted) {
+            setPaymentRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+          }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('[DEBUG] Payment requests subscription status:', status)
+        if (status === SUBSCRIPTION_STATUS.SUBSCRIBED) {
+          console.log('[DEBUG] Successfully subscribed to payment requests channel')
+        } else if (status === SUBSCRIPTION_STATUS.CHANNEL_ERROR) {
+          console.error('[DEBUG] Payment requests channel error - check RLS policies and realtime settings')
+        }
+      })
 
     return () => {
+      console.log('[DEBUG] Unsubscribing from payment requests channel')
       supabase.removeChannel(channel)
       mounted = false
-      console.log('[DEBUG] Unmounted payment requests subscription')
     }
   }, [supabase, conversation])
 
