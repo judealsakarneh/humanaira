@@ -1,4 +1,4 @@
-import PremiumLoader from '../../../components/PremiumLoader'
+import PremiumLoader from '@/components/PremiumLoader'
 
 export default function Loading() {
   return <PremiumLoader text="Loading editor..." />
