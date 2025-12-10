@@ -9,7 +9,7 @@ const PAYOUT_MIN_CENTS = Number(process.env.PAYOUT_MIN_CENTS || 1000) // $10 def
 
 export async function POST(req: Request) {
   try {
-    const supabase = createSupabaseServer()
+    const supabase = await createSupabaseServer()
     const { data: userRes } = await supabase.auth.getUser()
     if (!userRes?.user) return NextResponse.json({ ok: false, error: 'Login required' }, { status: 401 })
     const sellerId = userRes.user.id

@@ -2,58 +2,42 @@
 import { useEffect, useState } from 'react'
 import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
 import Link from 'next/link'
-import type { User } from '@supabase/supabase-js'
+import { useSession } from '@supabase/auth-helpers-react'
 
 const HeartIcon = () => <span className="text-pink-400">❤️</span>
 const LoaderIcon = () => <div className="animate-spin h-6 w-6 border-4 border-t-4 border-sky-500 border-t-transparent rounded-full"></div>
 const EmptyIcon = () => <span className="text-4xl">✨</span>
 
 export default function SavedGigsPage() {
-  const [user, setUser] = useState<User | null | undefined>(undefined)
+  const session = useSession()
   const [saved, setSaved] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createSupabaseBrowser()
-
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user || null)
-    })
-
-    // Listen for auth changes
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null)
-    })
-
-    return () => {
-      listener?.subscription.unsubscribe()
-    }
-  }, [supabase])
 
   useEffect(() => {
     async function fetchSaved() {
-      if (!user) {
+      if (!session?.user) {
         setSaved([])
         setLoading(false)
         return
       }
       setLoading(true)
+      const supabase = createSupabaseBrowser()
       const { data } = await supabase
         .from('saved_gigs')
         .select('id, gig_id, created_at, gigs(*)')
-        .eq('user_id', user.id)
+        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false })
       setSaved(data || [])
       setLoading(false)
     }
-    // Only fetch if user state is loaded (not undefined)
-    if (user !== undefined) {
+    // Only fetch if session is loaded (not undefined)
+    if (session !== undefined) {
       fetchSaved()
     }
-  }, [user, supabase])
+  }, [session])
 
   // 1. Show loader until session is loaded
-  if (user === undefined) {
+  if (session === undefined) {
     return (
       <main className="min-h-screen bg-[#030712] flex items-center justify-center font-inter p-4">
         <div className="flex items-center space-x-3 text-xl font-medium text-sky-400">
@@ -64,8 +48,8 @@ export default function SavedGigsPage() {
     )
   }
 
-  // 2. Show "Access Restricted" only if user state is loaded and user is not signed in
-  if (!user) {
+  // 2. Show "Access Restricted" only if session is loaded and user is not signed in
+  if (!session?.user) {
     return (
       <main className="min-h-screen bg-[#030712] flex items-center justify-center font-inter p-4">
         <div className="bg-[#0f172a] max-w-md w-full p-10 rounded-2xl shadow-2xl border border-sky-800/50 text-center">

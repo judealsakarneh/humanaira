@@ -3,10 +3,10 @@ import Stripe from 'stripe'
 import { createSupabaseServer } from '../../lib/supabaseServer'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-const PLATFORM_FEE_PERCENT = Number(process.env.PLATFORM_FEE_PERCENT || 7)
+const PLATFORM_FEE_PERCENT = Number(process.env.PLATFORM_FEE_PERCENT || 20)
 
 export async function POST(req: Request) {
-  const supabase = createSupabaseServer()
+  const supabase = await createSupabaseServer()
   const { data: userRes } = await supabase.auth.getUser()
   if (!userRes?.user) return NextResponse.json({ ok: false, error: 'Login required' }, { status: 401 })
   const buyer = userRes.user

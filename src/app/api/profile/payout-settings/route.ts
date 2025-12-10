@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
   try {
-    const supabase = createSupabaseServer()
+    const supabase = await createSupabaseServer()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ ok: false, error: 'Login required' }, { status: 401 })

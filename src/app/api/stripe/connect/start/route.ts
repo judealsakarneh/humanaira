@@ -14,7 +14,7 @@ export async function POST() {
       return NextResponse.json({ ok: false, error: 'Payments not configured' }, { status: 500 })
     }
 
-    const supabase = createSupabaseServer()
+    const supabase = await createSupabaseServer()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ ok: false, error: 'Login required' }, { status: 401 })
 
