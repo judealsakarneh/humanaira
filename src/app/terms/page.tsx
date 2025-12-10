@@ -215,7 +215,7 @@ export default function TermsPage() {
       </div>
 
       {/* Global styles for dark theme look */}
-      <style jsx global>{`
+      <style dangerouslySetInnerHTML={{__html: `
         body {
           background-color: #030712;
           color: #f1f5f9;
@@ -235,7 +235,7 @@ export default function TermsPage() {
         ::-webkit-scrollbar-track {
           background: #1f2937;
         }
-      `}</style>
+      `}} />
     </main>
   )
 }
