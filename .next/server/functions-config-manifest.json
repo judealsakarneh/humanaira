@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "functions": {
+    "/api/conversations/create-from-order": {},
+    "/api/checkout": {},
+    "/api/payments/create-session": {},
+    "/api/conversations": {},
+    "/api/profile/payout-settings": {},
+    "/api/payouts/request": {},
+    "/api/report-service": {},
+    "/api/stripe/create-session": {},
+    "/api/stripe/connect/start": {},
+    "/api/subscribe": {},
+    "/api/stripe/webhook": {}
+  }
+}

@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 export default async function GigPage({ params }: PageProps<"/gigs/[slug]">) {
   const { slug } = await params
-  const supabase = createSupabaseServer()
+  const supabase = await createSupabaseServer()
   const { data: gig } = await supabase
     .from('gigs')
     .select('id,title,description,cover_image_url,media_urls,seller_id,category')
