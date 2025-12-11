@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     let isNewChannel = false;
 
     try {
-      await channel.create({ created_by: { id: user.id } });
+      await channel.create();
       isNewChannel = true;
     } catch (err: any) {
       const alreadyExists =
