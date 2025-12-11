@@ -22,6 +22,5 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-
-client/.next
-client/.env.local
+.next
+.env.local
