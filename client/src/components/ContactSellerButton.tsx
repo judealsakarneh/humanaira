@@ -33,6 +33,24 @@ export default function ContactSellerButton({ gig, className }: { gig: Gig; clas
         buyerId: user.id,
       })
 
+      // Send initial message if it's a new conversation
+      // The message will be picked up by realtime subscription in the messages page
+      const initialText = `Hi! I'm interested in "${gig.title || 'your service'}".`
+      
+      try {
+        // Import sendMessage dynamically to avoid circular dependencies
+        const { sendMessage } = await import('@/lib/messaging')
+        await sendMessage({
+          conversationId: conv.id,
+          text: initialText,
+          attachments: [],
+          isSystem: false,
+        })
+      } catch (msgErr) {
+        console.error('Failed to send initial message', msgErr)
+        // Continue anyway - user can send message manually
+      }
+
       // redirect to messages page and auto-open conversation
       router.push(`/messages?conv=${conv.id}`)
     } catch (err) {
