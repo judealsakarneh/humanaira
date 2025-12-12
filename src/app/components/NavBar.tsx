@@ -2,33 +2,35 @@
 
 import Link from 'next/link'
 import UserMenu from './UserMenu'
+import { useSession } from '@supabase/auth-helpers-react'
 import { useEffect, useRef, useState } from 'react'
 import { createSupabaseBrowser } from '../api/lib/supabaseBrowser'
-import type { User } from '@supabase/supabase-js'
 
 export default function NavBar() {
-  const [user, setUser] = useState<User | null>(null)
+  const session = useSession()
+  const [user, setUser] = useState(session?.user || null)
   const [profile, setProfile] = useState<any>(null)
   const [scrolled, setScrolled] = useState(false)
   const supabase = createSupabaseBrowser()
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user || null)
+    setUser(session?.user || null)
+
+    async function fetchProfile() {
       if (session?.user) {
-        supabase
+        const { data, error } = await supabase
           .from('profiles')
           .select('username, avatar_url')
           .eq('id', session.user.id)
           .single()
-          .then(({ data, error }) => {
-            if (!error && data) setProfile(data)
-          })
+        if (!error && data) setProfile(data)
+      } else {
+        setProfile(null)
       }
-    })
+    }
 
-    // Listen for auth changes
+    fetchProfile()
+
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null)
       if (session?.user) {
@@ -49,7 +51,7 @@ export default function NavBar() {
     return () => {
       listener?.subscription.unsubscribe()
     }
-  }, [supabase])
+  }, [session, supabase])
 
   useEffect(() => {
     if (typeof window === 'undefined') return

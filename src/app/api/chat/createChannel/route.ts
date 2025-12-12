@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing freelancerId" }, { status: 400 });
     }
 
-    const supabase = createSupabaseServer();
+    const supabase = await createSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     let isNewChannel = false;
 
     try {
-      await channel.create({ created_by: { id: user.id } });
+      await channel.create();
       isNewChannel = true;
     } catch (err: any) {
       const alreadyExists =

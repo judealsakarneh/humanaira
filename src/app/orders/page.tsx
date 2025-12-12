@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { createSupabaseServer } from '../api/lib/supabaseServer'
 
 export default async function Orders() {
-  const supabase = createSupabaseServer()
+  const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return <div className="p-10">Please <a className="underline" href="/login">login</a>.</div>
 
