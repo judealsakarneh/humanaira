@@ -401,7 +401,7 @@ function Hero() {
         </div>
 
         {/* Main hero CTAs using persona language */}
-        <div className="flex flex-wrap gap-4 justify-center items-center font-medium">
+        <div className="flex flex-wrap gap-4 justify-center items-center font-medium relative z-10">
           <Link
             href="/browse"
             className="inline-block px-5 py-2.5 rounded-lg bg-gray-800/80 border border-gray-700 text-[#35BFFF] hover:text-[#2fb2ff] hover:border-[rgba(53,191,255,0.28)] transition text-sm"
