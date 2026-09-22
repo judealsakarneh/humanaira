@@ -1,12 +1,14 @@
 {
-  "name": "zentask-ai-client",
+  "name": "humanaira",
   "version": "0.1.0",
   "private": true,
+  "description": "A two-sided freelance services marketplace with Stripe Connect split payouts and realtime messaging.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@react-three/drei": "^9.105.4",
@@ -26,10 +28,6 @@
     "framer-motion": "^12.23.22",
     "multer": "^2.0.2",
     "next": "15.5.8",
-    "express": "^4.18.2",
-    "framer-motion": "^11.2.0",
-    "multer": "^1.4.5-lts.1",
-    "next": "^15.5.8",
     "nodemailer": "^7.0.11",
     "react": "18.3.1",
     "react-dom": "18.3.1",
