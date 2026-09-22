@@ -1,70 +1,169 @@
-# Getting Started with Create React App
+<div align="center">
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+<img src="public/logo.png" alt="Humanaira" width="88" />
 
-## Available Scripts
+# Humanaira
 
-In the project directory, you can run:
+**A two-sided freelance services marketplace.**
+Buyers commission work, sellers get paid, and the platform takes its cut — handled end to end with Stripe Connect.
 
-### `npm start`
+[**Live site →**](https://humanaira.vercel.app)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+![Next.js](https://img.shields.io/badge/Next.js-15-000?logo=next.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%7C%20Auth%20%7C%20Realtime-3ECF8E?logo=supabase&logoColor=white)
+![Stripe Connect](https://img.shields.io/badge/Stripe-Connect-635BFF?logo=stripe&logoColor=white)
+![Tailwind](https://img.shields.io/badge/Tailwind-3-06B6D4?logo=tailwindcss&logoColor=white)
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+</div>
 
-### `npm test`
+---
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## What it does
 
-### `npm run build`
+Humanaira is a marketplace, not a storefront — which means money moves between three
+parties instead of two, and most of the engineering lives in that difference.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+| | |
+|---|---|
+| **Buyers** | Browse and search gigs, commission work, pay by card, track orders, message sellers, save listings |
+| **Sellers** | Onboard to payments, publish and edit gigs, manage incoming orders, request payouts, run a dashboard |
+| **Platform** | Takes a configurable commission on every transaction, automatically, at the moment of payment |
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+---
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## The interesting part: marketplace payments
 
-### `npm run eject`
+A normal checkout moves money from a customer to you. A marketplace has to split one
+payment between the seller and the platform, and it has to do that without the platform
+ever holding the seller's money — which is a regulated activity in most jurisdictions.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+This is solved with **Stripe Connect Express accounts**, one per seller:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```
+Buyer pays $100
+      │
+      ▼
+Stripe Checkout Session
+  payment_intent_data:
+    application_fee_amount: 2000        ← platform commission, split at source
+    transfer_data.destination: acct_…   ← the seller's own Connect account
+      │
+      ├──► $80 lands in the seller's Stripe account
+      └──► $20 lands in the platform's
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+The split happens **inside Stripe**, at the moment of payment. The platform never
+custodies the seller's funds, so there is no float to reconcile and no payout ledger
+to get wrong.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+**Details worth pointing at:**
 
-## Learn More
+- **Seller onboarding is idempotent.** `POST /api/stripe/connect/start` creates an Express
+  account only if the profile has not got one, then returns a fresh onboarding link. Calling
+  it twice does not create two accounts.
+- **Live and test accounts are stored in separate columns** (`stripe_account_id_live`,
+  `stripe_account_id_test`). A Connect account created in test mode is meaningless in live
+  mode, so collapsing them into one column silently breaks the moment you flip environments.
+- **The commission rate is configuration, not a constant** — `PLATFORM_FEE_PERCENT`, read at
+  the point of charge, so changing it does not require a deploy of new pricing logic.
+- **Fulfilment is driven by webhook, not by the browser.** An order is marked paid when
+  Stripe sends `checkout.session.completed`, not when the buyer lands on the success page —
+  because the buyer closing their laptop mid-redirect must not lose the order.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+---
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Architecture
 
-### Code Splitting
+```
+src/app/
+├── (public)              browse · gigs/[slug] · about · help · legal
+├── account/              profile, settings, saved gigs
+├── seller/               dashboard · gigs CRUD · orders · payouts
+├── orders/ · order/[id]  buyer-side order tracking
+├── messages/             realtime conversations
+└── api/
+    ├── stripe/
+    │   ├── connect/start     create or reuse a seller's Express account
+    │   ├── create-session    checkout with application_fee + transfer_data
+    │   └── webhook           signature-verified fulfilment
+    ├── checkout/             order and add-on purchase flows
+    ├── payouts/request       seller-initiated withdrawal
+    ├── conversations/        thread creation, incl. straight from an order
+    ├── gigs/ · reviews/      listing and rating
+    └── profile/              init, me, payout settings
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+**Stack**
 
-### Analyzing the Bundle Size
+- **Next.js 15 (App Router)** — server components for data-heavy pages, route handlers for the API
+- **TypeScript** throughout
+- **Supabase** — Postgres, Auth, Row Level Security, and Realtime for message delivery
+- **Stripe Connect** — Express accounts, split payments, webhooks
+- **Tailwind CSS** for styling; **Framer Motion**, **Rive** and **react-three-fiber** for motion
+- **Resend** for transactional email
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+---
 
-### Making a Progressive Web App
+## Security model
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+Worth stating plainly, because a marketplace gets this wrong more often than not:
 
-### Advanced Configuration
+- **The Supabase service role key bypasses every Row Level Security policy.** It is read only
+  in server-side route handlers and is never prefixed `NEXT_PUBLIC_`, so it cannot reach the
+  browser bundle.
+- **Stripe webhooks are signature-verified** against `STRIPE_WEBHOOK_SECRET` before anything
+  is written. An unverified webhook endpoint is an open door to marking any order paid.
+- **Card details never touch this application.** Payment is handed to Stripe Checkout; the app
+  sees a session id and a webhook, never a card number.
+- **Every secret comes from the environment.** `.env.local` is gitignored, and `.env.example`
+  documents the shape without the values.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+---
 
-### Deployment
+## Running it locally
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```bash
+git clone https://github.com/judealsakarneh/humanaira
+cd humanaira
+npm install --legacy-peer-deps
 
-### `npm run build` fails to minify
+cp .env.example .env.local     # then fill in your own keys
+npm run dev                    # http://localhost:3000
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+You will need a Supabase project and a Stripe account in **test mode**. Use Stripe's
+`4242 4242 4242 4242` test card; nothing in this repo should ever be pointed at live keys
+during development.
+
+To exercise webhooks locally:
+
+```bash
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+```
+
+```bash
+npm run build       # production build
+npm run typecheck   # tsc --noEmit
+npm run lint
+```
+
+---
+
+## Project status
+
+Built solo, and honest about where it stands:
+
+- **Working** — auth, gig listing and search, checkout, Stripe Connect onboarding, split
+  payments, webhook fulfilment, order tracking, realtime messaging, seller dashboard
+- **In progress** — payout request flow, review moderation, test coverage
+- **Known** — the `client/` directory is an earlier copy of the app kept during a
+  restructure; the live build is the root `src/` tree
+
+Further notes and working documents live in [`docs/`](docs/).
+
+---
+
+<div align="center">
+<sub>Built by <a href="https://github.com/judealsakarneh">Jude Al Sakarneh</a></sub>
+</div>
